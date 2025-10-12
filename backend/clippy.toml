@@ -1,0 +1,36 @@
+# Clippy Configuration for DocPat Backend
+# See: https://doc.rust-lang.org/clippy/lint_configuration.html
+
+# Allow certain lints
+avoid-breaking-exported-api = false
+
+# Cognitive complexity threshold
+cognitive-complexity-threshold = 30
+
+# Type complexity threshold
+type-complexity-threshold = 250
+
+# Too many arguments threshold
+too-many-arguments-threshold = 8
+
+# Single char binding names threshold
+single-char-binding-names-threshold = 4
+
+# Enforce documentation for public items
+missing-docs-in-private-items = false
+
+# Msrv (minimum supported Rust version)
+msrv = "1.90"
+
+# Allowed functions in const
+allow-dbg-in-tests = true
+allow-print-in-tests = true
+
+# Enforce naming conventions
+enum-variant-name-threshold = 3
+
+# Max function lines
+too-many-lines-threshold = 100
+
+# Standard library items
+disallowed-names = ["foo", "bar", "baz", "test"]

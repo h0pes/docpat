@@ -1,0 +1,156 @@
+[package]
+name = "docpat-backend"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.90"
+authors = ["DocPat Contributors"]
+description = "Medical Practice Management System - Backend API"
+license = "MIT"
+repository = "https://github.com/h0pes/docpat"
+
+[dependencies]
+# Web Framework
+axum = { version = "0.8.6", features = ["macros", "multipart", "ws"] }
+axum-extra = { version = "0.10.3", features = ["typed-header", "cookie"] }
+tower = { version = "0.5.2", features = ["full"] }
+tower-http = { version = "0.6.6", features = ["full"] }
+
+# Async Runtime
+tokio = { version = "1.47", features = ["full"] }
+tokio-util = "0.7"
+
+# Database
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "json",
+    "migrate",
+] }
+
+# Redis (Optional)
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"], optional = true }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.9"
+
+# Authentication & Security
+jsonwebtoken = "9.3"
+argon2 = "0.5"  # Use stable version
+rand = "0.8"  # Use stable version
+uuid = { version = "1.18", features = ["v4", "serde"] }
+totp-rs = "5.7"  # TOTP for MFA
+
+# Encryption (AES-256 for medical data)
+aes-gcm = "0.10"  # Use stable version
+chacha20poly1305 = "0.10"  # Use stable version
+sha2 = "0.10"  # Use stable version
+base64 = "0.22"
+
+# Date & Time
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+
+# Validation
+validator = { version = "0.20", features = ["derive"] }
+regex = "1.12"
+
+# Configuration
+dotenv = "0.15"
+config = "0.15"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+# Error Handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# HTTP Client (for external integrations)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+
+# Email (Optional)
+lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"], optional = true }
+
+# Template Engine (for email templates)
+tera = { version = "1.20", optional = true }
+
+# PDF Generation (Optional)
+printpdf = { version = "0.8", optional = true }
+
+# Rate Limiting
+governor = "0.10"
+
+# CORS & Cookies
+tower-cookies = "0.11"
+
+# Authorization (RBAC with Casbin)
+casbin = { version = "2.14", features = ["runtime-tokio"], optional = true }
+
+# Internationalization
+fluent = "0.17"
+
+# Utilities
+once_cell = "1.21"
+bytes = "1.10"
+futures = "0.3"
+
+# Metrics & Monitoring (Optional)
+metrics = { version = "0.24", optional = true }
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+axum-test = "18.1"
+fake = "4.4"
+
+[profile.dev]
+# Development profile - fast compile times
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+incremental = true
+
+[profile.release]
+# Production profile - optimized for performance
+opt-level = 3
+debug = false
+lto = "fat"           # Link-time optimization
+codegen-units = 1     # Slower compile, better runtime performance
+strip = true          # Strip symbols
+panic = "abort"       # Smaller binary size
+
+[profile.test]
+# Test profile
+opt-level = 1
+debug = true
+
+# SQLx compile-time verification
+# Run: cargo sqlx prepare before committing
+[package.metadata.sqlx]
+migrations = "./migrations"
+
+# Cargo features for optional functionality
+[features]
+default = ["redis-cache", "email", "metrics"]
+redis-cache = ["dep:redis"]
+email = ["dep:lettre", "dep:tera"]
+sms = []
+whatsapp = []
+metrics = ["dep:metrics"]
+pdf-export = ["dep:printpdf"]
+rbac = ["dep:casbin"]
+
+# Build metadata
+[[bin]]
+name = "docpat-backend"
+path = "src/main.rs"
+
+# Workspace configuration
+[workspace]
+members = ["."]

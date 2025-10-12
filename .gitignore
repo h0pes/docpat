@@ -1,0 +1,366 @@
+# ============================================
+# MEDICAL PRACTICE MANAGEMENT SYSTEM
+# Project .gitignore
+# ============================================
+
+# ============================================
+# PROJECT DOCUMENTATION (Keep private)
+# ============================================
+docs/CLAUDE.md
+docs/PLANNING.md
+docs/PRD.md
+docs/TASKS.md
+docs/SESSIONS.md
+
+# ============================================
+# RUST BACKEND
+# ============================================
+
+# Build artifacts
+backend/target/
+backend/debug/
+backend/release/
+
+# Cargo lock file (keep for binaries, ignore for libraries)
+# backend/Cargo.lock
+
+# Rust incremental compilation
+backend/**/*.rs.bk
+backend/**/*.pdb
+
+# ============================================
+# NODE.JS FRONTEND
+# ============================================
+
+# Dependencies
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+
+# Production builds
+frontend/dist/
+frontend/build/
+frontend/out/
+
+# Testing
+frontend/coverage/
+frontend/.nyc_output/
+
+# Cache
+frontend/.cache/
+frontend/.vite/
+frontend/.eslintcache
+
+# ============================================
+# ENVIRONMENT & SECRETS
+# ============================================
+
+# Environment files (NEVER commit these)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+*/.env
+
+# Keep example files
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Secrets and keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# JWT secrets
+jwt_secret*
+
+# Database passwords
+db_passwords*
+
+# ============================================
+# DATABASE
+# ============================================
+
+# PostgreSQL
+*.sql.backup
+*.dump
+*.pg_dump
+pgdata/
+postgres-data/
+
+# SQLite (if used for testing)
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
+# DOCKER
+# ============================================
+
+# Docker volumes
+docker-volumes/
+.docker/
+
+# Docker override files
+docker-compose.override.yml
+
+# ============================================
+# LOGS
+# ============================================
+
+# Application logs
+*.log
+logs/
+backend/logs/
+frontend/logs/
+
+# System logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# OPERATING SYSTEM
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+
+# Visual Studio Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+tags
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# MONITORING & INFRASTRUCTURE
+# ============================================
+
+# Prometheus data
+prometheus-data/
+
+# Grafana data
+grafana-data/
+
+# Redis dumps
+dump.rdb
+appendonly.aof
+
+# Backups
+backups/
+*.backup
+*.bak
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS temp files
+.fuse_hidden*
+
+# ============================================
+# TESTING & COVERAGE
+# ============================================
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Coverage reports
+coverage/
+.nyc_output/
+htmlcov/
+*.cover
+*.py,cover
+.coverage
+.coverage.*
+
+# Profiling
+*.prof
+*.profile
+
+# ============================================
+# BUILD ARTIFACTS
+# ============================================
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Distribution
+dist/
+build/
+out/
+*.tar.gz
+*.zip
+
+# ============================================
+# CLAUDE CODE
+# ============================================
+
+# Claude Code agents
+.claude/agents/*
+
+# ============================================
+# MEDICAL DATA (CRITICAL - NEVER COMMIT)
+# ============================================
+
+# Patient data exports (HIPAA compliance)
+patient-data/
+exports/
+*.csv
+*.xlsx
+*.xls
+
+# Medical documents
+medical-docs/
+generated-docs/
+*.pdf
+
+# Except example/template files
+!docs/**/*.pdf
+!templates/**/*.pdf
+
+# ============================================
+# SECURITY & COMPLIANCE
+# ============================================
+
+# Security scan results
+security-reports/
+vulnerability-scans/
+
+# Audit reports
+audit-reports/
+
+# SSL/TLS certificates (except for development)
+infrastructure/nginx/ssl/*.pem
+infrastructure/nginx/ssl/*.crt
+infrastructure/nginx/ssl/*.key
+
+# Keep example certs
+!infrastructure/nginx/ssl/example.*
+
+# ============================================
+# PACKAGE MANAGER LOCKS
+# ============================================
+
+# Yarn
+frontend/yarn.lock
+
+# PNPM
+frontend/pnpm-lock.yaml
+
+# NPM - keep this for reproducible builds
+# frontend/package-lock.json
+
+# ============================================
+# MISCELLANEOUS
+# ============================================
+
+# Generated documentation
+docs/generated/
+api-docs/generated/
+
+# Benchmark results
+benchmarks/
+*.bench
+
+# Core dumps
+core.*
+
+# macOS Finder attributes
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk

@@ -1,0 +1,40 @@
+/**
+ * Main App Component
+ *
+ * Root component that sets up the application structure with routing,
+ * query client, and global providers.
+ */
+
+import { useState } from 'react'
+
+function App() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          DocPat - Medical Practice Management
+        </h1>
+        <p className="text-lg text-gray-600 mb-8">
+          A secure, self-hosted medical practice management system
+        </p>
+        <div className="space-y-4">
+          <div>
+            <button
+              onClick={() => setCount((count) => count + 1)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Count is {count}
+            </button>
+          </div>
+          <p className="text-sm text-gray-500">
+            Frontend initialized successfully! 🚀
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default App
