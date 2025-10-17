@@ -101,18 +101,177 @@ cd frontend && npm run dev
 
 ### Docker Development Environment
 
+The easiest way to get started is using Docker Compose:
+
 ```bash
-# Build and run all services
+# Create environment file
+cp .env.example .env
+# Edit .env with your configuration (see comments in file)
+
+# Build and run all services (with build)
 docker-compose -f docker-compose.dev.yml up --build
 
 # Run in detached mode
 docker-compose -f docker-compose.dev.yml up -d
 
 # View logs
-docker-compose logs -f
+docker-compose -f docker-compose.dev.yml logs -f
+
+# View logs for specific service
+docker-compose -f docker-compose.dev.yml logs -f backend
 
 # Stop services
+docker-compose -f docker-compose.dev.yml down
+
+# Stop and remove volumes (clean slate)
+docker-compose -f docker-compose.dev.yml down -v
+```
+
+### Docker Production Deployment
+
+For production deployment with SSL/TLS:
+
+```bash
+# Create production environment file
+cp .env.example .env
+# Configure production secrets (JWT_SECRET, POSTGRES_PASSWORD, etc.)
+
+# Generate secure secrets
+openssl rand -base64 32  # For JWT_SECRET
+openssl rand -base64 32  # For JWT_REFRESH_SECRET
+openssl rand -base64 24  # For ENCRYPTION_KEY (32 bytes)
+
+# Build production images
+docker-compose build
+
+# Run in production mode
+docker-compose up -d
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Restart specific service
+docker-compose restart backend
+
+# Stop all services
 docker-compose down
+```
+
+### Docker Service Management
+
+```bash
+# List running containers
+docker ps
+
+# Execute command in running container
+docker exec -it mpms-backend-dev bash
+docker exec -it mpms-postgres-dev psql -U mpms_user -d mpms_dev
+
+# View container logs
+docker logs mpms-backend-dev -f
+
+# Check container resource usage
+docker stats
+
+# Inspect container
+docker inspect mpms-backend-dev
+
+# Remove stopped containers
+docker container prune
+
+# Remove unused images
+docker image prune -a
+
+# Remove unused volumes (⚠️ CAUTION: This deletes data)
+docker volume prune
+```
+
+### Database Operations with Docker
+
+```bash
+# Access PostgreSQL
+docker exec -it mpms-postgres-dev psql -U mpms_user -d mpms_dev
+
+# Run migrations
+docker exec mpms-backend-dev sqlx migrate run
+
+# Backup database
+docker exec mpms-postgres pg_dump -U mpms_user mpms_prod > backup_$(date +%Y%m%d).sql
+
+# Restore database
+docker exec -i mpms-postgres psql -U mpms_user mpms_prod < backup_20251016.sql
+```
+
+### Health Checks
+
+All services include health checks. Check service health:
+
+```bash
+# Backend health
+curl http://localhost:8000/health
+
+# Or with full response
+curl -v http://localhost:8000/api/health
+
+# Nginx health (production)
+curl http://localhost/health
+
+# Check Docker health status
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
+
+### Troubleshooting Docker
+
+```bash
+# View detailed logs
+docker-compose logs --tail=100 backend
+
+# Rebuild without cache
+docker-compose build --no-cache backend
+
+# Check network connectivity
+docker network ls
+docker network inspect mpms_dev_network
+
+# Verify volumes
+docker volume ls
+docker volume inspect mpms_postgres_dev_data
+
+# Check container filesystem
+docker exec -it mpms-backend-dev ls -la /app
+
+# Monitor resource usage
+docker stats --no-stream
+```
+
+### SSL/TLS Certificate Setup (Production)
+
+For production with Let's Encrypt:
+
+```bash
+# First-time certificate generation
+docker-compose run --rm certbot certonly \
+  --webroot \
+  --webroot-path=/var/www/certbot \
+  -d yourdomain.com \
+  -d www.yourdomain.com \
+  --email your-email@example.com \
+  --agree-tos \
+  --no-eff-email
+
+# Update nginx configuration to use real certificates
+# Edit infrastructure/nginx/proxy.conf and uncomment Let's Encrypt lines
+
+# Restart Nginx
+docker-compose restart nginx
+
+# Certificate renewal (automatic via certbot container)
+# Manual renewal if needed:
+docker-compose run --rm certbot renew
+docker-compose restart nginx
 ```
 
 ## 📖 Documentation

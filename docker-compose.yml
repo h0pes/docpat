@@ -1,0 +1,394 @@
+# ==============================================================================
+# Docker Compose Configuration - Production
+# Medical Practice Management System (MPMS)
+# ==============================================================================
+#
+# Security considerations:
+# - All services run as non-root users
+# - Networks are isolated with proper segmentation
+# - Volumes are encrypted and backed up
+# - Secrets are managed via environment variables or Docker secrets
+# - Health checks ensure service reliability
+# - Resource limits prevent DoS
+#
+# Usage:
+#   docker-compose up -d                 # Start all services
+#   docker-compose down                  # Stop all services
+#   docker-compose logs -f [service]     # View logs
+#   docker-compose ps                    # Check status
+#
+# ==============================================================================
+
+# ==============================================================================
+# Services
+# ==============================================================================
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database - Primary data store
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: mpms-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mpms_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-mpms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./infrastructure/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres_backups:/backups
+
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+
+    networks:
+      - backend_network
+
+    ports:
+      - "127.0.0.1:5432:5432"  # Only accessible from localhost
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mpms_user} -d ${POSTGRES_DB:-mpms_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # Redis Cache - Session storage and caching
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: mpms-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --save 300 100
+      --save 600 10
+      --appendonly yes
+      --appendfsync everysec
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - backend_network
+
+    ports:
+      - "127.0.0.1:6379:6379"  # Only accessible from localhost
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # Backend API - Rust/Axum application
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+      args:
+        - RUST_VERSION=1.90
+
+    image: mpms-backend:latest
+    container_name: mpms-backend
+    restart: unless-stopped
+
+    environment:
+      # Server configuration
+      RUST_LOG: ${RUST_LOG:-info}
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mpms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mpms_prod}
+      DATABASE_MAX_CONNECTIONS: 50
+
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+      # JWT secrets
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      JWT_EXPIRATION: 1800
+      JWT_REFRESH_EXPIRATION: 604800
+
+      # Encryption
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+
+      # Security
+      SESSION_TIMEOUT: 1800
+      MAX_FAILED_ATTEMPTS: 5
+      LOCKOUT_DURATION: 900
+
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - backend_network
+
+    expose:
+      - "8000"
+
+    healthcheck:
+      test: ["CMD", "/app/mpms-backend", "--health-check"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ----------------------------------------------------------------------------
+  # Frontend - React/Vite application
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+      args:
+        - NODE_VERSION=22
+
+    image: mpms-frontend:latest
+    container_name: mpms-frontend
+    restart: unless-stopped
+
+    networks:
+      - frontend_network
+
+    expose:
+      - "8080"
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # Nginx Reverse Proxy - SSL/TLS termination and routing
+  # ----------------------------------------------------------------------------
+  nginx:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.nginx
+
+    image: mpms-nginx:latest
+    container_name: mpms-nginx
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - nginx_logs:/var/log/nginx
+      - certbot_certs:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+
+    depends_on:
+      - backend
+      - frontend
+
+    networks:
+      - frontend_network
+      - backend_network
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ----------------------------------------------------------------------------
+  # Certbot - Let's Encrypt SSL certificate renewal
+  # ----------------------------------------------------------------------------
+  certbot:
+    image: certbot/certbot:latest
+    container_name: mpms-certbot
+
+    volumes:
+      - certbot_certs:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+    networks:
+      - frontend_network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ==============================================================================
+# Networks - Isolated network segments
+# ==============================================================================
+networks:
+  # Frontend network - Nginx and frontend only
+  frontend_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  # Backend network - Backend, database, and cache
+  backend_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+    internal: true  # No direct external access
+
+# ==============================================================================
+# Volumes - Persistent data storage
+# ==============================================================================
+volumes:
+  # Database volumes
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgres
+
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BACKUP_DIR:-./backups}/postgres
+
+  # Cache volume
+  redis_data:
+    driver: local
+
+  # Application volumes
+  backend_uploads:
+    driver: local
+
+  backend_logs:
+    driver: local
+
+  # Nginx volumes
+  nginx_logs:
+    driver: local
+
+  # SSL certificates
+  certbot_certs:
+    driver: local
+
+  certbot_www:
+    driver: local

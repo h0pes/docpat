@@ -1,0 +1,86 @@
+# ==============================================================================
+# Multi-Stage Dockerfile for Rust Backend (Axum)
+# Security-hardened for production deployment
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Stage 1: Build Stage - Compile Rust application
+# ------------------------------------------------------------------------------
+FROM rust:1.90-slim-bookworm AS builder
+
+# Install build dependencies and security updates
+RUN apt-get update && \
+    apt-get install -y \
+        pkg-config \
+        libssl-dev \
+        ca-certificates \
+        && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy dependency manifests first for better caching
+COPY backend/Cargo.toml backend/Cargo.lock ./
+
+# Create dummy main.rs to build dependencies (cache optimization)
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# Copy actual source code
+COPY backend/src ./src
+COPY backend/migrations ./migrations
+
+# Build application with optimizations
+RUN cargo build --release --locked && \
+    strip target/release/docpat-backend
+
+# ------------------------------------------------------------------------------
+# Stage 2: Runtime Stage - Minimal production image
+# ------------------------------------------------------------------------------
+FROM debian:bookworm-slim
+
+# Install runtime dependencies and security updates only
+RUN apt-get update && \
+    apt-get install -y \
+        ca-certificates \
+        libssl3 \
+        && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for running the application
+RUN groupadd -r mpms && \
+    useradd -r -g mpms -s /bin/false mpms
+
+# Create app directory with proper permissions
+WORKDIR /app
+
+# Copy compiled binary from builder stage
+COPY --from=builder --chown=mpms:mpms /app/target/release/docpat-backend ./docpat-backend
+
+# Copy migrations for sqlx
+COPY --from=builder --chown=mpms:mpms /app/migrations ./migrations
+
+# Set executable permissions
+RUN chmod +x ./docpat-backend
+
+# Switch to non-root user
+USER mpms
+
+# Expose application port (not privileged)
+EXPOSE 8000
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/app/docpat-backend", "--health-check"] || exit 1
+
+# Set environment variables for production
+ENV RUST_LOG=info \
+    RUST_BACKTRACE=0
+
+# Run the application
+CMD ["./docpat-backend"]
