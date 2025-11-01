@@ -42,7 +42,9 @@ jsonwebtoken = "9.3"
 argon2 = "0.5"  # Use stable version
 rand = "0.8"  # Use stable version
 uuid = { version = "1.18", features = ["v4", "serde"] }
-totp-rs = "5.7"  # TOTP for MFA
+totp-rs = { version = "5.7", features = ["gen_secret", "otpauth", "qr"] }  # TOTP for MFA
+qrcode = "0.14"  # QR code generation for MFA enrollment
+image = "0.25"  # Image processing for QR code rendering
 
 # Encryption (AES-256 for medical data)
 aes-gcm = "0.10"  # Use stable version
@@ -108,6 +110,10 @@ metrics = { version = "0.24", optional = true }
 tokio-test = "0.4"
 axum-test = "18.1"
 fake = "4.4"
+hyper = "1.6"
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+tower = "0.5"
 
 [profile.dev]
 # Development profile - fast compile times
@@ -137,7 +143,7 @@ migrations = "./migrations"
 
 # Cargo features for optional functionality
 [features]
-default = ["redis-cache", "email", "metrics"]
+default = ["redis-cache", "email", "metrics", "rbac"]
 redis-cache = ["dep:redis"]
 email = ["dep:lettre", "dep:tera"]
 sms = []
@@ -147,6 +153,10 @@ pdf-export = ["dep:printpdf"]
 rbac = ["dep:casbin"]
 
 # Build metadata
+[lib]
+name = "docpat_backend"
+path = "src/lib.rs"
+
 [[bin]]
 name = "docpat-backend"
 path = "src/main.rs"

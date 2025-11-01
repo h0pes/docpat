@@ -7,25 +7,37 @@
  * for single-practitioner use with enterprise-grade security.
  */
 
+// Module declarations
+mod config;
+mod db;
+mod handlers;
+mod middleware;
+mod models;
+mod routes;
+mod services;
+mod utils;
+
 use axum::{
-    extract::State,
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::get,
     Router,
 };
 use serde::{Deserialize, Serialize};
-use std::{env, net::SocketAddr};
+use std::env;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-/// Application state
-#[derive(Clone)]
-struct AppState {
-    app_version: String,
-    start_time: std::time::SystemTime,
-}
+use config::Config;
+use db::create_pool;
+use handlers::auth::AppState;
+use middleware::session_timeout::SessionManager;
+use routes::create_api_v1_routes;
+use services::AuthService;
+
+#[cfg(feature = "rbac")]
+use middleware::authorization::CasbinEnforcer;
 
 /// Health check response
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,6 +46,7 @@ struct HealthResponse {
     version: String,
     uptime_seconds: u64,
     timestamp: String,
+    database: String,
 }
 
 /// API version info response
@@ -56,7 +69,7 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info,tower_http=debug,axum::rejection=trace".into()),
+                .unwrap_or_else(|_| "info,tower_http=debug,axum::rejection=trace,sqlx=warn".into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -65,26 +78,60 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Version: {}", env!("CARGO_PKG_VERSION"));
     tracing::info!("Rust version: {}", env!("CARGO_PKG_RUST_VERSION"));
 
+    // Load configuration
+    let config = Config::from_env()?;
+    tracing::info!("Configuration loaded successfully");
+    tracing::info!("Environment: {}", config.server.environment);
+
+    // Create database connection pool
+    let pool = create_pool(&config.database).await?;
+    tracing::info!("Database connection pool created successfully");
+
+    // Create authentication service
+    let auth_service = AuthService::new(config.jwt.clone(), config.security.clone());
+    tracing::info!("Authentication service initialized");
+
+    // Create session manager
+    let session_manager = SessionManager::new(config.security.session_timeout);
+    tracing::info!(
+        "Session manager initialized with {} second timeout",
+        config.security.session_timeout
+    );
+
+    // Initialize Casbin enforcer for RBAC (if rbac feature is enabled)
+    #[cfg(feature = "rbac")]
+    let enforcer = {
+        let model_path = "casbin/model.conf";
+        let policy_path = "casbin/policy.csv";
+
+        match CasbinEnforcer::new(model_path, policy_path).await {
+            Ok(enforcer) => {
+                tracing::info!("Casbin RBAC enforcer initialized successfully");
+                enforcer
+            }
+            Err(e) => {
+                tracing::error!("Failed to initialize Casbin enforcer: {}", e);
+                return Err(anyhow::anyhow!("Casbin initialization failed: {}", e));
+            }
+        }
+    };
+
     // Create application state
-    let state = AppState {
-        app_version: env!("CARGO_PKG_VERSION").to_string(),
-        start_time: std::time::SystemTime::now(),
+    let app_state = AppState {
+        pool: pool.clone(),
+        auth_service,
+        session_manager,
+        #[cfg(feature = "rbac")]
+        enforcer,
     };
 
     // Build application router
-    let app = create_app(state);
-
-    // Get server configuration from environment
-    let host = env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = env::var("SERVER_PORT")
-        .unwrap_or_else(|_| "8000".to_string())
-        .parse::<u16>()
-        .unwrap_or(8000);
-
-    let addr = format!("{}:{}", host, port);
-    tracing::info!("Server listening on {}", addr);
+    let app = create_app(app_state, std::time::SystemTime::now());
 
     // Start the server
+    let addr = format!("{}:{}", config.server.host, config.server.port);
+    tracing::info!("Server listening on {}", addr);
+
     let listener = TcpListener::bind(&addr).await?;
     axum::serve(listener, app).await?;
 
@@ -92,23 +139,34 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Create the Axum application router
-fn create_app(state: AppState) -> Router {
+///
+/// # Arguments
+///
+/// * `state` - Application state containing database pool and services
+/// * `start_time` - Server start timestamp for uptime calculation
+fn create_app(state: AppState, start_time: std::time::SystemTime) -> Router {
+    // Clone pool for health check handlers
+    let pool_for_health1 = state.pool.clone();
+    let pool_for_health2 = state.pool.clone();
+
     Router::new()
         // Health check endpoints
-        .route("/health", get(health_handler))
-        .route("/api/health", get(health_handler))
-
+        .route(
+            "/health",
+            get(move || health_handler(pool_for_health1.clone(), start_time)),
+        )
+        .route(
+            "/api/health",
+            get(move || health_handler(pool_for_health2.clone(), start_time)),
+        )
         // API version endpoint
         .route("/api/version", get(version_handler))
-
         // Root endpoint
         .route("/", get(root_handler))
-
+        // API v1 routes
+        .nest("/api/v1", create_api_v1_routes(state))
         // Add middleware
         .layer(TraceLayer::new_for_http())
-
-        // Add shared state
-        .with_state(state)
 }
 
 /// Root handler - API information
@@ -117,26 +175,51 @@ async fn root_handler() -> impl IntoResponse {
         "name": "DocPat Backend API",
         "version": env!("CARGO_PKG_VERSION"),
         "description": "Medical Practice Management System",
-        "status": "operational"
+        "status": "operational",
+        "endpoints": {
+            "health": "/health",
+            "api_v1": "/api/v1",
+            "auth": "/api/v1/auth"
+        }
     }))
 }
 
 /// Health check handler
-async fn health_handler(State(state): State<AppState>) -> impl IntoResponse {
-    let uptime = state
-        .start_time
-        .elapsed()
-        .unwrap_or_default()
-        .as_secs();
+async fn health_handler(
+    pool: sqlx::PgPool,
+    start_time: std::time::SystemTime,
+) -> impl IntoResponse {
+    let uptime = start_time.elapsed().unwrap_or_default().as_secs();
 
-    let response = HealthResponse {
-        status: "healthy".to_string(),
-        version: state.app_version.clone(),
-        uptime_seconds: uptime,
-        timestamp: chrono::Utc::now().to_rfc3339(),
+    // Test database connection
+    let db_status = match sqlx::query("SELECT 1").execute(&pool).await {
+        Ok(_) => "connected",
+        Err(e) => {
+            tracing::error!("Database health check failed: {:?}", e);
+            "disconnected"
+        }
     };
 
-    (StatusCode::OK, Json(response))
+    let response = HealthResponse {
+        status: if db_status == "connected" {
+            "healthy"
+        } else {
+            "unhealthy"
+        }
+        .to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        uptime_seconds: uptime,
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        database: db_status.to_string(),
+    };
+
+    let status_code = if db_status == "connected" {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (status_code, Json(response))
 }
 
 /// Version info handler
@@ -171,58 +254,5 @@ async fn perform_health_check() -> anyhow::Result<()> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use axum::body::Body;
-    use axum::http::{Request, StatusCode};
-    use tower::ServiceExt;
-
-    #[tokio::test]
-    async fn test_health_endpoint() {
-        let state = AppState {
-            app_version: "test".to_string(),
-            start_time: std::time::SystemTime::now(),
-        };
-        let app = create_app(state);
-
-        let response = app
-            .oneshot(Request::builder().uri("/health").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn test_root_endpoint() {
-        let state = AppState {
-            app_version: "test".to_string(),
-            start_time: std::time::SystemTime::now(),
-        };
-        let app = create_app(state);
-
-        let response = app
-            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn test_version_endpoint() {
-        let state = AppState {
-            app_version: "test".to_string(),
-            start_time: std::time::SystemTime::now(),
-        };
-        let app = create_app(state);
-
-        let response = app
-            .oneshot(Request::builder().uri("/api/version").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-    }
-}
+// Unit tests removed - use integration tests in tests/ directory instead
+// These endpoints require database connection and are better tested as integration tests
