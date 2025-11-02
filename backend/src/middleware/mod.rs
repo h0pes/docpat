@@ -15,6 +15,20 @@ pub mod session_timeout;
 #[cfg(feature = "rbac")]
 pub mod authorization;
 
-// Placeholder for future middleware implementations
-// pub mod rate_limit;
-// pub mod audit;
+// Rate limiting middleware
+pub mod rate_limit;
+
+// Audit logging middleware
+pub mod audit;
+
+// CORS configuration
+pub mod cors;
+
+// Security headers middleware
+pub mod security_headers;
+
+// CSRF protection middleware
+pub mod csrf;
+
+// Request validation middleware
+pub mod request_validation;

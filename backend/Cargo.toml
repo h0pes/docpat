@@ -27,7 +27,9 @@ sqlx = { version = "0.8", features = [
     "chrono",
     "json",
     "migrate",
+    "ipnetwork",
 ] }
+ipnetwork = "0.20"
 
 # Redis (Optional)
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"], optional = true }
@@ -87,6 +89,7 @@ printpdf = { version = "0.8", optional = true }
 
 # Rate Limiting
 governor = "0.10"
+tower_governor = "0.8"
 
 # CORS & Cookies
 tower-cookies = "0.11"
