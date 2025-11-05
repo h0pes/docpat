@@ -208,14 +208,14 @@ export function LoginPage() {
                       htmlFor="rememberMe"
                       className="text-sm font-normal cursor-pointer"
                     >
-                      {t('auth.login.rememberMe')}
+                      {t('auth.rememberMe')}
                     </Label>
                   </div>
                   <Link
                     to="/forgot-password"
                     className="text-sm text-primary hover:underline"
                   >
-                    {t('auth.login.forgotPassword')}
+                    {t('auth.forgotPasswordLink')}
                   </Link>
                 </div>
 

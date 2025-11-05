@@ -45,7 +45,7 @@
     "passwordPlaceholder": "Inserisci la tua password",
     "confirmPasswordPlaceholder": "Conferma la tua password",
     "rememberMe": "Ricordami",
-    "forgotPassword": "Password dimenticata?",
+    "forgotPasswordLink": "Password dimenticata?",
     "backToLogin": "Torna al login",
     "goToLogin": "Vai al login",
     "loginButton": "Accedi",

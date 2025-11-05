@@ -11,7 +11,6 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from './components/providers/ThemeProvider';
 import { AuthProvider } from './store/authStore';
 import { Toaster } from './components/ui/toaster';
-import { SessionTimeoutWarning } from './components/auth';
 import { queryClient } from './lib/react-query';
 import { router } from './routes';
 import './i18n'; // Initialize i18next
@@ -26,7 +25,6 @@ function App() {
         <AuthProvider>
           <RouterProvider router={router} />
           <Toaster />
-          <SessionTimeoutWarning />
           {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
         </AuthProvider>
       </QueryClientProvider>
