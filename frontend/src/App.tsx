@@ -2,39 +2,36 @@
  * Main App Component
  *
  * Root component that sets up the application structure with routing,
- * query client, and global providers.
+ * query client, and global providers (theme, i18n, auth, React Query).
  */
 
-import { useState } from 'react'
+import { RouterProvider } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { ThemeProvider } from './components/providers/ThemeProvider';
+import { AuthProvider } from './store/authStore';
+import { Toaster } from './components/ui/toaster';
+import { SessionTimeoutWarning } from './components/auth';
+import { queryClient } from './lib/react-query';
+import { router } from './routes';
+import './i18n'; // Initialize i18next
 
+/**
+ * Main App component with all providers
+ */
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          DocPat - Medical Practice Management
-        </h1>
-        <p className="text-lg text-gray-600 mb-8">
-          A secure, self-hosted medical practice management system
-        </p>
-        <div className="space-y-4">
-          <div>
-            <button
-              onClick={() => setCount((count) => count + 1)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Count is {count}
-            </button>
-          </div>
-          <p className="text-sm text-gray-500">
-            Frontend initialized successfully! 🚀
-          </p>
-        </div>
-      </div>
-    </div>
-  )
+    <ThemeProvider defaultTheme="system" storageKey="docpat-theme">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+          <SessionTimeoutWarning />
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;

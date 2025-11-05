@@ -32,6 +32,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use config::Config;
 use db::create_pool;
 use handlers::auth::AppState;
+use middleware::cors::cors_from_env;
 use middleware::session_timeout::SessionManager;
 use routes::create_api_v1_routes;
 use services::AuthService;
@@ -165,7 +166,8 @@ fn create_app(state: AppState, start_time: std::time::SystemTime) -> Router {
         .route("/", get(root_handler))
         // API v1 routes
         .nest("/api/v1", create_api_v1_routes(state))
-        // Add middleware
+        // Add middleware (CORS must be added before other middleware)
+        .layer(cors_from_env())
         .layer(TraceLayer::new_for_http())
 }
 
