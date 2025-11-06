@@ -31,7 +31,9 @@
     "copy": "Copy",
     "download": "Download",
     "downloaded": "Downloaded",
-    "done": "Done"
+    "done": "Done",
+    "menu": "Menu",
+    "notifications": "Notifications"
   },
   "auth": {
     "login": "Login",

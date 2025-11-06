@@ -6,7 +6,7 @@
 
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from '../components/ProtectedRoute';
-import { RootLayout } from '../components/layouts/RootLayout';
+import { RootLayout, MainLayout } from '../components/layouts';
 import { LoginPage } from '../pages/LoginPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
@@ -19,6 +19,7 @@ export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
+      // Public routes (no layout)
       {
         path: '/login',
         element: <LoginPage />,
@@ -31,26 +32,65 @@ export const router = createBrowserRouter([
         path: '/reset-password',
         element: <ResetPasswordPage />,
       },
+      // Protected routes (with MainLayout)
       {
-        path: '/',
         element: (
           <ProtectedRoute>
-            <DashboardPage />
+            <MainLayout />
           </ProtectedRoute>
         ),
-      },
-      {
-        path: '/dashboard',
-        element: (
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        ),
+        children: [
+          {
+            path: '/',
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
+            path: '/dashboard',
+            element: <DashboardPage />,
+          },
+          // Placeholder routes for navigation items
+          {
+            path: '/patients',
+            element: <div>Patients page - Coming soon</div>,
+          },
+          {
+            path: '/appointments',
+            element: <div>Appointments page - Coming soon</div>,
+          },
+          {
+            path: '/visits',
+            element: <div>Visits page - Coming soon</div>,
+          },
+          {
+            path: '/prescriptions',
+            element: <div>Prescriptions page - Coming soon</div>,
+          },
+          {
+            path: '/documents',
+            element: <div>Documents page - Coming soon</div>,
+          },
+          {
+            path: '/reports',
+            element: <div>Reports page - Coming soon</div>,
+          },
+          {
+            path: '/settings',
+            element: <div>Settings page - Coming soon</div>,
+          },
+          {
+            path: '/profile',
+            element: <div>Profile page - Coming soon</div>,
+          },
+          {
+            path: '/help',
+            element: <div>Help page - Coming soon</div>,
+          },
+        ],
       },
       // Redirect any unknown routes to dashboard
       {
         path: '*',
-        element: <Navigate to="/" replace />,
+        element: <Navigate to="/dashboard" replace />,
       },
     ],
   },

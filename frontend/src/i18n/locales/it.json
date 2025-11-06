@@ -31,7 +31,9 @@
     "copy": "Copia",
     "download": "Scarica",
     "downloaded": "Scaricato",
-    "done": "Fatto"
+    "done": "Fatto",
+    "menu": "Menu",
+    "notifications": "Notifiche"
   },
   "auth": {
     "login": "Accedi",
