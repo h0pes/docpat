@@ -34,18 +34,12 @@ echo -e "${GREEN}✓${NC} PostgreSQL is running"
 echo -e "${GREEN}✓${NC} Test database is accessible\n"
 
 # Clean up test database before running tests
+# Using TRUNCATE CASCADE to bypass RLS policies and cascade deletions
 echo -e "${YELLOW}Cleaning up test database...${NC}"
 PGPASSWORD='dev_password_change_in_production' psql -U mpms_user -d mpms_test -q <<EOF
-DELETE FROM audit_logs;
-DELETE FROM generated_documents;
-DELETE FROM document_templates;
-DELETE FROM prescriptions;
-DELETE FROM visit_diagnoses;
-DELETE FROM visits;
-DELETE FROM appointments;
-DELETE FROM patient_insurance;
-DELETE FROM patients;
-DELETE FROM users;
+-- TRUNCATE bypasses RLS policies and is faster than DELETE
+-- CASCADE ensures dependent records are also removed
+TRUNCATE users, patients, patient_insurance, audit_logs CASCADE;
 EOF
 
 echo -e "${GREEN}✓${NC} Test database cleaned\n"
@@ -55,9 +49,34 @@ echo -e "${YELLOW}Running integration tests...${NC}\n"
 
 # Run tests with serial execution to avoid conflicts
 # --test-threads=1 ensures tests run one at a time for proper database isolation
-cargo test --test auth_integration_tests -- --test-threads=1 "$@"
+TEST_RESULT=0
 
-TEST_RESULT=$?
+echo -e "${YELLOW}Running authentication tests...${NC}"
+cargo test --test auth_integration_tests --features rbac -- --test-threads=1 "$@"
+AUTH_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + AUTH_RESULT))
+
+echo -e "\n${YELLOW}Running user management tests...${NC}"
+cargo test --test user_management_integration_tests --features rbac -- --test-threads=1 "$@"
+USER_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + USER_RESULT))
+
+echo -e "\n${YELLOW}Running MFA tests...${NC}"
+cargo test --test mfa_integration_tests --features rbac -- --test-threads=1 "$@"
+MFA_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + MFA_RESULT))
+
+echo -e "\n${YELLOW}Running patient management tests...${NC}"
+cargo test --test patient_integration_tests --features rbac -- --test-threads=1 "$@"
+PATIENT_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + PATIENT_RESULT))
+
+# Summary
+echo -e "\n${YELLOW}=== Test Results Summary ===${NC}"
+[ $AUTH_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Authentication tests passed" || echo -e "${RED}✗${NC} Authentication tests failed"
+[ $USER_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} User management tests passed" || echo -e "${RED}✗${NC} User management tests failed"
+[ $MFA_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} MFA tests passed" || echo -e "${RED}✗${NC} MFA tests failed"
+[ $PATIENT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Patient management tests passed" || echo -e "${RED}✗${NC} Patient management tests failed"
 
 if [ $TEST_RESULT -eq 0 ]; then
     echo -e "\n${GREEN}✓ All integration tests passed!${NC}"

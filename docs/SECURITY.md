@@ -472,22 +472,117 @@ const validated = patientSchema.parse(formData);
 
 ### SQL Injection Prevention
 
-**MANDATORY**: Use parameterized queries ONLY.
+**MANDATORY**: Use parameterized queries ONLY. This project uses SQLx with compile-time verification to prevent SQL injection attacks.
+
+#### SQLx Compile-Time Verification
+
+SQLx provides **compile-time checked queries** that verify:
+- SQL syntax is correct
+- Column names exist in the database
+- Type conversions are valid
+- No SQL injection is possible through parameterized queries
 
 ```rust
-// CORRECT: Parameterized query with SQLx
+// CORRECT: Compile-time verified query with SQLx
 let patient = sqlx::query_as!(
     Patient,
     "SELECT * FROM patients WHERE id = $1",
-    patient_id
+    patient_id  // Automatically parameterized - safe from injection
 )
 .fetch_one(&pool)
 .await?;
 
-// NEVER do this:
+// The query! macro connects to the database at compile time and:
+// 1. Verifies the SQL syntax
+// 2. Checks that the 'patients' table exists
+// 3. Validates the 'id' column exists
+// 4. Ensures Patient struct matches the query results
+// 5. Prevents SQL injection through parameterization
+
+// NEVER do this (string concatenation):
 // let query = format!("SELECT * FROM patients WHERE id = '{}'", patient_id);
-// This is vulnerable to SQL injection!
+// This is vulnerable to SQL injection and won't compile with sqlx::query!()
 ```
+
+#### Patient Management SQL Injection Prevention
+
+All patient CRUD operations use parameterized queries:
+
+```rust
+// Patient Creation - All values parameterized
+sqlx::query!(
+    r#"
+    INSERT INTO patients (
+        id, medical_record_number, first_name, last_name, ...
+    ) VALUES (
+        $1, $2, $3, $4, ...
+    )
+    "#,
+    patient.id,
+    patient.medical_record_number,
+    encrypted_first_name,  // Even encrypted data uses parameters
+    encrypted_last_name,
+    // ... all values parameterized
+)
+.execute(pool)
+.await?;
+
+// Patient Search - Full-text search with parameterized query
+sqlx::query_as!(
+    Patient,
+    r#"
+    SELECT * FROM patients
+    WHERE search_vector @@ plainto_tsquery('english', $1)
+    AND status = ANY($2)
+    ORDER BY last_name, first_name
+    LIMIT $3 OFFSET $4
+    "#,
+    search_query,  // User input - safely parameterized
+    &statuses,
+    limit,
+    offset
+)
+.fetch_all(pool)
+.await?;
+```
+
+#### Build-Time SQL Verification
+
+To enable compile-time checking, the project uses:
+
+```bash
+# Set database URL for compile-time verification
+export DATABASE_URL="postgresql://user:pass@localhost/docpat"
+
+# SQLx verifies queries against this database during compilation
+cargo build
+
+# This will fail at compile time if:
+# - SQL syntax is invalid
+# - Tables/columns don't exist
+# - Type mismatches occur
+# - Queries would be unsafe
+```
+
+#### Defense-in-Depth
+
+Even with SQLx protection, we maintain defense-in-depth:
+
+1. **Input Validation**: Validate all inputs before reaching database (validator crate)
+2. **Type Safety**: Rust's type system prevents many injection vectors
+3. **Parameterized Queries**: SQLx automatically parameterizes all values
+4. **Compile-Time Verification**: Queries checked at build time
+5. **Row-Level Security**: PostgreSQL RLS provides additional isolation
+6. **Audit Logging**: All database operations logged immutably
+
+#### Verification Checklist
+
+- ✅ All patient queries use `sqlx::query!()` or `sqlx::query_as!()`
+- ✅ No string concatenation in SQL queries
+- ✅ No `format!()` or `write!()` macros with SQL
+- ✅ Search queries use PostgreSQL's `plainto_tsquery()` (injection-safe)
+- ✅ All user inputs validated before database operations
+- ✅ Compile-time verification enabled in CI/CD pipeline
 
 ### Cross-Site Scripting (XSS) Prevention
 

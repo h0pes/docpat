@@ -6,6 +6,10 @@
 
 pub mod auth_service;
 pub mod jwt_service;
+pub mod patient_service;
 
 pub use auth_service::{AuthService, LoginRequest, LoginResponse};
 pub use jwt_service::{Claims, JwtService, TokenPair};
+pub use patient_service::{
+    DuplicateConfidence, PatientService, PatientStatistics, PotentialDuplicate, StatusBreakdown,
+};

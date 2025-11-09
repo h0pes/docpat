@@ -6,12 +6,16 @@
 
 use axum::{
     middleware,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
     Router,
 };
 
 use crate::handlers::auth::AppState;
-use crate::handlers::{login_handler, logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler};
+use crate::handlers::{
+    create_patient, delete_patient, get_patient, get_statistics, list_patients, login_handler,
+    logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, search_patients,
+    update_patient,
+};
 use crate::middleware::auth::jwt_auth_middleware;
 
 #[cfg(feature = "rbac")]
@@ -49,9 +53,21 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Patient management routes - requires authentication
+    let patient_routes = Router::new()
+        .route("/", post(create_patient).get(list_patients))
+        .route("/search", get(search_patients))
+        .route("/statistics", get(get_statistics))
+        .route("/{id}", get(get_patient).put(update_patient).delete(delete_patient))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Combine all v1 routes
     let mut router = Router::new()
-        .nest("/auth", auth_routes);
+        .nest("/auth", auth_routes)
+        .nest("/patients", patient_routes);
 
     #[cfg(feature = "rbac")]
     {
@@ -60,7 +76,6 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
 
     router
         // Future routes can be added here:
-        // .nest("/patients", patient_routes)
         // .nest("/appointments", appointment_routes)
         // .nest("/visits", visit_routes)
         .with_state(state)
@@ -117,6 +132,7 @@ mod tests {
             pool,
             auth_service: AuthService::new(jwt_config, security_config.clone()),
             session_manager: crate::middleware::session_timeout::SessionManager::new(security_config.session_timeout),
+            encryption_key: None, // Not needed for auth routes test
             #[cfg(feature = "rbac")]
             enforcer,
         }

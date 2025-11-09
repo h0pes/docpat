@@ -36,6 +36,7 @@ use middleware::cors::cors_from_env;
 use middleware::session_timeout::SessionManager;
 use routes::create_api_v1_routes;
 use services::AuthService;
+use utils::EncryptionKey;
 
 #[cfg(feature = "rbac")]
 use middleware::authorization::CasbinEnforcer;
@@ -117,11 +118,27 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    // Initialize encryption key for PHI/PII data
+    let encryption_key = match EncryptionKey::from_env() {
+        Ok(key) => {
+            tracing::info!("Encryption key loaded successfully from environment");
+            Some(key)
+        }
+        Err(e) => {
+            tracing::warn!(
+                "Encryption key not configured or invalid: {}. Patient management features will be disabled.",
+                e
+            );
+            None
+        }
+    };
+
     // Create application state
     let app_state = AppState {
         pool: pool.clone(),
         auth_service,
         session_manager,
+        encryption_key,
         #[cfg(feature = "rbac")]
         enforcer,
     };

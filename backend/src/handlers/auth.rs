@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     middleware::session_timeout::SessionManager,
     services::{AuthService, LoginRequest, LoginResponse, TokenPair},
-    utils::Result,
+    utils::{EncryptionKey, Result},
 };
 use sqlx::PgPool;
 
@@ -23,6 +23,7 @@ pub struct AppState {
     pub pool: PgPool,
     pub auth_service: AuthService,
     pub session_manager: SessionManager,
+    pub encryption_key: Option<EncryptionKey>,
     #[cfg(feature = "rbac")]
     pub enforcer: CasbinEnforcer,
 }
@@ -225,6 +226,7 @@ mod tests {
             pool,
             auth_service: test_auth_service(),
             session_manager: SessionManager::new(1800),
+            encryption_key: None, // Not needed for auth test
             #[cfg(feature = "rbac")]
             enforcer,
         };

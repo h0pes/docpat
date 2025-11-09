@@ -20,7 +20,7 @@ use docpat_backend::{
     models::UserRole,
     routes::create_api_v1_routes,
     services::AuthService,
-    utils::PasswordHasherUtil,
+    utils::{encryption::EncryptionKey, PasswordHasherUtil},
 };
 
 /// Test application wrapper
@@ -84,11 +84,18 @@ impl TestApp {
                 .expect("Failed to initialize Casbin enforcer for tests")
         };
 
+        // Create encryption key for patient data
+        // Set environment variable for test encryption key (32 bytes base64 encoded)
+        std::env::set_var("ENCRYPTION_KEY", "dGVzdF9lbmNyeXB0aW9uX2tleV8zMmJ5dGVzX29rXCE="); // "test_encryption_key_32bytes_ok!" in base64 (exactly 32 bytes)
+        let encryption_key = EncryptionKey::from_env()
+            .expect("Failed to create encryption key for tests");
+
         // Create application state
         let app_state = AppState {
             pool: pool.clone(),
             auth_service,
             session_manager,
+            encryption_key: Some(encryption_key),
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -125,57 +132,83 @@ pub async fn setup_test_db(config: &DatabaseConfig) -> PgPool {
 /// Clean up test database
 ///
 /// Removes all test data from the database
+/// Uses a transaction with admin RLS context to bypass RLS policies during cleanup
 pub async fn teardown_test_db(pool: &PgPool) {
+    // Start a transaction to set RLS context
+    let mut tx = match pool.begin().await {
+        Ok(tx) => tx,
+        Err(e) => {
+            eprintln!("Failed to begin teardown transaction: {}", e);
+            return;
+        }
+    };
+
+    // Set RLS context as ADMIN to allow DELETE operations
+    // Use a dummy UUID for teardown operations
+    let admin_id = uuid::Uuid::nil();
+    sqlx::query(&format!("SET LOCAL app.current_user_id = '{}'", admin_id))
+        .execute(&mut *tx)
+        .await
+        .ok();
+
+    sqlx::query("SET LOCAL app.current_user_role = 'ADMIN'")
+        .execute(&mut *tx)
+        .await
+        .ok();
+
     // Clean up all tables in reverse order of dependencies
     sqlx::query("DELETE FROM audit_logs")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM generated_documents")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM document_templates")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM prescriptions")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM visit_diagnoses")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM visits")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM appointments")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM patient_insurance")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM patients")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
 
     sqlx::query("DELETE FROM users")
-        .execute(pool)
+        .execute(&mut *tx)
         .await
         .ok();
+
+    // Commit the transaction
+    tx.commit().await.ok();
 }
 
 /// Test user helper
