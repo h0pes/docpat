@@ -11,6 +11,12 @@ import { LoginPage } from '../pages/LoginPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { DashboardPage } from '../pages/DashboardPage';
+import {
+  PatientsPage,
+  NewPatientPage,
+  EditPatientPage,
+  PatientDetailPage,
+} from '../pages/patients';
 
 /**
  * Application router configuration
@@ -48,10 +54,22 @@ export const router = createBrowserRouter([
             path: '/dashboard',
             element: <DashboardPage />,
           },
-          // Placeholder routes for navigation items
+          // Patient routes
           {
             path: '/patients',
-            element: <div>Patients page - Coming soon</div>,
+            element: <PatientsPage />,
+          },
+          {
+            path: '/patients/new',
+            element: <NewPatientPage />,
+          },
+          {
+            path: '/patients/:id',
+            element: <PatientDetailPage />,
+          },
+          {
+            path: '/patients/:id/edit',
+            element: <EditPatientPage />,
           },
           {
             path: '/appointments',

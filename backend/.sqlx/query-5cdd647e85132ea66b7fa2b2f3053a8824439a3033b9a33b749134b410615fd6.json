@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, user_id, action, entity_type, entity_id,\n                changes, ip_address, user_agent, request_id, created_at\n            FROM audit_logs\n            ORDER BY created_at DESC\n            LIMIT $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "entity_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "entity_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "changes",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "ip_address",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "request_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "5cdd647e85132ea66b7fa2b2f3053a8824439a3033b9a33b749134b410615fd6"
+}

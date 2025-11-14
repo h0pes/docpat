@@ -24,7 +24,13 @@
     "submit": "Submit",
     "loading": "Loading...",
     "noResults": "No results found",
-    "actions": "Actions",
+    "actions": {
+      "retry": "Retry",
+      "backToList": "Back to List",
+      "deleting": "Deleting...",
+      "cancel": "Cancel",
+      "delete": "Delete"
+    },
     "required": "Required",
     "optional": "Optional",
     "copied": "Copied",
@@ -33,7 +39,10 @@
     "downloaded": "Downloaded",
     "done": "Done",
     "menu": "Menu",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "errors": {
+      "generic": "An error occurred. Please try again."
+    }
   },
   "auth": {
     "login": "Login",
@@ -170,5 +179,185 @@
     "unauthorized": "You are not authorized to perform this action.",
     "notFound": "The requested resource was not found.",
     "serverError": "Server error. Please try again later."
+  },
+  "patients": {
+    "title": "Patients",
+    "subtitle": "Manage patient records",
+    "new_patient": "New Patient",
+    "list": {
+      "title": "Patients",
+      "subtitle": "View and manage all patient records"
+    },
+    "new": {
+      "title": "New Patient",
+      "subtitle": "Create a new patient record"
+    },
+    "edit": {
+      "title": "Edit Patient",
+      "subtitle": "Editing {{name}}"
+    },
+    "detail": {
+      "title": "Patient Details"
+    },
+    "messages": {
+      "createSuccess": "Patient Created",
+      "createSuccessDescription": "Patient record has been successfully created",
+      "createError": "Failed to Create Patient",
+      "updateSuccess": "Patient Updated",
+      "updateSuccessDescription": "Patient record has been successfully updated",
+      "updateError": "Failed to Update Patient",
+      "deleteSuccess": "Patient Deleted",
+      "deleteSuccessDescription": "Patient record has been successfully deleted",
+      "deleteError": "Failed to Delete Patient",
+      "loadError": "Failed to Load Patient"
+    },
+    "delete": {
+      "confirmTitle": "Confirm Deletion",
+      "confirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    },
+    "add_first_patient": "Add Your First Patient",
+    "total_count": "{{count}} patients",
+    "page": "page",
+    "search_placeholder": "Search by name, fiscal code, phone, or email...",
+    "filters": "Filters",
+    "advanced_filters": "Advanced Filters",
+    "clear_all": "Clear All",
+    "clear_filters": "Clear Filters",
+    "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
+    "page_of": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "age": "Age",
+    "years": "years",
+    "age_range": "Age Range",
+    "min_age": "Min",
+    "max_age": "Max",
+    "allergies": "Allergies",
+    "chronic_conditions": "Chronic Conditions",
+    "no_results": "No Patients Found",
+    "no_results_description": "Try adjusting your search or filters",
+    "no_patients": "No Patients Yet",
+    "no_patients_description": "Get started by adding your first patient",
+    "error_title": "Error Loading Patients",
+    "error_loading": "Failed to load patients. Please try again.",
+    "retry": "Retry",
+    "status": {
+      "label": "Status",
+      "all": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive",
+      "deceased": "Deceased"
+    },
+    "gender": {
+      "label": "Gender",
+      "all": "All Genders",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "unknown": "Unknown",
+      "M": "M",
+      "F": "F"
+    },
+    "contact_method": {
+      "phone": "Phone",
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
+    },
+    "form": {
+      "demographics": "Demographics",
+      "contact": "Contact Information",
+      "address": "Address",
+      "emergency": "Emergency Contact",
+      "medical": "Medical Information",
+      "health_card": "Health Card",
+      "notes": "Notes",
+      "first_name": "First Name",
+      "last_name": "Last Name",
+      "middle_name": "Middle Name",
+      "date_of_birth": "Date of Birth",
+      "fiscal_code": "Fiscal Code",
+      "phone_primary": "Primary Phone",
+      "phone_secondary": "Secondary Phone",
+      "email": "Email Address",
+      "preferred_contact": "Preferred Contact Method",
+      "street": "Street Address",
+      "city": "City",
+      "state": "State/Province",
+      "zip": "ZIP/Postal Code",
+      "country": "Country",
+      "emergency_name": "Name",
+      "emergency_relationship": "Relationship",
+      "emergency_phone": "Phone",
+      "blood_type": "Blood Type",
+      "allergy_list": "Allergies",
+      "chronic_condition_list": "Chronic Conditions",
+      "current_medications": "Current Medications",
+      "health_card_expiry": "Health Card Expiry",
+      "photo": "Photo",
+      "notes_placeholder": "Additional notes about the patient..."
+    },
+    "validation": {
+      "first_name_required": "First name is required",
+      "last_name_required": "Last name is required",
+      "date_of_birth_required": "Date of birth is required",
+      "invalid_date": "Invalid date",
+      "future_date": "Date cannot be in the future",
+      "invalid_email": "Invalid email address",
+      "invalid_phone": "Invalid phone number",
+      "invalid_fiscal_code": "Invalid fiscal code (must be 16 characters)",
+      "fiscal_code_format": "Fiscal code must contain only letters and numbers"
+    },
+    "actions": {
+      "new": "New Patient",
+      "view": "View Details",
+      "edit": "Edit Patient",
+      "delete": "Delete Patient",
+      "deactivate": "Deactivate Patient",
+      "activate": "Activate Patient",
+      "delete_confirm": "Are you sure you want to delete this patient?",
+      "delete_warning": "This action cannot be undone.",
+      "save_success": "Patient saved successfully",
+      "save_error": "Failed to save patient",
+      "delete_success": "Patient deleted successfully",
+      "delete_error": "Failed to delete patient"
+    },
+    "insurance": {
+      "title": "Insurance Information",
+      "add_insurance": "Add Insurance",
+      "no_insurance": "No Insurance",
+      "insurance_type": "Insurance Type",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary",
+      "provider_name": "Provider Name",
+      "policy_number": "Policy Number",
+      "group_number": "Group Number",
+      "plan_name": "Plan Name",
+      "effective_date": "Effective Date",
+      "expiration_date": "Expiration Date",
+      "policyholder_name": "Policyholder Name",
+      "policyholder_relationship": "Relationship to Policyholder",
+      "provider_phone": "Provider Phone",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "duplicate": {
+      "warning": "Possible Duplicate Patient",
+      "description": "We found patients with similar information",
+      "proceed": "Create Anyway",
+      "review": "Review Matches",
+      "similarity": "Similarity"
+    },
+    "sort": {
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "mrnAsc": "MRN (Low-High)",
+      "mrnDesc": "MRN (High-Low)",
+      "dobAsc": "Date of Birth (Oldest)",
+      "dobDesc": "Date of Birth (Newest)",
+      "statusAsc": "Status (A-Z)",
+      "statusDesc": "Status (Z-A)"
+    }
   }
 }

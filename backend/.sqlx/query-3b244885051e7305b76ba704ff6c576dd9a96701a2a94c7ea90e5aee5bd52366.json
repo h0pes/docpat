@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO users (\n            username, email, password_hash, role,\n            first_name, last_name, is_active, mfa_enabled\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, true, false)\n        ON CONFLICT (username)\n        DO UPDATE SET\n            password_hash = EXCLUDED.password_hash,\n            email = EXCLUDED.email,\n            is_active = true\n        RETURNING id, username, email, role\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "role",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3b244885051e7305b76ba704ff6c576dd9a96701a2a94c7ea90e5aee5bd52366"
+}

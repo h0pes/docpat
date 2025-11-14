@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO audit_logs (\n                user_id,\n                action,\n                entity_type,\n                entity_id,\n                changes,\n                ip_address,\n                user_agent\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Jsonb",
+        "Inet",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1632dac6f5433f451e2735ec3abc192013f8875969b140a62f799da8705d65ae"
+}

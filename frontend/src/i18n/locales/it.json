@@ -24,7 +24,13 @@
     "submit": "Invia",
     "loading": "Caricamento...",
     "noResults": "Nessun risultato trovato",
-    "actions": "Azioni",
+    "actions": {
+      "retry": "Riprova",
+      "backToList": "Torna all'Elenco",
+      "deleting": "Eliminazione...",
+      "cancel": "Annulla",
+      "delete": "Elimina"
+    },
     "required": "Obbligatorio",
     "optional": "Facoltativo",
     "copied": "Copiato",
@@ -33,7 +39,10 @@
     "downloaded": "Scaricato",
     "done": "Fatto",
     "menu": "Menu",
-    "notifications": "Notifiche"
+    "notifications": "Notifiche",
+    "errors": {
+      "generic": "Si è verificato un errore. Riprova."
+    }
   },
   "auth": {
     "login": "Accedi",
@@ -170,5 +179,185 @@
     "unauthorized": "Non sei autorizzato a eseguire questa azione.",
     "notFound": "La risorsa richiesta non è stata trovata.",
     "serverError": "Errore del server. Riprova più tardi."
+  },
+  "patients": {
+    "title": "Pazienti",
+    "subtitle": "Gestisci i record dei pazienti",
+    "new_patient": "Nuovo Paziente",
+    "list": {
+      "title": "Pazienti",
+      "subtitle": "Visualizza e gestisci tutti i record dei pazienti"
+    },
+    "new": {
+      "title": "Nuovo Paziente",
+      "subtitle": "Crea un nuovo record paziente"
+    },
+    "edit": {
+      "title": "Modifica Paziente",
+      "subtitle": "Modifica di {{name}}"
+    },
+    "detail": {
+      "title": "Dettagli Paziente"
+    },
+    "messages": {
+      "createSuccess": "Paziente Creato",
+      "createSuccessDescription": "Il record del paziente è stato creato con successo",
+      "createError": "Errore nella Creazione del Paziente",
+      "updateSuccess": "Paziente Aggiornato",
+      "updateSuccessDescription": "Il record del paziente è stato aggiornato con successo",
+      "updateError": "Errore nell'Aggiornamento del Paziente",
+      "deleteSuccess": "Paziente Eliminato",
+      "deleteSuccessDescription": "Il record del paziente è stato eliminato con successo",
+      "deleteError": "Errore nell'Eliminazione del Paziente",
+      "loadError": "Errore nel Caricamento del Paziente"
+    },
+    "delete": {
+      "confirmTitle": "Conferma Eliminazione",
+      "confirmMessage": "Sei sicuro di voler eliminare {{name}}? Questa azione non può essere annullata."
+    },
+    "add_first_patient": "Aggiungi il Tuo Primo Paziente",
+    "total_count": "{{count}} pazienti",
+    "page": "pagina",
+    "search_placeholder": "Cerca per nome, codice fiscale, telefono o email...",
+    "filters": "Filtri",
+    "advanced_filters": "Filtri Avanzati",
+    "clear_all": "Cancella Tutto",
+    "clear_filters": "Cancella Filtri",
+    "showing_results": "Mostrando {{from}} a {{to}} di {{total}} risultati",
+    "page_of": "Pagina {{current}} di {{total}}",
+    "previous": "Precedente",
+    "next": "Successivo",
+    "age": "Età",
+    "years": "anni",
+    "age_range": "Fascia d'Età",
+    "min_age": "Min",
+    "max_age": "Max",
+    "allergies": "Allergie",
+    "chronic_conditions": "Patologie Croniche",
+    "no_results": "Nessun Paziente Trovato",
+    "no_results_description": "Prova a modificare i criteri di ricerca o filtri",
+    "no_patients": "Nessun Paziente Ancora",
+    "no_patients_description": "Inizia aggiungendo il tuo primo paziente",
+    "error_title": "Errore nel Caricamento dei Pazienti",
+    "error_loading": "Impossibile caricare i pazienti. Riprova.",
+    "retry": "Riprova",
+    "status": {
+      "label": "Stato",
+      "all": "Tutti gli Stati",
+      "active": "Attivo",
+      "inactive": "Inattivo",
+      "deceased": "Deceduto"
+    },
+    "gender": {
+      "label": "Sesso",
+      "all": "Tutti i Sessi",
+      "male": "Maschio",
+      "female": "Femmina",
+      "other": "Altro",
+      "unknown": "Sconosciuto",
+      "M": "M",
+      "F": "F"
+    },
+    "contact_method": {
+      "phone": "Telefono",
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
+    },
+    "form": {
+      "demographics": "Dati Anagrafici",
+      "contact": "Informazioni di Contatto",
+      "address": "Indirizzo",
+      "emergency": "Contatto di Emergenza",
+      "medical": "Informazioni Mediche",
+      "health_card": "Tessera Sanitaria",
+      "notes": "Note",
+      "first_name": "Nome",
+      "last_name": "Cognome",
+      "middle_name": "Secondo Nome",
+      "date_of_birth": "Data di Nascita",
+      "fiscal_code": "Codice Fiscale",
+      "phone_primary": "Telefono Principale",
+      "phone_secondary": "Telefono Secondario",
+      "email": "Indirizzo Email",
+      "preferred_contact": "Metodo di Contatto Preferito",
+      "street": "Indirizzo",
+      "city": "Città",
+      "state": "Provincia/Regione",
+      "zip": "CAP/Codice Postale",
+      "country": "Paese",
+      "emergency_name": "Nome",
+      "emergency_relationship": "Relazione",
+      "emergency_phone": "Telefono",
+      "blood_type": "Gruppo Sanguigno",
+      "allergy_list": "Allergie",
+      "chronic_condition_list": "Patologie Croniche",
+      "current_medications": "Farmaci Attuali",
+      "health_card_expiry": "Scadenza Tessera Sanitaria",
+      "photo": "Foto",
+      "notes_placeholder": "Note aggiuntive sul paziente..."
+    },
+    "validation": {
+      "first_name_required": "Il nome è obbligatorio",
+      "last_name_required": "Il cognome è obbligatorio",
+      "date_of_birth_required": "La data di nascita è obbligatoria",
+      "invalid_date": "Data non valida",
+      "future_date": "La data non può essere nel futuro",
+      "invalid_email": "Indirizzo email non valido",
+      "invalid_phone": "Numero di telefono non valido",
+      "invalid_fiscal_code": "Codice fiscale non valido (deve contenere 16 caratteri)",
+      "fiscal_code_format": "Il codice fiscale deve contenere solo lettere e numeri"
+    },
+    "actions": {
+      "new": "Nuovo Paziente",
+      "view": "Visualizza Dettagli",
+      "edit": "Modifica Paziente",
+      "delete": "Elimina Paziente",
+      "deactivate": "Disattiva Paziente",
+      "activate": "Attiva Paziente",
+      "delete_confirm": "Sei sicuro di voler eliminare questo paziente?",
+      "delete_warning": "Questa azione non può essere annullata.",
+      "save_success": "Paziente salvato con successo",
+      "save_error": "Errore nel salvataggio del paziente",
+      "delete_success": "Paziente eliminato con successo",
+      "delete_error": "Errore nell'eliminazione del paziente"
+    },
+    "insurance": {
+      "title": "Informazioni Assicurative",
+      "add_insurance": "Aggiungi Assicurazione",
+      "no_insurance": "Nessuna Assicurazione",
+      "insurance_type": "Tipo di Assicurazione",
+      "primary": "Primaria",
+      "secondary": "Secondaria",
+      "tertiary": "Terziaria",
+      "provider_name": "Nome Assicuratore",
+      "policy_number": "Numero Polizza",
+      "group_number": "Numero Gruppo",
+      "plan_name": "Nome Piano",
+      "effective_date": "Data di Inizio",
+      "expiration_date": "Data di Scadenza",
+      "policyholder_name": "Nome Contraente",
+      "policyholder_relationship": "Relazione con il Contraente",
+      "provider_phone": "Telefono Assicuratore",
+      "active": "Attiva",
+      "inactive": "Inattiva"
+    },
+    "duplicate": {
+      "warning": "Possibile Paziente Duplicato",
+      "description": "Abbiamo trovato pazienti con informazioni simili",
+      "proceed": "Crea Comunque",
+      "review": "Rivedi Corrispondenze",
+      "similarity": "Somiglianza"
+    },
+    "sort": {
+      "nameAsc": "Nome (A-Z)",
+      "nameDesc": "Nome (Z-A)",
+      "mrnAsc": "MRN (Basso-Alto)",
+      "mrnDesc": "MRN (Alto-Basso)",
+      "dobAsc": "Data di Nascita (Più Vecchio)",
+      "dobDesc": "Data di Nascita (Più Recente)",
+      "statusAsc": "Stato (A-Z)",
+      "statusDesc": "Stato (Z-A)"
+    }
   }
 }
