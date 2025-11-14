@@ -234,24 +234,6 @@ export function PatientList() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t('patients.title')}
-          </h1>
-          <p className="text-muted-foreground">
-            {patientsData
-              ? t('patients.total_count', { count: patientsData.total })
-              : t('patients.subtitle')}
-          </p>
-        </div>
-        <Button onClick={handleNewPatient}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          {t('patients.new_patient')}
-        </Button>
-      </div>
-
       {/* Search and Filters */}
       <Card>
         <CardContent className="pt-6">

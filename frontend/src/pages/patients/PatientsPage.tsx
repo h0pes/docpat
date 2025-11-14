@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PatientList } from '@/components/patients/PatientList';
+import { usePatients } from '@/services/api/patients';
 
 /**
  * PatientsPage Component
@@ -20,6 +21,12 @@ import { PatientList } from '@/components/patients/PatientList';
 export function PatientsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // Fetch patient count for the subtitle
+  const { data: patientsData } = usePatients({
+    limit: 1, // Just need count, not data
+    offset: 0,
+  });
 
   /**
    * Handle patient card click - navigate to patient detail page
@@ -44,7 +51,9 @@ export function PatientsPage() {
             {t('patients.list.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {t('patients.list.subtitle')}
+            {patientsData
+              ? t('patients.total_count', { count: patientsData.total })
+              : t('patients.list.subtitle')}
           </p>
         </div>
         <Button onClick={handleCreatePatient} className="gap-2">
