@@ -31,16 +31,25 @@ export interface LoginRequest {
   username: string;
   password: string;
   mfaCode?: string;
+  rememberMe?: boolean;
+}
+
+/**
+ * Token pair from backend
+ */
+export interface TokenPair {
+  access_token: string;
+  refresh_token: string;
+  expires_in?: number;
 }
 
 /**
  * Login response from API
  */
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
+  tokens: TokenPair;
   user: User;
-  requiresMfa: boolean;
+  requiresMfa?: boolean;
 }
 
 /**
@@ -54,8 +63,7 @@ export interface RefreshTokenRequest {
  * Refresh token response
  */
 export interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
+  tokens: TokenPair;
 }
 
 /**

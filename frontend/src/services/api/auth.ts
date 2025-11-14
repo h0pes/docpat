@@ -79,6 +79,20 @@ export const authApi = {
   },
 
   /**
+   * Verify MFA code during login
+   *
+   * @param data - Username and MFA code
+   * @returns Login response with tokens and user data
+   */
+  verifyMfa: async (data: { username: string; code: string }): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>(
+      '/api/v1/auth/mfa/verify',
+      data
+    );
+    return response.data;
+  },
+
+  /**
    * Request password reset
    *
    * @param data - Email address to send reset link to

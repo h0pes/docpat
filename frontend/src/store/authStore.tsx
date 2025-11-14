@@ -165,3 +165,8 @@ export function useAuth(): AuthContextType {
   }
   return context;
 }
+
+/**
+ * Alias for useAuth hook for backward compatibility
+ */
+export { useAuth as useAuthStore };

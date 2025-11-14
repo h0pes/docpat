@@ -5,7 +5,7 @@
  * Includes advanced filters and sorting options
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -78,12 +78,12 @@ export function PatientList() {
   });
 
   // Debounce search
-  useState(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
     }, 300);
     return () => clearTimeout(timer);
-  });
+  }, [searchQuery]);
 
   // Compute current filters
   const activeFilters = useMemo(() => {

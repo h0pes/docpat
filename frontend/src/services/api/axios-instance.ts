@@ -65,15 +65,15 @@ apiClient.interceptors.response.use(
           refreshToken,
         });
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        const { tokens } = response.data;
 
         // Update stored tokens
-        localStorage.setItem('docpat-access-token', accessToken);
-        localStorage.setItem('docpat-refresh-token', newRefreshToken);
+        localStorage.setItem('docpat-access-token', tokens.access_token);
+        localStorage.setItem('docpat-refresh-token', tokens.refresh_token);
 
         // Retry the original request with new token
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
         }
         return apiClient(originalRequest);
       } catch (refreshError) {

@@ -91,7 +91,7 @@ export function LoginPage() {
       }
 
       // Successful login without MFA
-      login(response.user, response.accessToken, response.refreshToken);
+      login(response.user, response.tokens.access_token, response.tokens.refresh_token);
 
       toast({
         title: t('auth.loginSuccess'),
@@ -244,7 +244,7 @@ export function LoginPage() {
                         code,
                       });
 
-                      login(response.user, response.accessToken, response.refreshToken);
+                      login(response.user, response.tokens.access_token, response.tokens.refresh_token);
 
                       toast({
                         title: t('auth.loginSuccess'),
