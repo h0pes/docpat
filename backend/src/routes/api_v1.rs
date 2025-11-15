@@ -12,9 +12,11 @@ use axum::{
 
 use crate::handlers::auth::AppState;
 use crate::handlers::{
-    create_patient, delete_patient, get_patient, get_statistics, list_patients, login_handler,
+    cancel_appointment, check_availability, create_appointment, create_patient, delete_patient,
+    get_appointment, get_daily_schedule, get_monthly_schedule, get_patient,
+    get_patient_statistics, get_weekly_schedule, list_appointments, list_patients, login_handler,
     logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, search_patients,
-    update_patient,
+    update_appointment, update_patient,
 };
 use crate::middleware::auth::jwt_auth_middleware;
 
@@ -57,8 +59,23 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
     let patient_routes = Router::new()
         .route("/", post(create_patient).get(list_patients))
         .route("/search", get(search_patients))
-        .route("/statistics", get(get_statistics))
+        .route("/statistics", get(get_patient_statistics))
         .route("/{id}", get(get_patient).put(update_patient).delete(delete_patient))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Appointment management routes - requires authentication
+    let appointment_routes = Router::new()
+        .route("/", post(create_appointment).get(list_appointments))
+        .route("/availability", get(check_availability))
+        .route("/statistics", get(crate::handlers::appointments::get_statistics))
+        .route("/schedule/daily", get(get_daily_schedule))
+        .route("/schedule/weekly", get(get_weekly_schedule))
+        .route("/schedule/monthly", get(get_monthly_schedule))
+        .route("/{id}", get(get_appointment).put(update_appointment))
+        .route("/{id}/cancel", post(cancel_appointment))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             jwt_auth_middleware,
@@ -67,7 +84,8 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
-        .nest("/patients", patient_routes);
+        .nest("/patients", patient_routes)
+        .nest("/appointments", appointment_routes);
 
     #[cfg(feature = "rbac")]
     {
@@ -76,7 +94,6 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
 
     router
         // Future routes can be added here:
-        // .nest("/appointments", appointment_routes)
         // .nest("/visits", visit_routes)
         .with_state(state)
 }

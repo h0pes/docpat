@@ -4,11 +4,18 @@
  * Contains database models and their associated operations.
  */
 
+pub mod appointment;
 pub mod audit_log;
 pub mod patient;
 pub mod patient_insurance;
 pub mod user;
 
+pub use appointment::{
+    Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics,
+    AppointmentStatus, AppointmentType, AvailabilityRequest, AvailabilityResponse,
+    CancelAppointmentRequest, CreateAppointmentRequest, RecurringFrequency, RecurringPattern,
+    TimeSlot, UpdateAppointmentRequest,
+};
 pub use audit_log::{AuditAction, AuditLog, CreateAuditLog, EntityType};
 pub use patient::{
     Address, CreatePatientRequest, EmergencyContact, Gender, Medication, Patient,

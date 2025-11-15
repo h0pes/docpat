@@ -15,4 +15,4 @@ pub mod permissions;
 pub use encryption::EncryptionKey;
 pub use errors::{AppError, Result};
 pub use password::PasswordHasherUtil;
-pub use validators::{EmailValidator, FiscalCodeValidator, PhoneValidator};
+pub use validators::{validate_uuid, EmailValidator, FiscalCodeValidator, PhoneValidator};

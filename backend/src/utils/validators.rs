@@ -220,6 +220,18 @@ impl EmailValidator {
     }
 }
 
+/// UUID validator function for use with the validator crate
+/// Used with #[validate(custom(function = "validate_uuid"))]
+pub fn validate_uuid(value: &str) -> Result<(), validator::ValidationError> {
+    use uuid::Uuid;
+    use std::str::FromStr;
+
+    match Uuid::from_str(value) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(validator::ValidationError::new("invalid_uuid")),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

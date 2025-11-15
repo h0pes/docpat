@@ -701,89 +701,142 @@ Get patient medical history.
 
 ## Appointment Management Endpoints
 
+### Status Workflow
+
+Appointments follow a strict status workflow enforced at both application and database levels:
+
+```
+SCHEDULED → CONFIRMED → IN_PROGRESS → COMPLETED (final)
+    ↓           ↓            ↓
+CANCELLED   CANCELLED   CANCELLED (final)
+    ↓           ↓
+NO_SHOW     NO_SHOW (final)
+```
+
+**Status Descriptions**:
+- `SCHEDULED`: Appointment created but not confirmed
+- `CONFIRMED`: Patient or staff confirmed the appointment
+- `IN_PROGRESS`: Appointment currently happening
+- `COMPLETED`: Appointment finished (final state)
+- `CANCELLED`: Appointment cancelled (final state)
+- `NO_SHOW`: Patient didn't show up (final state)
+
+### Appointment Types
+
+- `NEW_PATIENT`: New patient initial consultation (default: 60 min)
+- `FOLLOW_UP`: Follow-up appointment (default: 30 min)
+- `URGENT`: Urgent appointment (default: 30 min)
+- `CONSULTATION`: Consultation appointment (default: 45 min)
+- `ROUTINE_CHECKUP`: Routine checkup (default: 30 min)
+- `ACUPUNCTURE`: Acupuncture session (default: 45 min)
+
+---
+
 ### GET /api/v1/appointments/availability
 
-Check available appointment slots.
+Check available appointment slots for a provider on a specific date.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
 
 **Query Parameters**
 
-- `provider_id`: Provider UUID
-- `date`: Date in YYYY-MM-DD format
-- `duration`: Duration in minutes (default: 30)
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | UUID | Yes | Provider UUID |
+| `date` | DateTime | Yes | Date/time to check (ISO 8601) |
+| `duration_minutes` | Integer | Yes | Desired appointment duration (15-480) |
+
+**Business Hours**: 8:00 AM - 6:00 PM (configurable)
+**Slot Increment**: 30 minutes (default)
 
 **Response** `200 OK`
 
 ```json
 {
-  "data": {
-    "date": "2024-11-15",
-    "provider_id": "usr_123",
-    "available_slots": [
-      {
-        "start": "2024-11-15T09:00:00Z",
-        "end": "2024-11-15T09:30:00Z"
-      },
-      {
-        "start": "2024-11-15T10:30:00Z",
-        "end": "2024-11-15T11:00:00Z"
-      }
-    ]
-  },
-  "metadata": {
-    "timestamp": "2024-11-01T10:30:00Z",
-    "request_id": "req_abc123"
-  }
+  "date": "2024-11-15T00:00:00Z",
+  "provider_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "slots": [
+    {
+      "start": "2024-11-15T08:00:00Z",
+      "end": "2024-11-15T08:30:00Z",
+      "available": true
+    },
+    {
+      "start": "2024-11-15T08:30:00Z",
+      "end": "2024-11-15T09:00:00Z",
+      "available": false
+    },
+    {
+      "start": "2024-11-15T09:00:00Z",
+      "end": "2024-11-15T09:30:00Z",
+      "available": true
+    }
+  ]
 }
 ```
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid parameters (invalid UUID, duration out of range)
+- `401 Unauthorized`: Invalid or expired token
+- `403 Forbidden`: Insufficient permissions
 
 ---
 
 ### GET /api/v1/appointments
 
-List appointments with filters.
+List and filter appointments.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
 
 **Query Parameters**
 
-- `provider_id` (optional): Filter by provider
-- `patient_id` (optional): Filter by patient
-- `start_date` (optional): Start date filter
-- `end_date` (optional): End date filter
-- `status` (optional): Filter by status
-- `limit`, `offset`: Pagination
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `patient_id` | UUID | No | Filter by patient |
+| `provider_id` | UUID | No | Filter by provider |
+| `status` | Enum | No | Filter by status (SCHEDULED, CONFIRMED, etc.) |
+| `type` | Enum | No | Filter by type (NEW_PATIENT, FOLLOW_UP, etc.) |
+| `start_date` | DateTime | No | Filter appointments after this date |
+| `end_date` | DateTime | No | Filter appointments before this date |
+| `limit` | Integer | No | Results per page (1-1000, default: 50) |
+| `offset` | Integer | No | Pagination offset (default: 0) |
 
 **Response** `200 OK`
 
 ```json
 {
-  "data": [
+  "appointments": [
     {
-      "id": "apt_999",
-      "patient": {
-        "id": "pat_456",
-        "name": "John Doe"
-      },
-      "provider": {
-        "id": "usr_123",
-        "name": "Dr. Smith"
-      },
+      "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+      "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
       "scheduled_start": "2024-11-15T09:00:00Z",
+      "scheduled_end": "2024-11-15T09:30:00Z",
       "duration_minutes": 30,
       "type": "FOLLOW_UP",
-      "status": "SCHEDULED",
       "reason": "Blood pressure check",
-      "confirmation_code": "APT-2024-0999"
+      "notes": "Patient requested early morning slot",
+      "status": "CONFIRMED",
+      "confirmation_code": "APT-2024-0001",
+      "confirmed_at": "2024-11-14T15:30:00Z",
+      "is_recurring": false,
+      "recurring_pattern": null,
+      "parent_appointment_id": null,
+      "reminder_sent_email": true,
+      "reminder_sent_sms": false,
+      "reminder_sent_whatsapp": false,
+      "checked_in_at": null,
+      "checked_out_at": null,
+      "created_at": "2024-11-14T10:00:00Z",
+      "updated_at": "2024-11-14T15:30:00Z"
     }
   ],
-  "pagination": {
-    "total": 50,
-    "offset": 0,
-    "limit": 20,
-    "has_more": true
-  },
-  "metadata": {
-    "timestamp": "2024-11-01T10:30:00Z",
-    "request_id": "req_abc123"
-  }
+  "total": 150,
+  "limit": 50,
+  "offset": 0
 }
 ```
 
@@ -791,118 +844,382 @@ List appointments with filters.
 
 ### POST /api/v1/appointments
 
-Create new appointment.
+Create a new appointment with automatic conflict detection.
 
-**Request**
+**Authorization**: Required (JWT)
+**Permission**: `create:appointments`
+
+**Request Body**
 
 ```json
 {
-  "patient_id": "pat_456",
-  "provider_id": "usr_123",
+  "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+  "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
   "scheduled_start": "2024-11-15T09:00:00Z",
   "duration_minutes": 30,
   "type": "FOLLOW_UP",
   "reason": "Blood pressure check",
-  "notes": "Patient requested early morning slot"
+  "notes": "Patient requested early morning slot",
+  "is_recurring": false,
+  "recurring_pattern": null
 }
 ```
+
+**Recurring Appointment Request**
+
+```json
+{
+  "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+  "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
+  "scheduled_start": "2024-11-15T09:00:00Z",
+  "duration_minutes": 30,
+  "type": "ACUPUNCTURE",
+  "reason": "Weekly acupuncture therapy",
+  "is_recurring": true,
+  "recurring_pattern": {
+    "frequency": "WEEKLY",
+    "interval": 1,
+    "end_date": "2025-02-15T00:00:00Z",
+    "max_occurrences": 12
+  }
+}
+```
+
+**Recurring Pattern**:
+- `frequency`: DAILY, WEEKLY, BIWEEKLY, MONTHLY
+- `interval`: Multiplier for frequency (1-52)
+- `end_date`: Optional end date for series
+- `max_occurrences`: Optional max number of appointments (1-100)
+
+**Validation Rules**:
+- `scheduled_start` must be in the future
+- `duration_minutes` must be 15-480 minutes
+- `patient_id` must reference active patient
+- `provider_id` must reference active provider
+- No scheduling conflicts allowed (enforced by database)
+- `reason` max 2000 characters
+- `notes` max 5000 characters
+- Recurring appointments require `recurring_pattern`
 
 **Response** `201 Created`
 
 ```json
 {
-  "data": {
-    "id": "apt_999",
-    "confirmation_code": "APT-2024-0999",
-    "status": "SCHEDULED",
-    "reminders_scheduled": ["EMAIL", "SMS"]
-  },
-  "metadata": {
-    "timestamp": "2024-11-01T10:30:00Z",
-    "request_id": "req_abc123"
-  }
+  "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+  "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
+  "scheduled_start": "2024-11-15T09:00:00Z",
+  "scheduled_end": "2024-11-15T09:30:00Z",
+  "duration_minutes": 30,
+  "type": "FOLLOW_UP",
+  "reason": "Blood pressure check",
+  "notes": "Patient requested early morning slot",
+  "status": "SCHEDULED",
+  "confirmation_code": "APT-2024-0001",
+  "confirmed_at": null,
+  "is_recurring": false,
+  "recurring_pattern": null,
+  "parent_appointment_id": null,
+  "created_at": "2024-11-14T10:00:00Z",
+  "updated_at": "2024-11-14T10:00:00Z"
 }
 ```
+
+**Error Responses**
+
+- `400 Bad Request`: Validation error (invalid data, past date, etc.)
+- `401 Unauthorized`: Invalid or expired token
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Patient or provider not found
+- `409 Conflict`: Scheduling conflict detected
+
+**Conflict Error Example**
+
+```json
+{
+  "error": "CONFLICT",
+  "message": "Scheduling conflict detected for provider at this time"
+}
+```
+
+---
+
+### GET /api/v1/appointments/:id
+
+Get appointment details by ID.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
+
+**Path Parameters**
+
+- `id`: Appointment UUID
+
+**Response** `200 OK`
+
+```json
+{
+  "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+  "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
+  "scheduled_start": "2024-11-15T09:00:00Z",
+  "scheduled_end": "2024-11-15T09:30:00Z",
+  "duration_minutes": 30,
+  "type": "FOLLOW_UP",
+  "reason": "Blood pressure check",
+  "notes": "Patient requested early morning slot",
+  "status": "CONFIRMED",
+  "confirmation_code": "APT-2024-0001",
+  "confirmed_at": "2024-11-14T15:30:00Z",
+  "is_recurring": false,
+  "recurring_pattern": null,
+  "parent_appointment_id": null,
+  "reminder_sent_email": true,
+  "reminder_sent_sms": false,
+  "reminder_sent_whatsapp": false,
+  "checked_in_at": null,
+  "checked_out_at": null,
+  "created_at": "2024-11-14T10:00:00Z",
+  "updated_at": "2024-11-14T15:30:00Z"
+}
+```
+
+**Error Responses**
+
+- `401 Unauthorized`: Invalid or expired token
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Appointment not found
 
 ---
 
 ### PUT /api/v1/appointments/:id
 
-Update appointment.
+Update appointment details. Validates status transitions and checks for conflicts when rescheduling.
 
-**Request**
+**Authorization**: Required (JWT)
+**Permission**: `update:appointments`
+
+**Path Parameters**
+
+- `id`: Appointment UUID
+
+**Request Body** (all fields optional)
 
 ```json
 {
   "scheduled_start": "2024-11-15T10:00:00Z",
-  "notes": "Rescheduled per patient request"
+  "duration_minutes": 45,
+  "type": "CONSULTATION",
+  "reason": "Updated reason",
+  "notes": "Rescheduled per patient request",
+  "status": "CONFIRMED"
 }
 ```
 
+**Status Transition Rules**:
+- SCHEDULED → CONFIRMED, CANCELLED, NO_SHOW
+- CONFIRMED → IN_PROGRESS, CANCELLED, NO_SHOW
+- IN_PROGRESS → COMPLETED, CANCELLED
+- COMPLETED, CANCELLED, NO_SHOW → Cannot be changed (final states)
+
+**Validation Rules**:
+- Status transitions must follow workflow
+- Rescheduling checks for conflicts
+- Cannot modify COMPLETED appointments
+- `duration_minutes` must be 15-480 if provided
+- `reason` max 2000 characters
+- `notes` max 5000 characters
+
 **Response** `200 OK`
+
+Returns updated appointment object (same structure as GET).
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid status transition or validation error
+- `401 Unauthorized`: Invalid or expired token
+- `403 Forbidden`: Insufficient permissions
+- `404 Not Found`: Appointment not found
+- `409 Conflict`: Rescheduling conflict detected
 
 ---
 
-### DELETE /api/v1/appointments/:id
+### POST /api/v1/appointments/:id/cancel
 
-Cancel appointment.
+Cancel an appointment with required cancellation reason.
 
-**Request**
+**Authorization**: Required (JWT)
+**Permission**: `delete:appointments`
+
+**Path Parameters**
+
+- `id`: Appointment UUID
+
+**Request Body**
 
 ```json
 {
-  "reason": "Patient called to cancel"
+  "cancellation_reason": "Patient called to cancel due to illness"
 }
 ```
 
+**Validation Rules**:
+- `cancellation_reason` required (1-2000 characters)
+- Cannot cancel COMPLETED, CANCELLED, or NO_SHOW appointments
+- Cannot cancel IN_PROGRESS appointments
+
 **Response** `200 OK`
+
+```json
+{
+  "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  "status": "CANCELLED",
+  "cancellation_reason": "Patient called to cancel due to illness",
+  "cancelled_at": "2024-11-14T16:00:00Z",
+  "cancelled_by": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
+  "updated_at": "2024-11-14T16:00:00Z"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Missing cancellation reason or invalid state
+- `401 Unauthorized`: Invalid or expired token
+- `403 Forbidden`: Insufficient permissions (Admin only for some statuses)
+- `404 Not Found`: Appointment not found
 
 ---
 
 ### GET /api/v1/appointments/schedule/daily
 
-Get daily schedule for provider.
+Get all appointments for a provider on a specific date.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
 
 **Query Parameters**
 
-- `provider_id`: Provider UUID
-- `date`: Date in YYYY-MM-DD format (default: today)
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | UUID | Yes | Provider UUID |
+| `date` | DateTime | Yes | Date to retrieve (ISO 8601) |
+
+**Response** `200 OK`
+
+```json
+[
+  {
+    "id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "patient_id": "b1ffcc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+    "provider_id": "c2ggdd99-9c0b-4ef8-bb6d-6bb9bd380a33",
+    "scheduled_start": "2024-11-15T09:00:00Z",
+    "scheduled_end": "2024-11-15T09:30:00Z",
+    "duration_minutes": 30,
+    "type": "FOLLOW_UP",
+    "status": "CONFIRMED",
+    "reason": "Blood pressure check",
+    "confirmation_code": "APT-2024-0001"
+  },
+  {
+    "id": "d3hhee99-9c0b-4ef8-bb6d-6bb9bd380a44",
+    "scheduled_start": "2024-11-15T10:00:00Z",
+    "scheduled_end": "2024-11-15T10:45:00Z",
+    "duration_minutes": 45,
+    "type": "CONSULTATION",
+    "status": "SCHEDULED"
+  }
+]
+```
+
+Returns appointments sorted by `scheduled_start` ascending.
+
+---
+
+### GET /api/v1/appointments/schedule/weekly
+
+Get all appointments for a provider for the week containing the specified date.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | UUID | Yes | Provider UUID |
+| `date` | DateTime | Yes | Any date within the target week |
+
+**Week Definition**: Monday through Sunday
+
+**Response** `200 OK`
+
+Returns array of appointments (same structure as daily schedule), sorted by `scheduled_start`.
+
+---
+
+### GET /api/v1/appointments/schedule/monthly
+
+Get all appointments for a provider for the month containing the specified date.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `provider_id` | UUID | Yes | Provider UUID |
+| `date` | DateTime | Yes | Any date within the target month |
+
+**Response** `200 OK`
+
+Returns array of appointments (same structure as daily schedule), sorted by `scheduled_start`.
+
+---
+
+### GET /api/v1/appointments/statistics
+
+Get comprehensive appointment statistics.
+
+**Authorization**: Required (JWT)
+**Permission**: `read:appointments`
 
 **Response** `200 OK`
 
 ```json
 {
-  "data": {
-    "date": "2024-11-15",
-    "provider_id": "usr_123",
-    "appointments": [
-      {
-        "id": "apt_999",
-        "patient": {
-          "id": "pat_456",
-          "name": "John Doe",
-          "age": 44
-        },
-        "scheduled_start": "2024-11-15T09:00:00Z",
-        "duration_minutes": 30,
-        "type": "FOLLOW_UP",
-        "status": "CONFIRMED",
-        "reason": "Blood pressure check"
-      }
-    ],
-    "summary": {
-      "total_appointments": 12,
-      "confirmed": 10,
-      "scheduled": 2,
-      "completed": 0
-    }
+  "total": 1250,
+  "by_status": {
+    "SCHEDULED": 150,
+    "CONFIRMED": 200,
+    "IN_PROGRESS": 5,
+    "COMPLETED": 800,
+    "CANCELLED": 75,
+    "NO_SHOW": 20
   },
-  "metadata": {
-    "timestamp": "2024-11-01T10:30:00Z",
-    "request_id": "req_abc123"
-  }
+  "by_type": {
+    "NEW_PATIENT": 250,
+    "FOLLOW_UP": 700,
+    "URGENT": 100,
+    "CONSULTATION": 150,
+    "ROUTINE_CHECKUP": 30,
+    "ACUPUNCTURE": 20
+  },
+  "upcoming_today": 15,
+  "upcoming_week": 82,
+  "no_show_rate": 1.6,
+  "cancellation_rate": 6.0
 }
 ```
+
+**Statistics Descriptions**:
+- `total`: Total appointments across all time
+- `by_status`: Count per status
+- `by_type`: Count per appointment type
+- `upcoming_today`: SCHEDULED or CONFIRMED appointments for today
+- `upcoming_week`: SCHEDULED or CONFIRMED appointments for next 7 days
+- `no_show_rate`: Percentage of NO_SHOW appointments
+- `cancellation_rate`: Percentage of CANCELLED appointments
 
 ---
 
