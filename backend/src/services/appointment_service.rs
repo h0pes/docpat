@@ -37,6 +37,39 @@ impl AppointmentService {
         Self { pool }
     }
 
+    /// Helper to set RLS context in a transaction
+    ///
+    /// This sets the PostgreSQL session variables required by Row-Level Security policies.
+    async fn set_rls_context(
+        tx: &mut Transaction<'_, Postgres>,
+        user_id: Uuid,
+    ) -> Result<()> {
+        // Query the user's role from the database
+        let role: String = sqlx::query_scalar(
+            "SELECT role::TEXT FROM users WHERE id = $1"
+        )
+        .bind(user_id)
+        .fetch_one(&mut **tx)
+        .await
+        .context("Failed to fetch user role for RLS context")?;
+
+        // Set RLS context variables
+        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
+        let role_query = format!("SET LOCAL app.current_user_role = '{}'", role);
+
+        sqlx::query(&user_id_query)
+            .execute(&mut **tx)
+            .await
+            .context("Failed to set RLS user context")?;
+
+        sqlx::query(&role_query)
+            .execute(&mut **tx)
+            .await
+            .context("Failed to set RLS role context")?;
+
+        Ok(())
+    }
+
     /// Create a new appointment with conflict detection
     ///
     /// This validates the appointment, checks for conflicts, and creates the record.
@@ -63,6 +96,9 @@ impl AppointmentService {
 
         // Start transaction for conflict check + insert
         let mut tx = self.pool.begin().await?;
+
+        // Set RLS context
+        Self::set_rls_context(&mut tx, created_by_id).await?;
 
         // Check for conflicts
         self.check_conflicts(
@@ -154,12 +190,28 @@ impl AppointmentService {
         id: Uuid,
         user_id: Option<Uuid>,
     ) -> Result<Option<AppointmentDto>> {
-        let appointment = sqlx::query_as::<_, Appointment>(
-            r#"SELECT * FROM appointments WHERE id = $1"#,
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        // If user_id is provided, use RLS context
+        let appointment = if let Some(uid) = user_id {
+            let mut tx = self.pool.begin().await?;
+            Self::set_rls_context(&mut tx, uid).await?;
+
+            let appt = sqlx::query_as::<_, Appointment>(
+                r#"SELECT * FROM appointments WHERE id = $1"#,
+            )
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            tx.commit().await?;
+            appt
+        } else {
+            sqlx::query_as::<_, Appointment>(
+                r#"SELECT * FROM appointments WHERE id = $1"#,
+            )
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+        };
 
         if let Some(ref appt) = appointment {
             // Audit log
@@ -194,6 +246,9 @@ impl AppointmentService {
             .context("Invalid update data")?;
 
         let mut tx = self.pool.begin().await?;
+
+        // Set RLS context
+        Self::set_rls_context(&mut tx, updated_by_id).await?;
 
         // Get existing appointment
         let existing = self.get_appointment_for_update(&mut tx, id).await?;
@@ -338,6 +393,9 @@ impl AppointmentService {
     ) -> Result<AppointmentDto> {
         let mut tx = self.pool.begin().await?;
 
+        // Set RLS context
+        Self::set_rls_context(&mut tx, cancelled_by_id).await?;
+
         // Get existing appointment
         let existing = self.get_appointment_for_update(&mut tx, id).await?;
 
@@ -458,61 +516,128 @@ impl AppointmentService {
             format!("WHERE {}", where_clauses.join(" AND "))
         };
 
-        // Count query
-        let count_query = format!("SELECT COUNT(*) FROM appointments {}", where_clause);
-        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
+        // Use transaction with RLS context if user_id is provided
+        let (total, appointments) = if let Some(uid) = user_id {
+            let mut tx = self.pool.begin().await?;
+            Self::set_rls_context(&mut tx, uid).await?;
 
-        if let Some(patient_id) = filter.patient_id {
-            count_q = count_q.bind(patient_id);
-        }
-        if let Some(provider_id) = filter.provider_id {
-            count_q = count_q.bind(provider_id);
-        }
-        if let Some(status) = filter.status {
-            count_q = count_q.bind(status);
-        }
-        if let Some(apt_type) = filter.appointment_type {
-            count_q = count_q.bind(apt_type);
-        }
-        if let Some(start_date) = filter.start_date {
-            count_q = count_q.bind(start_date);
-        }
-        if let Some(end_date) = filter.end_date {
-            count_q = count_q.bind(end_date);
-        }
+            // Count query
+            let count_query = format!("SELECT COUNT(*) FROM appointments {}", where_clause);
+            let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
 
-        let total = count_q.fetch_one(&self.pool).await?;
+            if let Some(patient_id) = filter.patient_id {
+                count_q = count_q.bind(patient_id);
+            }
+            if let Some(provider_id) = filter.provider_id {
+                count_q = count_q.bind(provider_id);
+            }
+            if let Some(status) = filter.status {
+                count_q = count_q.bind(status);
+            }
+            if let Some(apt_type) = filter.appointment_type {
+                count_q = count_q.bind(apt_type);
+            }
+            if let Some(start_date) = filter.start_date {
+                count_q = count_q.bind(start_date);
+            }
+            if let Some(end_date) = filter.end_date {
+                count_q = count_q.bind(end_date);
+            }
 
-        // Data query
-        let data_query = format!(
-            "SELECT * FROM appointments {} ORDER BY scheduled_start DESC LIMIT ${} OFFSET ${}",
-            where_clause, param_index, param_index + 1
-        );
+            let total = count_q.fetch_one(&mut *tx).await?;
 
-        let mut data_q = sqlx::query_as::<_, Appointment>(&data_query);
+            // Data query
+            let data_query = format!(
+                "SELECT * FROM appointments {} ORDER BY scheduled_start DESC LIMIT ${} OFFSET ${}",
+                where_clause, param_index, param_index + 1
+            );
 
-        if let Some(patient_id) = filter.patient_id {
-            data_q = data_q.bind(patient_id);
-        }
-        if let Some(provider_id) = filter.provider_id {
-            data_q = data_q.bind(provider_id);
-        }
-        if let Some(status) = filter.status {
-            data_q = data_q.bind(status);
-        }
-        if let Some(apt_type) = filter.appointment_type {
-            data_q = data_q.bind(apt_type);
-        }
-        if let Some(start_date) = filter.start_date {
-            data_q = data_q.bind(start_date);
-        }
-        if let Some(end_date) = filter.end_date {
-            data_q = data_q.bind(end_date);
-        }
-        data_q = data_q.bind(limit);
-        data_q = data_q.bind(offset);
+            let mut data_q = sqlx::query_as::<_, Appointment>(&data_query);
 
-        let appointments = data_q.fetch_all(&self.pool).await?;
+            if let Some(patient_id) = filter.patient_id {
+                data_q = data_q.bind(patient_id);
+            }
+            if let Some(provider_id) = filter.provider_id {
+                data_q = data_q.bind(provider_id);
+            }
+            if let Some(status) = filter.status {
+                data_q = data_q.bind(status);
+            }
+            if let Some(apt_type) = filter.appointment_type {
+                data_q = data_q.bind(apt_type);
+            }
+            if let Some(start_date) = filter.start_date {
+                data_q = data_q.bind(start_date);
+            }
+            if let Some(end_date) = filter.end_date {
+                data_q = data_q.bind(end_date);
+            }
+            data_q = data_q.bind(limit);
+            data_q = data_q.bind(offset);
+
+            let appointments = data_q.fetch_all(&mut *tx).await?;
+            tx.commit().await?;
+
+            (total, appointments)
+        } else {
+            // Fallback without RLS context (for system/admin operations)
+            // Count query
+            let count_query = format!("SELECT COUNT(*) FROM appointments {}", where_clause);
+            let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
+
+            if let Some(patient_id) = filter.patient_id {
+                count_q = count_q.bind(patient_id);
+            }
+            if let Some(provider_id) = filter.provider_id {
+                count_q = count_q.bind(provider_id);
+            }
+            if let Some(status) = filter.status {
+                count_q = count_q.bind(status);
+            }
+            if let Some(apt_type) = filter.appointment_type {
+                count_q = count_q.bind(apt_type);
+            }
+            if let Some(start_date) = filter.start_date {
+                count_q = count_q.bind(start_date);
+            }
+            if let Some(end_date) = filter.end_date {
+                count_q = count_q.bind(end_date);
+            }
+
+            let total = count_q.fetch_one(&self.pool).await?;
+
+            // Data query
+            let data_query = format!(
+                "SELECT * FROM appointments {} ORDER BY scheduled_start DESC LIMIT ${} OFFSET ${}",
+                where_clause, param_index, param_index + 1
+            );
+
+            let mut data_q = sqlx::query_as::<_, Appointment>(&data_query);
+
+            if let Some(patient_id) = filter.patient_id {
+                data_q = data_q.bind(patient_id);
+            }
+            if let Some(provider_id) = filter.provider_id {
+                data_q = data_q.bind(provider_id);
+            }
+            if let Some(status) = filter.status {
+                data_q = data_q.bind(status);
+            }
+            if let Some(apt_type) = filter.appointment_type {
+                data_q = data_q.bind(apt_type);
+            }
+            if let Some(start_date) = filter.start_date {
+                data_q = data_q.bind(start_date);
+            }
+            if let Some(end_date) = filter.end_date {
+                data_q = data_q.bind(end_date);
+            }
+            data_q = data_q.bind(limit);
+            data_q = data_q.bind(offset);
+
+            let appointments = data_q.fetch_all(&self.pool).await?;
+            (total, appointments)
+        };
 
         // Audit log for search
         if user_id.is_some() {

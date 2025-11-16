@@ -156,6 +156,7 @@ pub struct Appointment {
 
     // Details
     #[serde(rename = "type")]
+    #[sqlx(rename = "type")]
     pub appointment_type: AppointmentType,
     pub reason: Option<String>,
     pub notes: Option<String>,

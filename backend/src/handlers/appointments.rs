@@ -147,10 +147,13 @@ pub async fn create_appointment(
         .create_appointment(req, user_id)
         .await
         .map_err(|e| {
-            if e.to_string().contains("conflict") {
-                AppError::Conflict(e.to_string())
+            let error_str = e.to_string();
+            if error_str.contains("conflict") {
+                AppError::Conflict(error_str)
+            } else if error_str.contains("foreign key") || error_str.contains("patient") {
+                AppError::BadRequest("Patient not found or invalid provider".to_string())
             } else {
-                AppError::Internal(e.to_string())
+                AppError::Internal(error_str)
             }
         })?;
 
