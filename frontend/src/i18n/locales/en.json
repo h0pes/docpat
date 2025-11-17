@@ -359,5 +359,225 @@
       "statusAsc": "Status (A-Z)",
       "statusDesc": "Status (Z-A)"
     }
+  },
+  "appointments": {
+    "title": "Appointments",
+    "subtitle": "Manage appointment scheduling",
+    "calendar": "Calendar",
+    "schedule": "Schedule",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "day": "Day",
+    "new": "New Appointment",
+    "new_description": "Schedule a new appointment for a patient",
+    "edit": "Edit Appointment",
+    "edit_description": "Update appointment details",
+    "details": "Appointment Details",
+    "appointment_info": "Appointment Information",
+    "time": "Time",
+    "duration": "Duration",
+    "cancellation_reason": "Cancellation Reason",
+    "reminders_sent": "Reminders Sent",
+    "status_management": "Update appointment status",
+    "list": {
+      "title": "Appointments",
+      "subtitle": "View and manage all appointments"
+    },
+    "new_page": {
+      "title": "New Appointment",
+      "subtitle": "Schedule a new appointment"
+    },
+    "edit_page": {
+      "title": "Edit Appointment",
+      "subtitle": "Editing appointment"
+    },
+    "detail": {
+      "title": "Appointment Details"
+    },
+    "daily_schedule": {
+      "title": "Daily Schedule",
+      "subtitle": "Today's appointments",
+      "no_appointments": "No appointments scheduled for today",
+      "next_appointment": "Next Appointment"
+    },
+    "status": {
+      "label": "Status",
+      "all": "All Statuses",
+      "scheduled": "Scheduled",
+      "confirmed": "Confirmed",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No Show"
+    },
+    "type": {
+      "label": "Type",
+      "all": "All Types",
+      "new_patient": "New Patient",
+      "follow_up": "Follow-up",
+      "urgent": "Urgent",
+      "consultation": "Consultation",
+      "routine_checkup": "Routine Checkup",
+      "acupuncture": "Acupuncture"
+    },
+    "recurring": {
+      "label": "Recurring",
+      "frequency": "Frequency",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "bi_weekly": "Bi-weekly",
+      "monthly": "Monthly",
+      "interval": "Every",
+      "end_date": "End Date",
+      "max_occurrences": "Max Occurrences",
+      "occurrences": "occurrences"
+    },
+    "form": {
+      "title": "Appointment Details",
+      "description": "Fill in the appointment information below",
+      "edit_title": "Edit Appointment",
+      "edit_description": "Update the appointment information",
+      "patient": "Patient",
+      "select_patient": "Select a patient",
+      "search_patient": "Search for a patient...",
+      "provider": "Provider",
+      "date": "Date",
+      "time": "Time",
+      "start_time": "Start Time",
+      "end_time": "End Time",
+      "duration": "Duration",
+      "duration_minutes": "Duration (minutes)",
+      "reason": "Reason for Visit",
+      "reason_placeholder": "Describe the reason for this appointment...",
+      "notes": "Notes",
+      "notes_placeholder": "Additional notes about the appointment...",
+      "is_recurring": "Recurring Appointment",
+      "check_availability": "Check Availability",
+      "select_time_slot": "Select Time Slot",
+      "no_slots_available": "No available slots for this date"
+    },
+    "validation": {
+      "patient_required": "Patient is required",
+      "provider_required": "Provider is required",
+      "date_required": "Date is required",
+      "time_required": "Time is required",
+      "duration_required": "Duration is required",
+      "duration_min": "Duration must be at least 15 minutes",
+      "duration_max": "Duration cannot exceed 480 minutes",
+      "future_date_required": "Appointment must be in the future",
+      "reason_max": "Reason cannot exceed 2000 characters",
+      "notes_max": "Notes cannot exceed 5000 characters",
+      "cancellation_reason_required": "Cancellation reason is required"
+    },
+    "actions": {
+      "new": "New Appointment",
+      "view": "View Details",
+      "edit": "Edit Appointment",
+      "cancel": "Cancel Appointment",
+      "reschedule": "Reschedule",
+      "confirm": "Confirm Appointment",
+      "check_in": "Check In",
+      "check_out": "Check Out",
+      "start": "Start Appointment",
+      "complete": "Complete",
+      "no_show": "Mark as No Show",
+      "mark_no_show": "Mark as No Show",
+      "print_schedule": "Print Schedule"
+    },
+    "messages": {
+      "created": "Appointment Created",
+      "appointment_scheduled": "The appointment has been scheduled successfully",
+      "create_failed": "Failed to create appointment",
+      "updated": "Appointment Updated",
+      "appointment_updated": "The appointment has been updated successfully",
+      "update_failed": "Failed to update appointment",
+      "cancelled": "Appointment Cancelled",
+      "cancel_success": "The appointment has been cancelled successfully",
+      "cancel_failed": "Failed to cancel appointment",
+      "status_updated": "Appointment status updated successfully",
+      "not_found": "Appointment not found",
+      "cannot_edit": "Cannot Edit Appointment",
+      "cannot_edit_reason": "This appointment cannot be edited because it is cancelled, completed, or marked as no-show",
+      "createSuccess": "Appointment Created",
+      "createSuccessDescription": "The appointment has been scheduled successfully",
+      "createError": "Failed to Create Appointment",
+      "updateSuccess": "Appointment Updated",
+      "updateSuccessDescription": "The appointment has been updated successfully",
+      "updateError": "Failed to Update Appointment",
+      "cancelSuccess": "Appointment Cancelled",
+      "cancelSuccessDescription": "The appointment has been cancelled successfully",
+      "cancelError": "Failed to Cancel Appointment",
+      "loadError": "Failed to Load Appointments",
+      "conflictWarning": "Time Slot Conflict",
+      "conflictWarningDescription": "This time slot conflicts with an existing appointment"
+    },
+    "cancel": {
+      "confirmTitle": "Cancel Appointment",
+      "confirmMessage": "Are you sure you want to cancel this appointment?",
+      "reason_label": "Cancellation Reason",
+      "reason_placeholder": "Please provide a reason for cancellation..."
+    },
+    "cancel_dialog": {
+      "title": "Cancel Appointment",
+      "description": "Are you sure you want to cancel this appointment? This action cannot be undone.",
+      "reason_label": "Reason for Cancellation",
+      "reason_placeholder": "Please provide a reason for cancelling this appointment..."
+    },
+    "filters": {
+      "title": "Filters",
+      "date_range": "Date Range",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "clear_all": "Clear All"
+    },
+    "statistics": {
+      "title": "Appointment Statistics",
+      "total": "Total Appointments",
+      "upcoming_today": "Today",
+      "upcoming_week": "This Week",
+      "no_show_rate": "No-Show Rate",
+      "cancellation_rate": "Cancellation Rate"
+    },
+    "availability": {
+      "checking": "Checking availability...",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "slots_available": "{{count}} slots available",
+      "error_checking": "Unable to check availability",
+      "next_available": "Next available"
+    },
+    "reminders": {
+      "sent": "Reminder Sent",
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
+    },
+    "no_results": "No Appointments Found",
+    "no_results_description": "Try adjusting your filters or date range",
+    "no_appointments": "No Appointments Scheduled",
+    "no_appointments_description": "Schedule your first appointment to get started",
+    "error_title": "Error Loading Appointments",
+    "error_loading": "Failed to load appointments. Please try again.",
+    "retry": "Retry",
+    "total_count": "{{count}} appointments",
+    "minutes": "min",
+    "hours": "hrs",
+    "proposed_time": "Proposed Time",
+    "conflicting_appointments": "Conflicting Appointments",
+    "conflict_warning_message": "Proceeding will create overlapping appointments. This may cause scheduling issues.",
+    "proceed_anyway": "Proceed Anyway",
+    "quick_reschedule": {
+      "title": "Quick Reschedule",
+      "description": "Select a new date and time for this appointment",
+      "current_time": "Current Time",
+      "new_time": "New Time"
+    },
+    "print": {
+      "generated_on": "Generated on",
+      "title": "Print Schedule",
+      "description": "Print the current schedule view"
+    }
   }
 }
+

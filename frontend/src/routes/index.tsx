@@ -17,6 +17,12 @@ import {
   EditPatientPage,
   PatientDetailPage,
 } from '../pages/patients';
+import {
+  AppointmentsPage,
+  NewAppointmentPage,
+  EditAppointmentPage,
+  AppointmentDetailPage,
+} from '../pages/appointments';
 
 /**
  * Application router configuration
@@ -71,9 +77,22 @@ export const router = createBrowserRouter([
             path: '/patients/:id/edit',
             element: <EditPatientPage />,
           },
+          // Appointment routes
           {
             path: '/appointments',
-            element: <div>Appointments page - Coming soon</div>,
+            element: <AppointmentsPage />,
+          },
+          {
+            path: '/appointments/new',
+            element: <NewAppointmentPage />,
+          },
+          {
+            path: '/appointments/:id',
+            element: <AppointmentDetailPage />,
+          },
+          {
+            path: '/appointments/:id/edit',
+            element: <EditAppointmentPage />,
           },
           {
             path: '/visits',

@@ -7,10 +7,11 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PatientList } from '@/components/patients/PatientList';
-import { usePatients } from '@/services/api/patients';
+import { patientsApi } from '@/services/api/patients';
 
 /**
  * PatientsPage Component
@@ -23,9 +24,9 @@ export function PatientsPage() {
   const { t } = useTranslation();
 
   // Fetch patient count for the subtitle
-  const { data: patientsData } = usePatients({
-    limit: 1, // Just need count, not data
-    offset: 0,
+  const { data: patientsData } = useQuery({
+    queryKey: ['patients', 'count'],
+    queryFn: () => patientsApi.getAll({ limit: 1, offset: 0 }),
   });
 
   /**

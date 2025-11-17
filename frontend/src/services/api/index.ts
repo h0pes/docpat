@@ -6,3 +6,5 @@
 
 export * from './axios-instance';
 export * from './auth';
+export * from './patients';
+export * from './appointments';

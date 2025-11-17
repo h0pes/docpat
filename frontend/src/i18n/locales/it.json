@@ -359,5 +359,224 @@
       "statusAsc": "Stato (A-Z)",
       "statusDesc": "Stato (Z-A)"
     }
+  },
+  "appointments": {
+    "title": "Appuntamenti",
+    "subtitle": "Gestisci la pianificazione degli appuntamenti",
+    "calendar": "Calendario",
+    "schedule": "Programma",
+    "today": "Oggi",
+    "week": "Settimana",
+    "month": "Mese",
+    "day": "Giorno",
+    "new": "Nuovo Appuntamento",
+    "new_description": "Prenota un nuovo appuntamento per un paziente",
+    "edit": "Modifica Appuntamento",
+    "edit_description": "Aggiorna i dettagli dell'appuntamento",
+    "details": "Dettagli Appuntamento",
+    "appointment_info": "Informazioni Appuntamento",
+    "time": "Ora",
+    "duration": "Durata",
+    "cancellation_reason": "Motivo dell'Annullamento",
+    "reminders_sent": "Promemoria Inviati",
+    "status_management": "Aggiorna lo stato dell'appuntamento",
+    "list": {
+      "title": "Appuntamenti",
+      "subtitle": "Visualizza e gestisci tutti gli appuntamenti"
+    },
+    "new_page": {
+      "title": "Nuovo Appuntamento",
+      "subtitle": "Prenota un nuovo appuntamento"
+    },
+    "edit_page": {
+      "title": "Modifica Appuntamento",
+      "subtitle": "Modifica appuntamento"
+    },
+    "detail": {
+      "title": "Dettagli Appuntamento"
+    },
+    "daily_schedule": {
+      "title": "Programma Giornaliero",
+      "subtitle": "Appuntamenti di oggi",
+      "no_appointments": "Nessun appuntamento programmato per oggi",
+      "next_appointment": "Prossimo Appuntamento"
+    },
+    "status": {
+      "label": "Stato",
+      "all": "Tutti gli Stati",
+      "scheduled": "Programmato",
+      "confirmed": "Confermato",
+      "in_progress": "In Corso",
+      "completed": "Completato",
+      "cancelled": "Annullato",
+      "no_show": "Non Presentato"
+    },
+    "type": {
+      "label": "Tipo",
+      "all": "Tutti i Tipi",
+      "new_patient": "Nuovo Paziente",
+      "follow_up": "Controllo",
+      "urgent": "Urgente",
+      "consultation": "Consulto",
+      "routine_checkup": "Visita di Routine",
+      "acupuncture": "Agopuntura"
+    },
+    "recurring": {
+      "label": "Ricorrente",
+      "frequency": "Frequenza",
+      "daily": "Giornaliero",
+      "weekly": "Settimanale",
+      "bi_weekly": "Bisettimanale",
+      "monthly": "Mensile",
+      "interval": "Ogni",
+      "end_date": "Data di Fine",
+      "max_occurrences": "Occorrenze Massime",
+      "occurrences": "occorrenze"
+    },
+    "form": {
+      "title": "Dettagli Appuntamento",
+      "description": "Compila le informazioni dell'appuntamento",
+      "edit_title": "Modifica Appuntamento",
+      "edit_description": "Aggiorna le informazioni dell'appuntamento",
+      "patient": "Paziente",
+      "select_patient": "Seleziona un paziente",
+      "search_patient": "Cerca un paziente...",
+      "provider": "Medico",
+      "date": "Data",
+      "time": "Ora",
+      "start_time": "Ora di Inizio",
+      "end_time": "Ora di Fine",
+      "duration": "Durata",
+      "duration_minutes": "Durata (minuti)",
+      "reason": "Motivo della Visita",
+      "reason_placeholder": "Descrivi il motivo di questo appuntamento...",
+      "notes": "Note",
+      "notes_placeholder": "Note aggiuntive sull'appuntamento...",
+      "is_recurring": "Appuntamento Ricorrente",
+      "check_availability": "Verifica Disponibilità",
+      "select_time_slot": "Seleziona Fascia Oraria",
+      "no_slots_available": "Nessuno slot disponibile per questa data"
+    },
+    "validation": {
+      "patient_required": "Il paziente è obbligatorio",
+      "provider_required": "Il medico è obbligatorio",
+      "date_required": "La data è obbligatoria",
+      "time_required": "L'ora è obbligatoria",
+      "duration_required": "La durata è obbligatoria",
+      "duration_min": "La durata deve essere almeno 15 minuti",
+      "duration_max": "La durata non può superare 480 minuti",
+      "future_date_required": "L'appuntamento deve essere nel futuro",
+      "reason_max": "Il motivo non può superare 2000 caratteri",
+      "notes_max": "Le note non possono superare 5000 caratteri",
+      "cancellation_reason_required": "Il motivo dell'annullamento è obbligatorio"
+    },
+    "actions": {
+      "new": "Nuovo Appuntamento",
+      "view": "Visualizza Dettagli",
+      "edit": "Modifica Appuntamento",
+      "cancel": "Annulla Appuntamento",
+      "reschedule": "Riprogramma",
+      "confirm": "Conferma Appuntamento",
+      "check_in": "Registra Arrivo",
+      "check_out": "Registra Uscita",
+      "start": "Inizia Appuntamento",
+      "complete": "Completa",
+      "no_show": "Segna come Non Presentato",
+      "mark_no_show": "Segna come Non Presentato",
+      "print_schedule": "Stampa Programma"
+    },
+    "messages": {
+      "created": "Appuntamento Creato",
+      "appointment_scheduled": "L'appuntamento è stato programmato con successo",
+      "create_failed": "Impossibile creare l'appuntamento",
+      "updated": "Appuntamento Aggiornato",
+      "appointment_updated": "L'appuntamento è stato aggiornato con successo",
+      "update_failed": "Impossibile aggiornare l'appuntamento",
+      "cancelled": "Appuntamento Annullato",
+      "cancel_success": "L'appuntamento è stato annullato con successo",
+      "cancel_failed": "Impossibile annullare l'appuntamento",
+      "status_updated": "Stato dell'appuntamento aggiornato con successo",
+      "not_found": "Appuntamento non trovato",
+      "cannot_edit": "Impossibile Modificare l'Appuntamento",
+      "cannot_edit_reason": "Questo appuntamento non può essere modificato perché è annullato, completato o segnato come non presentato",
+      "createSuccess": "Appuntamento Creato",
+      "createSuccessDescription": "L'appuntamento è stato programmato con successo",
+      "createError": "Errore nella Creazione dell'Appuntamento",
+      "updateSuccess": "Appuntamento Aggiornato",
+      "updateSuccessDescription": "L'appuntamento è stato aggiornato con successo",
+      "updateError": "Errore nell'Aggiornamento dell'Appuntamento",
+      "cancelSuccess": "Appuntamento Annullato",
+      "cancelSuccessDescription": "L'appuntamento è stato annullato con successo",
+      "cancelError": "Errore nell'Annullamento dell'Appuntamento",
+      "loadError": "Errore nel Caricamento degli Appuntamenti",
+      "conflictWarning": "Conflitto di Orario",
+      "conflictWarningDescription": "Questa fascia oraria è in conflitto con un appuntamento esistente"
+    },
+    "cancel": {
+      "confirmTitle": "Annulla Appuntamento",
+      "confirmMessage": "Sei sicuro di voler annullare questo appuntamento?",
+      "reason_label": "Motivo dell'Annullamento",
+      "reason_placeholder": "Fornisci un motivo per l'annullamento..."
+    },
+    "cancel_dialog": {
+      "title": "Annulla Appuntamento",
+      "description": "Sei sicuro di voler annullare questo appuntamento? Questa azione non può essere annullata.",
+      "reason_label": "Motivo dell'Annullamento",
+      "reason_placeholder": "Fornisci un motivo per l'annullamento di questo appuntamento..."
+    },
+    "filters": {
+      "title": "Filtri",
+      "date_range": "Intervallo di Date",
+      "start_date": "Data di Inizio",
+      "end_date": "Data di Fine",
+      "clear_all": "Cancella Tutto"
+    },
+    "statistics": {
+      "title": "Statistiche Appuntamenti",
+      "total": "Totale Appuntamenti",
+      "upcoming_today": "Oggi",
+      "upcoming_week": "Questa Settimana",
+      "no_show_rate": "Tasso di Non Presentati",
+      "cancellation_rate": "Tasso di Annullamenti"
+    },
+    "availability": {
+      "checking": "Verifica disponibilità...",
+      "available": "Disponibile",
+      "unavailable": "Non Disponibile",
+      "slots_available": "{{count}} slot disponibili",
+      "error_checking": "Impossibile verificare la disponibilità",
+      "next_available": "Prossimo disponibile"
+    },
+    "reminders": {
+      "sent": "Promemoria Inviato",
+      "email": "Email",
+      "sms": "SMS",
+      "whatsapp": "WhatsApp"
+    },
+    "no_results": "Nessun Appuntamento Trovato",
+    "no_results_description": "Prova a modificare i filtri o l'intervallo di date",
+    "no_appointments": "Nessun Appuntamento Programmato",
+    "no_appointments_description": "Programma il tuo primo appuntamento per iniziare",
+    "error_title": "Errore nel Caricamento degli Appuntamenti",
+    "error_loading": "Impossibile caricare gli appuntamenti. Riprova.",
+    "retry": "Riprova",
+    "total_count": "{{count}} appuntamenti",
+    "minutes": "min",
+    "hours": "ore",
+    "proposed_time": "Orario Proposto",
+    "conflicting_appointments": "Appuntamenti in Conflitto",
+    "conflict_warning_message": "Procedendo si creeranno appuntamenti sovrapposti. Questo potrebbe causare problemi di pianificazione.",
+    "proceed_anyway": "Procedi Comunque",
+    "quick_reschedule": {
+      "title": "Riprogrammazione Rapida",
+      "description": "Seleziona una nuova data e ora per questo appuntamento",
+      "current_time": "Orario Attuale",
+      "new_time": "Nuovo Orario"
+    },
+    "print": {
+      "generated_on": "Generato il",
+      "title": "Stampa Programma",
+      "description": "Stampa la vista del programma corrente"
+    }
   }
 }
