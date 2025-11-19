@@ -7,7 +7,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { format, setHours, setMinutes, addMinutes } from 'date-fns';
+import { format, setHours, setMinutes, addMinutes, startOfDay } from 'date-fns';
 import { CheckCircle, XCircle, Loader2, AlertTriangle, Clock } from 'lucide-react';
 
 import { appointmentsApi } from '../../services/api/appointments';
@@ -37,8 +37,9 @@ export function AvailabilityIndicator({
 }: AvailabilityIndicatorProps) {
   const { t } = useTranslation();
 
-  // Build date string for API call
-  const dateString = format(date, 'yyyy-MM-dd');
+  // Build date string for API call - backend expects full ISO datetime
+  // Set time to start of day (00:00:00) for the availability check
+  const dateString = format(startOfDay(date), "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
   // Check availability with React Query
   const { data: availability, isLoading, error, isFetching } = useQuery({
@@ -51,14 +52,14 @@ export function AvailabilityIndicator({
 
   // Calculate if selected time slot is available
   const isTimeSlotAvailable = (): boolean => {
-    if (!availability?.available_slots) return false;
+    if (!availability?.slots) return false;
 
     const [hours, minutes] = time.split(':').map(Number);
     const selectedStart = setMinutes(setHours(date, hours), minutes);
     const selectedEnd = addMinutes(selectedStart, durationMinutes);
 
     // Check if any available slot contains our selected time range
-    return availability.available_slots.some((slot) => {
+    return availability.slots.some((slot) => {
       const slotStart = new Date(slot.start);
       const slotEnd = new Date(slot.end);
       return selectedStart >= slotStart && selectedEnd <= slotEnd;
@@ -67,12 +68,12 @@ export function AvailabilityIndicator({
 
   // Find next available slot after selected time
   const getNextAvailableSlot = (): string | null => {
-    if (!availability?.available_slots) return null;
+    if (!availability?.slots) return null;
 
     const [hours, minutes] = time.split(':').map(Number);
     const selectedTime = setMinutes(setHours(date, hours), minutes);
 
-    const nextSlot = availability.available_slots.find((slot) => {
+    const nextSlot = availability.slots.find((slot) => {
       const slotStart = new Date(slot.start);
       return slotStart > selectedTime;
     });
@@ -153,10 +154,10 @@ export function AvailabilityIndicator({
       )}
 
       {/* Available Slots Count */}
-      {availability.available_slots && availability.available_slots.length > 0 && (
+      {availability.slots && availability.slots.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {t('appointments.availability.slots_available', {
-            count: availability.available_slots.length,
+            count: availability.slots.length,
           })}
         </p>
       )}

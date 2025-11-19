@@ -185,13 +185,17 @@ BEGIN
         IF NEW.signed_by IS NULL THEN
             NEW.signed_by := NEW.updated_by;
         END IF;
-        -- Generate signature hash from content
+        -- Generate signature hash from content using SHA-256 (cryptographically secure)
         IF NEW.signature_hash IS NULL THEN
-            NEW.signature_hash := MD5(
-                COALESCE(NEW.subjective, '') ||
-                COALESCE(NEW.objective, '') ||
-                COALESCE(NEW.assessment, '') ||
-                COALESCE(NEW.plan, '')
+            NEW.signature_hash := encode(
+                digest(
+                    COALESCE(NEW.subjective, '') ||
+                    COALESCE(NEW.objective, '') ||
+                    COALESCE(NEW.assessment, '') ||
+                    COALESCE(NEW.plan, ''),
+                    'sha256'
+                ),
+                'hex'
             );
         END IF;
     END IF;

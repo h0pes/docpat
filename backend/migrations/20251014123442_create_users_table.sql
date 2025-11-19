@@ -1,6 +1,9 @@
 -- Create users table for authentication and authorization
 -- This table stores user accounts for the system (doctors and admins)
 
+-- Enable pgcrypto extension for cryptographic functions (SHA-256, etc.)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(50) UNIQUE NOT NULL,

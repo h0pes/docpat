@@ -24,8 +24,9 @@ const queryConfig: DefaultOptions = {
     refetchOnReconnect: true,
   },
   mutations: {
-    // Retry failed mutations
-    retry: 1,
+    // Do not retry failed mutations (especially creates/updates)
+    // Retrying creates can cause duplicate attempts and conflicts
+    retry: false,
   },
 };
 

@@ -8,7 +8,13 @@ pub mod appointment;
 pub mod audit_log;
 pub mod patient;
 pub mod patient_insurance;
+pub mod prescription;
+pub mod prescription_template;
 pub mod user;
+pub mod visit;
+pub mod visit_diagnosis;
+pub mod visit_template;
+pub mod visit_version;
 
 pub use appointment::{
     Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics,
@@ -26,3 +32,25 @@ pub use patient_insurance::{
     PolicyholderRelationship, ProviderAddress, UpdateInsuranceRequest,
 };
 pub use user::{User, UserDto, UserRole};
+pub use visit::{
+    CreateVisitRequest, ReviewOfSystems, UpdateVisitRequest, Visit, VisitResponse, VisitStatus,
+    VisitType, VitalSigns,
+};
+pub use visit_diagnosis::{
+    CreateVisitDiagnosisRequest, DiagnosisType, ICD10SearchResult, UpdateVisitDiagnosisRequest,
+    VisitDiagnosis, VisitDiagnosisResponse,
+};
+pub use prescription::{
+    CreatePrescriptionRequest, DrugInteractionWarning, MedicationForm, MedicationSearchResult,
+    Prescription, PrescriptionResponse, PrescriptionStatus, RouteOfAdministration,
+    UpdatePrescriptionRequest,
+};
+pub use prescription_template::{
+    CreatePrescriptionTemplateRequest, PrescriptionTemplate, PrescriptionTemplateResponse,
+    TemplateMedication, UpdatePrescriptionTemplateRequest,
+};
+pub use visit_template::{
+    CreateVisitTemplateRequest, UpdateVisitTemplateRequest, VisitTemplate,
+    VisitTemplateResponse,
+};
+pub use visit_version::{VisitVersion, VisitVersionResponse, VisitVersionSummary};

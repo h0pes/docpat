@@ -57,7 +57,7 @@ export const appointmentsApi = {
    * @returns The appointment details
    */
   getById: async (id: string): Promise<Appointment> => {
-    const response = await apiClient.get<Appointment>(`/appointments/${id}`);
+    const response = await apiClient.get<Appointment>(`/api/v1/appointments/${id}`);
     return response.data;
   },
 
@@ -78,7 +78,7 @@ export const appointmentsApi = {
    * @returns The updated appointment
    */
   update: async (id: string, data: UpdateAppointmentRequest): Promise<Appointment> => {
-    const response = await apiClient.put<Appointment>(`/appointments/${id}`, data);
+    const response = await apiClient.put<Appointment>(`/api/v1/appointments/${id}`, data);
     return response.data;
   },
 
@@ -89,7 +89,7 @@ export const appointmentsApi = {
    * @returns The cancelled appointment
    */
   cancel: async (id: string, data: CancelAppointmentRequest): Promise<Appointment> => {
-    const response = await apiClient.post<Appointment>(`/appointments/${id}/cancel`, data);
+    const response = await apiClient.post<Appointment>(`/api/v1/appointments/${id}/cancel`, data);
     return response.data;
   },
 

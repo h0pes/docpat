@@ -12,11 +12,21 @@ use axum::{
 
 use crate::handlers::auth::AppState;
 use crate::handlers::{
-    cancel_appointment, check_availability, create_appointment, create_patient, delete_patient,
-    get_appointment, get_daily_schedule, get_monthly_schedule, get_patient,
-    get_patient_statistics, get_weekly_schedule, list_appointments, list_patients, login_handler,
-    logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, search_patients,
-    update_appointment, update_patient,
+    cancel_appointment, check_availability, create_appointment, create_diagnosis, create_patient,
+    create_prescription, create_prescription_template, create_visit, create_visit_template,
+    delete_diagnosis, delete_patient, delete_prescription, delete_prescription_template,
+    delete_visit, delete_visit_template, discontinue_prescription, get_appointment,
+    get_daily_schedule, get_diagnosis, get_monthly_schedule, get_patient,
+    get_patient_diagnoses, get_patient_prescriptions, get_patient_statistics, get_patient_visits,
+    get_prescription, get_prescription_template, get_visit, get_visit_diagnoses,
+    get_visit_prescriptions, get_visit_statistics, get_visit_template, get_visit_version,
+    get_weekly_schedule,
+    list_appointments, list_patients, list_prescription_templates, list_visit_templates,
+    list_visits, list_visit_versions, lock_visit, login_handler, logout_handler,
+    mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, restore_visit_version,
+    search_icd10, search_medications, search_patients, sign_visit, update_appointment,
+    update_diagnosis, update_patient, update_prescription, update_prescription_template,
+    update_visit, update_visit_template,
 };
 use crate::middleware::auth::jwt_auth_middleware;
 
@@ -61,6 +71,9 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .route("/search", get(search_patients))
         .route("/statistics", get(get_patient_statistics))
         .route("/{id}", get(get_patient).put(update_patient).delete(delete_patient))
+        .route("/{id}/visits", get(get_patient_visits))
+        .route("/{id}/diagnoses", get(get_patient_diagnoses))
+        .route("/{id}/prescriptions", get(get_patient_prescriptions))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             jwt_auth_middleware,
@@ -81,21 +94,79 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Visit management routes - requires authentication
+    let visit_routes = Router::new()
+        .route("/", post(create_visit).get(list_visits))
+        .route("/statistics", get(get_visit_statistics))
+        .route("/{id}", get(get_visit).put(update_visit).delete(delete_visit))
+        .route("/{id}/sign", post(sign_visit))
+        .route("/{id}/lock", post(lock_visit))
+        .route("/{id}/diagnoses", get(get_visit_diagnoses))
+        .route("/{id}/prescriptions", get(get_visit_prescriptions))
+        .route("/{id}/versions", get(list_visit_versions))
+        .route("/{id}/versions/{version_number}", get(get_visit_version))
+        .route("/{id}/versions/{version_number}/restore", post(restore_visit_version))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Diagnosis management routes - requires authentication
+    let diagnosis_routes = Router::new()
+        .route("/", post(create_diagnosis))
+        .route("/icd10/search", get(search_icd10))
+        .route("/{id}", get(get_diagnosis).put(update_diagnosis).delete(delete_diagnosis))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Prescription management routes - requires authentication
+    let prescription_routes = Router::new()
+        .route("/", post(create_prescription))
+        .route("/medications/search", get(search_medications))
+        .route("/{id}", get(get_prescription).put(update_prescription).delete(delete_prescription))
+        .route("/{id}/discontinue", post(discontinue_prescription))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Visit template routes - requires authentication
+    let visit_template_routes = Router::new()
+        .route("/", post(create_visit_template).get(list_visit_templates))
+        .route("/{id}", get(get_visit_template).put(update_visit_template).delete(delete_visit_template))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Prescription template routes - requires authentication
+    let prescription_template_routes = Router::new()
+        .route("/", post(create_prescription_template).get(list_prescription_templates))
+        .route("/{id}", get(get_prescription_template).put(update_prescription_template).delete(delete_prescription_template))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
         .nest("/patients", patient_routes)
-        .nest("/appointments", appointment_routes);
+        .nest("/appointments", appointment_routes)
+        .nest("/visits", visit_routes)
+        .nest("/diagnoses", diagnosis_routes)
+        .nest("/prescriptions", prescription_routes)
+        .nest("/visit-templates", visit_template_routes)
+        .nest("/prescription-templates", prescription_template_routes);
 
     #[cfg(feature = "rbac")]
     {
         router = router.nest("/users", user_routes);
     }
 
-    router
-        // Future routes can be added here:
-        // .nest("/visits", visit_routes)
-        .with_state(state)
+    router.with_state(state)
 }
 
 #[cfg(test)]

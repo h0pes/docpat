@@ -30,8 +30,8 @@ const TEST_PATIENT = {
  */
 async function loginAsAdmin(page: Page) {
   await page.goto('/login');
-  await page.fill('input[name="username"]', 'admin');
-  await page.fill('input[name="password"]', 'admin_password_change_in_production');
+  await page.fill('input[name="username"]', 'testadmin');
+  await page.fill('input[name="password"]', 'Test123!');
   await page.click('button[type="submit"]');
   await page.waitForURL('/dashboard');
 }
@@ -41,8 +41,8 @@ async function loginAsAdmin(page: Page) {
  */
 async function loginAsDoctor(page: Page) {
   await page.goto('/login');
-  await page.fill('input[name="username"]', 'doctor');
-  await page.fill('input[name="password"]', 'doctor_password_change_in_production');
+  await page.fill('input[name="username"]', 'testdoctor');
+  await page.fill('input[name="password"]', 'Test123!');
   await page.click('button[type="submit"]');
   await page.waitForURL('/dashboard');
 }
