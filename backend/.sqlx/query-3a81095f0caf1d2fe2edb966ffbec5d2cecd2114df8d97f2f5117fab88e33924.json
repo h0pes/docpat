@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE visit_templates\n            SET\n                template_name = COALESCE($2, template_name),\n                description = COALESCE($3, description),\n                subjective = COALESCE($4, subjective),\n                objective = COALESCE($5, objective),\n                assessment = COALESCE($6, assessment),\n                plan = COALESCE($7, plan),\n                default_vitals = COALESCE($8, default_vitals),\n                is_active = COALESCE($9, is_active),\n                updated_by = $10,\n                updated_at = NOW()\n            WHERE id = $1\n            RETURNING\n                id, template_name, description,\n                subjective, objective, assessment, plan,\n                default_vitals,\n                is_active, created_by, updated_by,\n                created_at, updated_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "template_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subjective",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "objective",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "assessment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "plan",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_vitals",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3a81095f0caf1d2fe2edb966ffbec5d2cecd2114df8d97f2f5117fab88e33924"
+}

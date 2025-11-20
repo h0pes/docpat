@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE visit_diagnoses\n            SET\n                icd10_description = COALESCE($2, icd10_description),\n                is_primary = COALESCE($3, is_primary),\n                diagnosis_type = COALESCE($4, diagnosis_type),\n                clinical_notes = COALESCE($5, clinical_notes),\n                is_active = COALESCE($6, is_active),\n                resolved_date = COALESCE($7, resolved_date),\n                updated_at = NOW(),\n                updated_by = $8\n            WHERE id = $1\n            RETURNING\n                id,\n                visit_id,\n                visit_date,\n                patient_id,\n                icd10_code,\n                icd10_description,\n                is_primary,\n                diagnosis_type AS \"diagnosis_type: DiagnosisType\",\n                clinical_notes,\n                is_active,\n                resolved_date,\n                created_at,\n                updated_at,\n                created_by,\n                updated_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "visit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "visit_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "icd10_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "icd10_description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_primary",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "diagnosis_type: DiagnosisType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "clinical_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "resolved_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Varchar",
+        "Text",
+        "Bool",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "9790f5f65cff960f7c91852efd9884cd024ce67c871aefabedf9c296c11fcd8e"
+}

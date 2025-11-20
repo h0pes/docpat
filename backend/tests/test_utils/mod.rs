@@ -172,12 +172,27 @@ pub async fn teardown_test_db(pool: &PgPool) {
         .await
         .ok();
 
+    sqlx::query("DELETE FROM prescription_templates")
+        .execute(&mut *tx)
+        .await
+        .ok();
+
     sqlx::query("DELETE FROM prescriptions")
         .execute(&mut *tx)
         .await
         .ok();
 
+    sqlx::query("DELETE FROM visit_versions")
+        .execute(&mut *tx)
+        .await
+        .ok();
+
     sqlx::query("DELETE FROM visit_diagnoses")
+        .execute(&mut *tx)
+        .await
+        .ok();
+
+    sqlx::query("DELETE FROM visit_templates")
         .execute(&mut *tx)
         .await
         .ok();

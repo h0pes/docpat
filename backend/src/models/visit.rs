@@ -203,6 +203,9 @@ pub struct Visit {
     pub signed_by: Option<Uuid>,
     pub signature_hash: Option<String>,
 
+    // Lock timestamp
+    pub locked_at: Option<DateTime<Utc>>,
+
     // Version control
     pub version: i32,
     pub previous_version_id: Option<Uuid>,
@@ -363,6 +366,8 @@ pub struct VisitResponse {
     pub status: VisitStatus,
     pub signed_at: Option<DateTime<Utc>>,
     pub signed_by: Option<Uuid>,
+    pub signature_hash: Option<String>,
+    pub locked_at: Option<DateTime<Utc>>,
 
     // Version
     pub version: i32,
@@ -498,6 +503,8 @@ impl Visit {
             status: self.status,
             signed_at: self.signed_at,
             signed_by: self.signed_by,
+            signature_hash: self.signature_hash.clone(),
+            locked_at: self.locked_at,
             version: self.version,
             last_autosave_at: self.last_autosave_at,
             follow_up_required: self.follow_up_required,

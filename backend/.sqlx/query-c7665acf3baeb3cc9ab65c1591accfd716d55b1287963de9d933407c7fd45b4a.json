@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE prescription_templates\n            SET is_active = false, updated_at = NOW(), updated_by = $2\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c7665acf3baeb3cc9ab65c1591accfd716d55b1287963de9d933407c7fd45b4a"
+}

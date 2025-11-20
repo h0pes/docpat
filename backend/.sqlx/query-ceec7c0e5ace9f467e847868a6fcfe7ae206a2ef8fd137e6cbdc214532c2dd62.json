@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    id, template_name, description,\n                    subjective, objective, assessment, plan,\n                    default_vitals,\n                    is_active, created_by, updated_by,\n                    created_at, updated_at\n                FROM visit_templates\n                WHERE created_by = $1 AND is_active = true\n                ORDER BY template_name ASC\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "template_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "subjective",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "objective",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "assessment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "plan",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_vitals",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "ceec7c0e5ace9f467e847868a6fcfe7ae206a2ef8fd137e6cbdc214532c2dd62"
+}

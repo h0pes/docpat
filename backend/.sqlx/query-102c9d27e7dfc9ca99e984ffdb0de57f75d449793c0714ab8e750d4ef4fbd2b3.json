@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE visit_templates\n            SET is_active = false, updated_at = NOW(), updated_by = $2\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "102c9d27e7dfc9ca99e984ffdb0de57f75d449793c0714ab8e750d4ef4fbd2b3"
+}

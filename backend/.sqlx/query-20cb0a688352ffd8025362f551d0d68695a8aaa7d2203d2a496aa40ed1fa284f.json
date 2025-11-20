@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, visit_id, version_number, changed_by, change_reason, created_at\n            FROM visit_versions\n            WHERE visit_id = $1\n            ORDER BY version_number DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "visit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "version_number",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "changed_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "change_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "20cb0a688352ffd8025362f551d0d68695a8aaa7d2203d2a496aa40ed1fa284f"
+}

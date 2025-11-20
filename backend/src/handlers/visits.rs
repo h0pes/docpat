@@ -17,13 +17,23 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    models::{CreateVisitRequest, UpdateVisitRequest, UserRole, VisitStatus, VisitType},
+    models::{CreateVisitRequest, UpdateVisitRequest, UserRole, VisitResponse, VisitStatus, VisitType},
     services::{VisitSearchFilter, VisitService},
     utils::{AppError, Result},
 };
+use serde::Serialize;
 
 #[cfg(feature = "rbac")]
 use tracing::warn;
+
+/// Response structure for paginated visit lists
+#[derive(Debug, Serialize)]
+pub struct ListVisitsResponse {
+    pub visits: Vec<VisitResponse>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+}
 
 /// Check if user has permission to perform action on visits resource
 #[cfg(feature = "rbac")]
@@ -100,7 +110,7 @@ pub struct PatientVisitsQuery {
     pub offset: Option<i64>,
 }
 
-/// User information from auth middleware
+/// User information from auth middleware (kept for compatibility with other handlers)
 #[derive(Debug, Clone)]
 pub struct AuthUser {
     pub user_id: Uuid,
@@ -115,11 +125,14 @@ pub struct AuthUser {
 /// **Roles**: ADMIN, DOCTOR
 pub async fn create_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Json(req): Json<CreateVisitRequest>,
 ) -> Result<impl IntoResponse> {
+    tracing::info!("Creating visit by user: {} (role: {:?})", user_id, user_role);
+
     // Check permissions
-    check_permission(&state, &auth_user.role, "create").await?;
+    check_permission(&state, &user_role, "create").await?;
 
     // Validate request
     req.validate()
@@ -132,13 +145,17 @@ pub async fn create_visit(
         .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
+
+    // Create visit (service handles transaction and RLS internally)
     let visit = visit_service
-        .create_visit(req, auth_user.user_id)
+        .create_visit(req, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create visit: {}", e);
             AppError::Internal(format!("Failed to create visit: {}", e))
         })?;
+
+    tracing::info!("Visit created: {}", visit.id);
 
     Ok((StatusCode::CREATED, Json(visit)))
 }
@@ -151,11 +168,12 @@ pub async fn create_visit(
 /// **Roles**: ADMIN, DOCTOR
 pub async fn get_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "read").await?;
+    check_permission(&state, &user_role,"read").await?;
 
     // Get visit service
     let encryption_key = state
@@ -165,7 +183,7 @@ pub async fn get_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .get_visit(id, Some(auth_user.user_id))
+        .get_visit(id, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to get visit {}: {}", id, e);
@@ -185,12 +203,13 @@ pub async fn get_visit(
 /// **Business Rule**: Only DRAFT visits can be edited
 pub async fn update_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateVisitRequest>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "update").await?;
+    check_permission(&state, &user_role,"update").await?;
 
     // Validate request
     req.validate()
@@ -204,7 +223,7 @@ pub async fn update_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .update_visit(id, req, auth_user.user_id)
+        .update_visit(id, req, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update visit {}: {}", id, e);
@@ -228,11 +247,12 @@ pub async fn update_visit(
 /// **Business Rule**: Only DRAFT visits can be deleted
 pub async fn delete_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions (ADMIN only)
-    check_permission(&state, &auth_user.role, "delete").await?;
+    check_permission(&state, &user_role,"delete").await?;
 
     // Delete visit service
     let encryption_key = state
@@ -242,7 +262,7 @@ pub async fn delete_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     visit_service
-        .delete_visit(id, auth_user.user_id)
+        .delete_visit(id, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to delete visit {}: {}", id, e);
@@ -264,11 +284,12 @@ pub async fn delete_visit(
 /// **Roles**: ADMIN, DOCTOR
 pub async fn list_visits(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Query(query): Query<ListVisitsQuery>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "read").await?;
+    check_permission(&state, &user_role,"read").await?;
 
     // Parse date strings if provided
     let date_from = query
@@ -300,15 +321,37 @@ pub async fn list_visits(
         .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
+
+    // Get visits and total count
     let visits = visit_service
-        .list_visits(filter, Some(auth_user.user_id))
+        .list_visits(filter.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to list visits: {}", e);
             AppError::Internal(format!("Failed to list visits: {}", e))
         })?;
 
-    Ok(Json(visits))
+    let total = visit_service
+        .count_visits(filter.clone(), user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to count visits: {}", e);
+            AppError::Internal(format!("Failed to count visits: {}", e))
+        })?;
+
+    // Extract limit and offset
+    let limit = filter.limit.unwrap_or(20).min(100);
+    let offset = filter.offset.unwrap_or(0);
+
+    // Return paginated response
+    let response = ListVisitsResponse {
+        visits,
+        total,
+        limit,
+        offset,
+    };
+
+    Ok(Json(response))
 }
 
 /// Get all visits for a specific patient
@@ -319,12 +362,13 @@ pub async fn list_visits(
 /// **Roles**: ADMIN, DOCTOR
 pub async fn get_patient_visits(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(patient_id): Path<Uuid>,
     Query(query): Query<PatientVisitsQuery>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "read").await?;
+    check_permission(&state, &user_role,"read").await?;
 
     // Get patient visits service
     let encryption_key = state
@@ -333,15 +377,49 @@ pub async fn get_patient_visits(
         .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
+
+    // Get visits and count
     let visits = visit_service
-        .get_patient_visits(patient_id, query.limit, query.offset)
+        .get_patient_visits(patient_id, user_id, query.limit, query.offset)
         .await
         .map_err(|e| {
             tracing::error!("Failed to get patient {} visits: {}", patient_id, e);
             AppError::Internal(format!("Failed to get patient visits: {}", e))
         })?;
 
-    Ok(Json(visits))
+    // Count visits for this patient
+    let filter = VisitSearchFilter {
+        patient_id: Some(patient_id),
+        provider_id: None,
+        visit_type: None,
+        status: None,
+        date_from: None,
+        date_to: None,
+        limit: None,
+        offset: None,
+    };
+
+    let total = visit_service
+        .count_visits(filter, user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to count patient {} visits: {}", patient_id, e);
+            AppError::Internal(format!("Failed to count patient visits: {}", e))
+        })?;
+
+    // Extract limit and offset
+    let limit = query.limit.unwrap_or(50).min(100);
+    let offset = query.offset.unwrap_or(0);
+
+    // Return paginated response
+    let response = ListVisitsResponse {
+        visits,
+        total,
+        limit,
+        offset,
+    };
+
+    Ok(Json(response))
 }
 
 /// Sign a visit (transition DRAFT → SIGNED)
@@ -353,11 +431,12 @@ pub async fn get_patient_visits(
 /// **Business Rule**: Only DRAFT visits can be signed
 pub async fn sign_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "update").await?;
+    check_permission(&state, &user_role,"update").await?;
 
     // Sign visit service
     let encryption_key = state
@@ -367,7 +446,7 @@ pub async fn sign_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .sign_visit(id, auth_user.user_id)
+        .sign_visit(id, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to sign visit {}: {}", id, e);
@@ -390,11 +469,12 @@ pub async fn sign_visit(
 /// **Business Rule**: Only SIGNED visits can be locked
 pub async fn lock_visit(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "update").await?;
+    check_permission(&state, &user_role,"update").await?;
 
     // Lock visit service
     let encryption_key = state
@@ -404,7 +484,7 @@ pub async fn lock_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .lock_visit(id, auth_user.user_id)
+        .lock_visit(id, user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to lock visit {}: {}", id, e);
@@ -426,10 +506,11 @@ pub async fn lock_visit(
 /// **Roles**: ADMIN, DOCTOR
 pub async fn get_visit_statistics(
     State(state): State<AppState>,
-    Extension(auth_user): Extension<AuthUser>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
-    check_permission(&state, &auth_user.role, "read").await?;
+    check_permission(&state, &user_role,"read").await?;
 
     // Get statistics service
     let encryption_key = state
@@ -438,7 +519,7 @@ pub async fn get_visit_statistics(
         .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
-    let stats = visit_service.get_statistics().await.map_err(|e| {
+    let stats = visit_service.get_visit_statistics(user_id).await.map_err(|e| {
         tracing::error!("Failed to get visit statistics: {}", e);
         AppError::Internal(format!("Failed to get visit statistics: {}", e))
     })?;

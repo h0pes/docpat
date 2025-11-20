@@ -39,7 +39,9 @@ echo -e "${YELLOW}Cleaning up test database...${NC}"
 PGPASSWORD='dev_password_change_in_production' psql -U mpms_user -d mpms_test -q <<EOF
 -- TRUNCATE bypasses RLS policies and is faster than DELETE
 -- CASCADE ensures dependent records are also removed
-TRUNCATE users, patients, patient_insurance, appointments, audit_logs CASCADE;
+TRUNCATE users, patients, patient_insurance, appointments,
+         visits, visit_diagnoses, visit_templates, visit_versions,
+         prescriptions, prescription_templates, audit_logs CASCADE;
 EOF
 
 echo -e "${GREEN}✓${NC} Test database cleaned\n"
@@ -76,6 +78,11 @@ cargo test --test appointment_integration_tests --features rbac -- --test-thread
 APPOINTMENT_RESULT=$?
 TEST_RESULT=$((TEST_RESULT + APPOINTMENT_RESULT))
 
+echo -e "\n${YELLOW}Running visit management tests...${NC}"
+cargo test --test visit_integration_tests --features rbac -- --test-threads=1 "$@"
+VISIT_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + VISIT_RESULT))
+
 # Summary
 echo -e "\n${YELLOW}=== Test Results Summary ===${NC}"
 [ $AUTH_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Authentication tests passed" || echo -e "${RED}✗${NC} Authentication tests failed"
@@ -83,6 +90,7 @@ echo -e "\n${YELLOW}=== Test Results Summary ===${NC}"
 [ $MFA_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} MFA tests passed" || echo -e "${RED}✗${NC} MFA tests failed"
 [ $PATIENT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Patient management tests passed" || echo -e "${RED}✗${NC} Patient management tests failed"
 [ $APPOINTMENT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Appointment scheduling tests passed" || echo -e "${RED}✗${NC} Appointment scheduling tests failed"
+[ $VISIT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Visit management tests passed" || echo -e "${RED}✗${NC} Visit management tests failed"
 
 if [ $TEST_RESULT -eq 0 ]; then
     echo -e "\n${GREEN}✓ All integration tests passed!${NC}"

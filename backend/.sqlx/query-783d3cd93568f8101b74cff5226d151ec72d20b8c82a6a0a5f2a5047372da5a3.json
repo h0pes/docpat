@@ -1,0 +1,232 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE prescriptions\n            SET\n                dosage = COALESCE($2, dosage),\n                form = COALESCE($3, form),\n                route = COALESCE($4, route),\n                frequency = COALESCE($5, frequency),\n                duration = COALESCE($6, duration),\n                quantity = COALESCE($7, quantity),\n                instructions = COALESCE($8, instructions),\n                pharmacy_notes = COALESCE($9, pharmacy_notes),\n                start_date = COALESCE($10, start_date),\n                end_date = COALESCE($11, end_date),\n                status = COALESCE($12, status),\n                updated_at = NOW(),\n                updated_by = $13\n            WHERE id = $1\n            RETURNING\n                id, visit_id, visit_date, patient_id, provider_id,\n                medication_name, generic_name, dosage, form, route,\n                frequency, duration, quantity, refills AS \"refills!\",\n                instructions, pharmacy_notes,\n                prescribed_date, start_date, end_date,\n                status AS \"status: PrescriptionStatus\",\n                discontinuation_reason, discontinued_at, discontinued_by,\n                refills_remaining, last_refill_date,\n                has_interactions AS \"has_interactions!\", interaction_warnings,\n                e_prescription_id, e_prescription_sent_at, e_prescription_status,\n                created_at, updated_at, created_by, updated_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "visit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "visit_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "provider_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "medication_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "generic_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "dosage",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "form",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "route",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "frequency",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "duration",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "quantity",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "refills!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "instructions",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 15,
+        "name": "pharmacy_notes",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "prescribed_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 17,
+        "name": "start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 18,
+        "name": "end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 19,
+        "name": "status: PrescriptionStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 20,
+        "name": "discontinuation_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 21,
+        "name": "discontinued_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "discontinued_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 23,
+        "name": "refills_remaining",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 24,
+        "name": "last_refill_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 25,
+        "name": "has_interactions!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 26,
+        "name": "interaction_warnings",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 27,
+        "name": "e_prescription_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 28,
+        "name": "e_prescription_sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 29,
+        "name": "e_prescription_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 30,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 31,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 32,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 33,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "Varchar",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "783d3cd93568f8101b74cff5226d151ec72d20b8c82a6a0a5f2a5047372da5a3"
+}

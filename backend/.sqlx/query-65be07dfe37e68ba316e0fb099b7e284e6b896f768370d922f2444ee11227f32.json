@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE prescriptions\n                SET\n                    has_interactions = true,\n                    interaction_warnings = $2\n                WHERE id = $1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "65be07dfe37e68ba316e0fb099b7e284e6b896f768370d922f2444ee11227f32"
+}
