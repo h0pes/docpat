@@ -578,5 +578,339 @@
       "title": "Stampa Programma",
       "description": "Stampa la vista del programma corrente"
     }
+  },
+  "visits": {
+    "title": "Visite",
+    "new_visit": "Nuova Visita",
+    "edit_visit": "Modifica Visita",
+    "load_template": "Carica Modello",
+    "visit_locked_warning": "Questa visita è bloccata e non può essere modificata",
+    "visit_signed_warning": "Questa visita è firmata e non può essere modificata",
+    "basic_info": "Informazioni di Base",
+    "visit_type": "Tipo di Visita",
+    "select_visit_type": "Seleziona tipo di visita",
+    "visit_date": "Data Visita",
+    "chief_complaint": "Motivo della Visita",
+    "chief_complaint_placeholder": "Breve descrizione del motivo principale di questa visita...",
+    "save_draft": "Salva Bozza",
+    "visit_types": {
+      "new_patient": "Nuovo Paziente",
+      "follow_up": "Controllo",
+      "emergency": "Emergenza",
+      "preventive_care": "Cura Preventiva",
+      "chronic_care": "Cura Cronica",
+      "pre_operative": "Pre-operatorio",
+      "post_operative": "Post-operatorio",
+      "consultation": "Consultazione",
+      "procedure": "Procedura",
+      "other": "Altro"
+    },
+    "auto_save": {
+      "saving": "Salvataggio...",
+      "saved": "Salvato",
+      "error": "Salvataggio fallito",
+      "last_saved": "Ultimo salvataggio"
+    },
+    "templates": {
+      "select_template": "Seleziona Modello Visita",
+      "select_description": "Scegli un modello per pre-compilare questa visita con contenuto standard",
+      "no_templates": "Nessun modello disponibile",
+      "apply_template": "Applica Modello"
+    },
+    "view_visit": "Visualizza Visita",
+    "visit_detail_title": "Dettagli Visita",
+    "provider": "Medico",
+    "created_at": "Creata",
+    "no_soap_notes": "Nessuna nota SOAP registrata",
+    "signature_info": "Informazioni Firma",
+    "signed_at": "Firmata Il",
+    "signature_hash": "Hash Firma",
+    "locked_at": "Bloccata Il",
+    "sign_visit": "Firma Visita",
+    "lock_visit": "Blocca Visita",
+    "visit_history": "Storico Visite",
+    "total_visits": "visite totali",
+    "no_visits": "Nessuna Visita",
+    "no_visits_description": "Questo paziente non ha ancora visite registrate. Crea la prima visita per iniziare.",
+    "status": {
+      "draft": "Bozza",
+      "signed": "Firmata",
+      "locked": "Bloccata"
+    },
+    "signature": {
+      "title": "Firma Visita",
+      "description": "Firma questa visita per renderla ufficiale e impedire ulteriori modifiche.",
+      "warning": "Questa azione non può essere annullata. Assicurati che tutte le informazioni siano corrette prima di firmare.",
+      "effects": "Dopo la firma, avverranno le seguenti azioni",
+      "effect_1": "Lo stato della visita cambierà in FIRMATA",
+      "effect_2": "Il contenuto della visita non potrà più essere modificato",
+      "effect_3": "Verrà generato un hash di firma digitale",
+      "signing": "Firma in corso...",
+      "confirm": "Firma Visita"
+    },
+    "lock": {
+      "title": "Blocca Visita",
+      "description": "Blocca permanentemente questa visita firmata per impedire qualsiasi modifica.",
+      "warning": "Questa è un'azione permanente che non può essere annullata!",
+      "effects": "Dopo il blocco, avverranno le seguenti azioni",
+      "effect_1": "Lo stato della visita cambierà in BLOCCATA",
+      "effect_2": "La visita diventerà permanentemente di sola lettura",
+      "effect_3": "La visita non potrà essere sbloccata o modificata",
+      "note_title": "Nota Importante",
+      "note_description": "Il blocco viene tipicamente effettuato per conformità legale o normativa. Blocca solo visite finali e complete.",
+      "locking": "Blocco in corso...",
+      "confirm": "Blocca Visita"
+    },
+    "messages": {
+      "createSuccess": "Visita Creata",
+      "createSuccessDescription": "La visita è stata creata con successo",
+      "createError": "Errore nella Creazione della Visita",
+      "updateSuccess": "Visita Aggiornata",
+      "updateSuccessDescription": "La visita è stata aggiornata con successo",
+      "updateError": "Errore nell'Aggiornamento della Visita",
+      "loadError": "Errore nel Caricamento della Visita",
+      "signSuccess": "Visita Firmata",
+      "signSuccessDescription": "La visita è stata firmata con successo",
+      "lockSuccess": "Visita Bloccata",
+      "lockSuccessDescription": "La visita è stata bloccata permanentemente"
+    },
+    "errors": {
+      "patient_required": "Paziente Richiesto",
+      "patient_required_description": "È richiesto un ID paziente per creare una visita. Seleziona prima un paziente."
+    },
+    "vitals": {
+      "title": "Parametri Vitali",
+      "bp_systolic": "Pressione Sistolica",
+      "bp_systolic_description": "Range normale: 90-120 mmHg",
+      "bp_diastolic": "Pressione Diastolica",
+      "bp_diastolic_description": "Range normale: 60-80 mmHg",
+      "heart_rate": "Frequenza Cardiaca",
+      "heart_rate_description": "Range normale: 60-100 bpm",
+      "respiratory_rate": "Frequenza Respiratoria",
+      "respiratory_rate_description": "Range normale: 12-20 respiri/min",
+      "temperature": "Temperatura",
+      "temperature_description": "Range normale: 36.1-37.2°C",
+      "oxygen_saturation": "Saturazione Ossigeno",
+      "oxygen_saturation_description": "Range normale: 95-100%",
+      "weight": "Peso",
+      "height": "Altezza",
+      "bmi": "IMC",
+      "bmi_description": "Calcolato automaticamente da peso e altezza",
+      "validation": {
+        "bp_systolic_min": "La pressione sistolica deve essere almeno 70 mmHg",
+        "bp_systolic_max": "La pressione sistolica deve essere al massimo 250 mmHg",
+        "bp_diastolic_min": "La pressione diastolica deve essere almeno 40 mmHg",
+        "bp_diastolic_max": "La pressione diastolica deve essere al massimo 150 mmHg",
+        "heart_rate_min": "La frequenza cardiaca deve essere almeno 30 bpm",
+        "heart_rate_max": "La frequenza cardiaca deve essere al massimo 250 bpm",
+        "respiratory_rate_min": "La frequenza respiratoria deve essere almeno 8 respiri/min",
+        "respiratory_rate_max": "La frequenza respiratoria deve essere al massimo 60 respiri/min",
+        "temperature_min": "La temperatura deve essere almeno 35°C",
+        "temperature_max": "La temperatura deve essere al massimo 42°C",
+        "weight_min": "Il peso deve essere almeno 0.5 kg",
+        "weight_max": "Il peso deve essere al massimo 500 kg",
+        "height_min": "L'altezza deve essere almeno 20 cm",
+        "height_max": "L'altezza deve essere al massimo 300 cm",
+        "oxygen_min": "La saturazione ossigeno deve essere almeno 70%",
+        "oxygen_max": "La saturazione ossigeno deve essere al massimo 100%"
+      }
+    },
+    "soap": {
+      "title": "Note SOAP",
+      "subjective": {
+        "title": "Soggettivo",
+        "label": "Descrizione del Paziente",
+        "placeholder": "Descrizione dei sintomi, preoccupazioni e storia medica del paziente...",
+        "description": "Ciò che il paziente ti racconta (sintomi, preoccupazioni, storia)"
+      },
+      "objective": {
+        "title": "Oggettivo",
+        "label": "Osservazioni Cliniche",
+        "placeholder": "Risultati dell'esame fisico, risultati dei test, parametri vitali...",
+        "description": "Ciò che osservi (esame fisico, risultati test, parametri vitali)"
+      },
+      "assessment": {
+        "title": "Valutazione",
+        "label": "Valutazione Clinica",
+        "placeholder": "Diagnosi, diagnosi differenziale, impressione clinica...",
+        "description": "La tua valutazione professionale e diagnosi"
+      },
+      "plan": {
+        "title": "Piano",
+        "label": "Piano di Trattamento",
+        "placeholder": "Piano di trattamento, farmaci, follow-up, referenze...",
+        "description": "Piano di trattamento e prossimi passi"
+      },
+      "validation": {
+        "subjective_max": "Le note soggettive non devono superare i 5000 caratteri",
+        "objective_max": "Le note oggettive non devono superare i 5000 caratteri",
+        "assessment_max": "La valutazione non deve superare i 5000 caratteri",
+        "plan_max": "Il piano non deve superare i 5000 caratteri"
+      }
+    },
+    "diagnosis": {
+      "title": "Diagnosi",
+      "search_label": "Cerca Codici ICD-10",
+      "search_placeholder": "Cerca per codice o descrizione...",
+      "type_label": "Tipo di Diagnosi",
+      "notes_label": "Note",
+      "notes_placeholder": "Note aggiuntive su questa diagnosi...",
+      "add": "Aggiungi Diagnosi",
+      "selected_title": "Diagnosi Selezionate",
+      "no_diagnoses": "Nessuna diagnosi aggiunta",
+      "primary": "Primaria",
+      "set_primary": "Imposta come Primaria",
+      "type_to_search": "Digita almeno 2 caratteri per cercare",
+      "no_results": "Nessun codice ICD-10 corrispondente trovato",
+      "results": "Risultati di Ricerca",
+      "types": {
+        "provisional": "Provvisoria",
+        "confirmed": "Confermata",
+        "differential": "Differenziale",
+        "rule_out": "Da Escludere"
+      }
+    },
+    "prescription": {
+      "title": "Prescrizione",
+      "add": "Aggiungi Prescrizione",
+      "no_prescriptions": "Nessuna prescrizione aggiunta",
+      "medication_name": "Nome Farmaco",
+      "medication_description": "Inizia a digitare per cercare farmaci",
+      "medication_placeholder": "Cerca farmaco...",
+      "medication_search_placeholder": "Digita per cercare farmaci...",
+      "generic_name": "Nome Generico",
+      "generic_placeholder": "Nome generico o chimico",
+      "dosage": "Dosaggio",
+      "form": "Forma",
+      "form_placeholder": "Seleziona forma",
+      "route": "Via di Somministrazione",
+      "route_placeholder": "Seleziona via",
+      "frequency": "Frequenza",
+      "frequency_placeholder": "es. Una volta al giorno, Due volte al giorno, Ogni 8 ore",
+      "frequency_description": "Frequenza di assunzione del farmaco",
+      "duration": "Durata",
+      "duration_placeholder": "es. 7 giorni, 2 settimane, 1 mese",
+      "quantity": "Quantità",
+      "refills": "Ripetizioni",
+      "prescribed_date": "Data Prescrizione",
+      "start_date": "Data Inizio",
+      "end_date": "Data Fine",
+      "instructions": "Istruzioni per il Paziente",
+      "instructions_placeholder": "Istruzioni speciali per il paziente...",
+      "instructions_description": "Istruzioni che saranno mostrate al paziente",
+      "pharmacy_notes": "Note per la Farmacia",
+      "pharmacy_notes_placeholder": "Note per il farmacista...",
+      "save": "Salva Prescrizione",
+      "type_to_search": "Digita almeno 2 caratteri per cercare",
+      "no_results": "Nessun farmaco corrispondente trovato",
+      "medications": "Farmaci",
+      "common_dosages": "Dosaggi comuni",
+      "interactions": {
+        "title": "Avvisi Interazioni Farmacologiche"
+      },
+      "validation": {
+        "medication_required": "Il nome del farmaco è obbligatorio",
+        "dosage_required": "Il dosaggio è obbligatorio",
+        "frequency_required": "La frequenza è obbligatoria"
+      },
+      "forms": {
+        "tablet": "Compressa",
+        "capsule": "Capsula",
+        "liquid": "Liquido",
+        "syrup": "Sciroppo",
+        "suspension": "Sospensione",
+        "injection": "Iniezione",
+        "topical": "Topico",
+        "cream": "Crema",
+        "ointment": "Unguento",
+        "gel": "Gel",
+        "patch": "Cerotto",
+        "inhaler": "Inalatore",
+        "drops": "Gocce",
+        "suppository": "Supposta",
+        "other": "Altro"
+      },
+      "routes": {
+        "oral": "Orale",
+        "topical": "Topica",
+        "intravenous": "Endovenosa",
+        "intramuscular": "Intramuscolare",
+        "subcutaneous": "Sottocutanea",
+        "sublingual": "Sublinguale",
+        "rectal": "Rettale",
+        "inhalation": "Inalazione",
+        "ophthalmic": "Oftalmica",
+        "otic": "Otica",
+        "nasal": "Nasale",
+        "transdermal": "Transdermica",
+        "other": "Altra"
+      }
+    },
+    "quickText": {
+      "buttonLabel": "Testo Rapido",
+      "title": "Modelli di Testo Rapido",
+      "description": "Seleziona un modello per inserire frasi cliniche comuni",
+      "searchPlaceholder": "Cerca modelli...",
+      "noResults": "Nessun modello trovato",
+      "categories": {
+        "all": "Tutti",
+        "subjective": "Soggettivo",
+        "objective": "Obiettivo",
+        "assessment": "Valutazione",
+        "plan": "Piano",
+        "general": "Generale"
+      }
+    },
+    "dosageCalculator": {
+      "buttonLabel": "Calcolatore Dosaggio",
+      "title": "Calcolatore di Dosaggio",
+      "description": "Calcola i dosaggi dei farmaci in base ai parametri del paziente",
+      "warning": "Questo calcolatore fornisce solo stime. Verifica sempre i dosaggi con le linee guida prescrittive attuali e i fattori specifici del paziente.",
+      "calculationType": "Tipo di Calcolo",
+      "types": {
+        "weightBased": "Dosaggio Basato sul Peso",
+        "bsaBased": "Superficie Corporea (BSA)",
+        "creatinineClearance": "Clearance della Creatinina"
+      },
+      "descriptions": {
+        "weightBased": "Calcola la dose in base al peso del paziente (mg/kg)",
+        "bsaBased": "Calcola la dose in base alla superficie corporea (mg/m²)",
+        "creatinineClearance": "Stima la clearance della creatinina usando la formula di Cockcroft-Gault"
+      },
+      "fields": {
+        "weight": "Peso (kg)",
+        "height": "Altezza (cm)",
+        "dosePerKg": "Dose per kg (mg/kg)",
+        "dosePerM2": "Dose per m² (mg/m²)",
+        "sex": "Sesso",
+        "serumCreatinine": "Creatinina Sierica (mg/dL)"
+      },
+      "sex": {
+        "male": "Maschio",
+        "female": "Femmina"
+      },
+      "calculate": "Calcola",
+      "result": "Risultato del Calcolo",
+      "useDose": "Usa Questo Dosaggio",
+      "results": {
+        "weightBased": "Dose totale: {{dose}} mg",
+        "bsaBased": "BSA: {{bsa}} m² | Dose totale: {{dose}} mg",
+        "creatinineClearance": "CrCl stimata: {{crcl}} mL/min"
+      },
+      "errors": {
+        "invalidInput": "Inserisci numeri validi per tutti i campi richiesti",
+        "missingAge": "L'età del paziente è richiesta per il calcolo della clearance della creatinina"
+      }
+    },
+    "previousVisit": {
+      "buttonLabel": "Visite Precedenti",
+      "title": "Storico Visite Precedenti",
+      "description": "Rivedi le visite recenti per contestualizzare la documentazione",
+      "diagnoses": "Diagnosi",
+      "medications": "Farmaci",
+      "moreMedications": "+{{count}} altri farmaci",
+      "noVisits": "Nessuna visita precedente trovata per questo paziente",
+      "errorLoading": "Impossibile caricare le visite precedenti"
+    }
   }
 }

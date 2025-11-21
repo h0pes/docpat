@@ -578,6 +578,340 @@
       "title": "Print Schedule",
       "description": "Print the current schedule view"
     }
+  },
+  "visits": {
+    "title": "Visits",
+    "new_visit": "New Visit",
+    "edit_visit": "Edit Visit",
+    "load_template": "Load Template",
+    "visit_locked_warning": "This visit is locked and cannot be edited",
+    "visit_signed_warning": "This visit is signed and cannot be edited",
+    "basic_info": "Basic Information",
+    "visit_type": "Visit Type",
+    "select_visit_type": "Select visit type",
+    "visit_date": "Visit Date",
+    "chief_complaint": "Chief Complaint",
+    "chief_complaint_placeholder": "Brief description of the main reason for this visit...",
+    "save_draft": "Save Draft",
+    "visit_types": {
+      "new_patient": "New Patient",
+      "follow_up": "Follow-up",
+      "emergency": "Emergency",
+      "preventive_care": "Preventive Care",
+      "chronic_care": "Chronic Care",
+      "pre_operative": "Pre-operative",
+      "post_operative": "Post-operative",
+      "consultation": "Consultation",
+      "procedure": "Procedure",
+      "other": "Other"
+    },
+    "auto_save": {
+      "saving": "Saving...",
+      "saved": "Saved",
+      "error": "Save failed",
+      "last_saved": "Last saved"
+    },
+    "templates": {
+      "select_template": "Select Visit Template",
+      "select_description": "Choose a template to pre-fill this visit with standard content",
+      "no_templates": "No templates available",
+      "apply_template": "Apply Template"
+    },
+    "view_visit": "View Visit",
+    "visit_detail_title": "Visit Details",
+    "provider": "Provider",
+    "created_at": "Created",
+    "no_soap_notes": "No SOAP notes recorded",
+    "signature_info": "Signature Information",
+    "signed_at": "Signed At",
+    "signature_hash": "Signature Hash",
+    "locked_at": "Locked At",
+    "sign_visit": "Sign Visit",
+    "lock_visit": "Lock Visit",
+    "visit_history": "Visit History",
+    "total_visits": "total visits",
+    "no_visits": "No Visits Yet",
+    "no_visits_description": "This patient has no visit records yet. Create the first visit to get started.",
+    "status": {
+      "draft": "Draft",
+      "signed": "Signed",
+      "locked": "Locked"
+    },
+    "signature": {
+      "title": "Sign Visit",
+      "description": "Sign this visit to make it official and prevent further editing.",
+      "warning": "This action cannot be undone. Make sure all information is correct before signing.",
+      "effects": "After signing, the following will happen",
+      "effect_1": "Visit status will change to SIGNED",
+      "effect_2": "Visit content can no longer be edited",
+      "effect_3": "A digital signature hash will be generated",
+      "signing": "Signing...",
+      "confirm": "Sign Visit"
+    },
+    "lock": {
+      "title": "Lock Visit",
+      "description": "Permanently lock this signed visit to prevent any modifications.",
+      "warning": "This is a permanent action that cannot be reversed!",
+      "effects": "After locking, the following will happen",
+      "effect_1": "Visit status will change to LOCKED",
+      "effect_2": "Visit becomes permanently read-only",
+      "effect_3": "Visit cannot be unlocked or modified",
+      "note_title": "Important Note",
+      "note_description": "Locking is typically done for legal or regulatory compliance. Only lock visits that are final and complete.",
+      "locking": "Locking...",
+      "confirm": "Lock Visit"
+    },
+    "messages": {
+      "createSuccess": "Visit Created",
+      "createSuccessDescription": "Visit has been successfully created",
+      "createError": "Failed to Create Visit",
+      "updateSuccess": "Visit Updated",
+      "updateSuccessDescription": "Visit has been successfully updated",
+      "updateError": "Failed to Update Visit",
+      "loadError": "Failed to Load Visit",
+      "signSuccess": "Visit Signed",
+      "signSuccessDescription": "Visit has been successfully signed",
+      "lockSuccess": "Visit Locked",
+      "lockSuccessDescription": "Visit has been permanently locked"
+    },
+    "errors": {
+      "patient_required": "Patient Required",
+      "patient_required_description": "A patient ID is required to create a visit. Please select a patient first."
+    },
+    "vitals": {
+      "title": "Vital Signs",
+      "bp_systolic": "Systolic Blood Pressure",
+      "bp_systolic_description": "Normal range: 90-120 mmHg",
+      "bp_diastolic": "Diastolic Blood Pressure",
+      "bp_diastolic_description": "Normal range: 60-80 mmHg",
+      "heart_rate": "Heart Rate",
+      "heart_rate_description": "Normal range: 60-100 bpm",
+      "respiratory_rate": "Respiratory Rate",
+      "respiratory_rate_description": "Normal range: 12-20 breaths/min",
+      "temperature": "Temperature",
+      "temperature_description": "Normal range: 36.1-37.2°C",
+      "oxygen_saturation": "Oxygen Saturation",
+      "oxygen_saturation_description": "Normal range: 95-100%",
+      "weight": "Weight",
+      "height": "Height",
+      "bmi": "BMI",
+      "bmi_description": "Automatically calculated from weight and height",
+      "validation": {
+        "bp_systolic_min": "Systolic BP must be at least 70 mmHg",
+        "bp_systolic_max": "Systolic BP must be at most 250 mmHg",
+        "bp_diastolic_min": "Diastolic BP must be at least 40 mmHg",
+        "bp_diastolic_max": "Diastolic BP must be at most 150 mmHg",
+        "heart_rate_min": "Heart rate must be at least 30 bpm",
+        "heart_rate_max": "Heart rate must be at most 250 bpm",
+        "respiratory_rate_min": "Respiratory rate must be at least 8 breaths/min",
+        "respiratory_rate_max": "Respiratory rate must be at most 60 breaths/min",
+        "temperature_min": "Temperature must be at least 35°C",
+        "temperature_max": "Temperature must be at most 42°C",
+        "weight_min": "Weight must be at least 0.5 kg",
+        "weight_max": "Weight must be at most 500 kg",
+        "height_min": "Height must be at least 20 cm",
+        "height_max": "Height must be at most 300 cm",
+        "oxygen_min": "Oxygen saturation must be at least 70%",
+        "oxygen_max": "Oxygen saturation must be at most 100%"
+      }
+    },
+    "soap": {
+      "title": "SOAP Notes",
+      "subjective": {
+        "title": "Subjective",
+        "label": "Patient's Description",
+        "placeholder": "Patient's description of symptoms, concerns, and medical history...",
+        "description": "What the patient tells you (symptoms, concerns, history)"
+      },
+      "objective": {
+        "title": "Objective",
+        "label": "Clinical Observations",
+        "placeholder": "Physical examination findings, test results, vital signs...",
+        "description": "What you observe (physical exam, test results, vital signs)"
+      },
+      "assessment": {
+        "title": "Assessment",
+        "label": "Clinical Assessment",
+        "placeholder": "Diagnosis, differential diagnosis, clinical impression...",
+        "description": "Your professional assessment and diagnosis"
+      },
+      "plan": {
+        "title": "Plan",
+        "label": "Treatment Plan",
+        "placeholder": "Treatment plan, medications, follow-up, referrals...",
+        "description": "Treatment plan and next steps"
+      },
+      "validation": {
+        "subjective_max": "Subjective notes must not exceed 5000 characters",
+        "objective_max": "Objective notes must not exceed 5000 characters",
+        "assessment_max": "Assessment must not exceed 5000 characters",
+        "plan_max": "Plan must not exceed 5000 characters"
+      }
+    },
+    "diagnosis": {
+      "title": "Diagnoses",
+      "search_label": "Search ICD-10 Codes",
+      "search_placeholder": "Search by code or description...",
+      "type_label": "Diagnosis Type",
+      "notes_label": "Notes",
+      "notes_placeholder": "Additional notes about this diagnosis...",
+      "add": "Add Diagnosis",
+      "selected_title": "Selected Diagnoses",
+      "no_diagnoses": "No diagnoses added yet",
+      "primary": "Primary",
+      "set_primary": "Set as Primary",
+      "type_to_search": "Type at least 2 characters to search",
+      "no_results": "No matching ICD-10 codes found",
+      "results": "Search Results",
+      "types": {
+        "provisional": "Provisional",
+        "confirmed": "Confirmed",
+        "differential": "Differential",
+        "rule_out": "Rule Out"
+      }
+    },
+    "prescription": {
+      "title": "Prescription",
+      "add": "Add Prescription",
+      "no_prescriptions": "No prescriptions added yet",
+      "medication_name": "Medication Name",
+      "medication_description": "Start typing to search for medications",
+      "medication_placeholder": "Search medication...",
+      "medication_search_placeholder": "Type to search medications...",
+      "generic_name": "Generic Name",
+      "generic_placeholder": "Generic or chemical name",
+      "dosage": "Dosage",
+      "form": "Form",
+      "form_placeholder": "Select form",
+      "route": "Route",
+      "route_placeholder": "Select route",
+      "frequency": "Frequency",
+      "frequency_placeholder": "e.g., Once daily, Twice daily, Every 8 hours",
+      "frequency_description": "How often the medication should be taken",
+      "duration": "Duration",
+      "duration_placeholder": "e.g., 7 days, 2 weeks, 1 month",
+      "quantity": "Quantity",
+      "refills": "Refills",
+      "prescribed_date": "Prescribed Date",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "instructions": "Patient Instructions",
+      "instructions_placeholder": "Special instructions for the patient...",
+      "instructions_description": "Instructions that will be shown to the patient",
+      "pharmacy_notes": "Pharmacy Notes",
+      "pharmacy_notes_placeholder": "Notes for the pharmacist...",
+      "save": "Save Prescription",
+      "type_to_search": "Type at least 2 characters to search",
+      "no_results": "No matching medications found",
+      "medications": "Medications",
+      "common_dosages": "Common dosages",
+      "interactions": {
+        "title": "Drug Interaction Warnings"
+      },
+      "validation": {
+        "medication_required": "Medication name is required",
+        "dosage_required": "Dosage is required",
+        "frequency_required": "Frequency is required"
+      },
+      "forms": {
+        "tablet": "Tablet",
+        "capsule": "Capsule",
+        "liquid": "Liquid",
+        "syrup": "Syrup",
+        "suspension": "Suspension",
+        "injection": "Injection",
+        "topical": "Topical",
+        "cream": "Cream",
+        "ointment": "Ointment",
+        "gel": "Gel",
+        "patch": "Patch",
+        "inhaler": "Inhaler",
+        "drops": "Drops",
+        "suppository": "Suppository",
+        "other": "Other"
+      },
+      "routes": {
+        "oral": "Oral",
+        "topical": "Topical",
+        "intravenous": "Intravenous",
+        "intramuscular": "Intramuscular",
+        "subcutaneous": "Subcutaneous",
+        "sublingual": "Sublingual",
+        "rectal": "Rectal",
+        "inhalation": "Inhalation",
+        "ophthalmic": "Ophthalmic",
+        "otic": "Otic",
+        "nasal": "Nasal",
+        "transdermal": "Transdermal",
+        "other": "Other"
+      }
+    },
+    "quickText": {
+      "buttonLabel": "Quick Text",
+      "title": "Quick Text Templates",
+      "description": "Select a template to insert commonly used clinical phrases",
+      "searchPlaceholder": "Search templates...",
+      "noResults": "No templates found",
+      "categories": {
+        "all": "All",
+        "subjective": "Subjective",
+        "objective": "Objective",
+        "assessment": "Assessment",
+        "plan": "Plan",
+        "general": "General"
+      }
+    },
+    "dosageCalculator": {
+      "buttonLabel": "Dosage Calculator",
+      "title": "Dosage Calculator",
+      "description": "Calculate medication dosages based on patient parameters",
+      "warning": "This calculator provides estimates only. Always verify dosages against current prescribing guidelines and patient-specific factors.",
+      "calculationType": "Calculation Type",
+      "types": {
+        "weightBased": "Weight-Based Dosing",
+        "bsaBased": "Body Surface Area (BSA)",
+        "creatinineClearance": "Creatinine Clearance"
+      },
+      "descriptions": {
+        "weightBased": "Calculate dose based on patient weight (mg/kg)",
+        "bsaBased": "Calculate dose based on body surface area (mg/m²)",
+        "creatinineClearance": "Estimate creatinine clearance using Cockcroft-Gault formula"
+      },
+      "fields": {
+        "weight": "Weight (kg)",
+        "height": "Height (cm)",
+        "dosePerKg": "Dose per kg (mg/kg)",
+        "dosePerM2": "Dose per m² (mg/m²)",
+        "sex": "Sex",
+        "serumCreatinine": "Serum Creatinine (mg/dL)"
+      },
+      "sex": {
+        "male": "Male",
+        "female": "Female"
+      },
+      "calculate": "Calculate",
+      "result": "Calculation Result",
+      "useDose": "Use This Dose",
+      "results": {
+        "weightBased": "Total dose: {{dose}} mg",
+        "bsaBased": "BSA: {{bsa}} m² | Total dose: {{dose}} mg",
+        "creatinineClearance": "Estimated CrCl: {{crcl}} mL/min"
+      },
+      "errors": {
+        "invalidInput": "Please enter valid numbers for all required fields",
+        "missingAge": "Patient age is required for creatinine clearance calculation"
+      }
+    },
+    "previousVisit": {
+      "buttonLabel": "Previous Visits",
+      "title": "Previous Visit History",
+      "description": "Review recent visits for context while documenting",
+      "diagnoses": "Diagnoses",
+      "medications": "Medications",
+      "moreMedications": "+{{count}} more medications",
+      "noVisits": "No previous visits found for this patient",
+      "errorLoading": "Failed to load previous visits"
+    }
   }
 }
 

@@ -23,6 +23,12 @@ import {
   EditAppointmentPage,
   AppointmentDetailPage,
 } from '../pages/appointments';
+import {
+  NewVisitPage,
+  EditVisitPage,
+  VisitDetailPage,
+} from '../pages/visits';
+import { PatientVisitsPage } from '../pages/patients/PatientVisitsPage';
 
 /**
  * Application router configuration
@@ -77,6 +83,10 @@ export const router = createBrowserRouter([
             path: '/patients/:id/edit',
             element: <EditPatientPage />,
           },
+          {
+            path: '/patients/:id/visits',
+            element: <PatientVisitsPage />,
+          },
           // Appointment routes
           {
             path: '/appointments',
@@ -94,9 +104,18 @@ export const router = createBrowserRouter([
             path: '/appointments/:id/edit',
             element: <EditAppointmentPage />,
           },
+          // Visit routes
           {
-            path: '/visits',
-            element: <div>Visits page - Coming soon</div>,
+            path: '/visits/new',
+            element: <NewVisitPage />,
+          },
+          {
+            path: '/visits/:id',
+            element: <VisitDetailPage />,
+          },
+          {
+            path: '/visits/:id/edit',
+            element: <EditVisitPage />,
           },
           {
             path: '/prescriptions',
