@@ -27,6 +27,8 @@ import {
   NewVisitPage,
   EditVisitPage,
   VisitDetailPage,
+  VisitTemplatesPage,
+  PrescriptionTemplatesPage,
 } from '../pages/visits';
 import { PatientVisitsPage } from '../pages/patients/PatientVisitsPage';
 
@@ -116,6 +118,15 @@ export const router = createBrowserRouter([
           {
             path: '/visits/:id/edit',
             element: <EditVisitPage />,
+          },
+          {
+            path: '/visits/templates',
+            element: <VisitTemplatesPage />,
+          },
+          // Prescription templates route
+          {
+            path: '/prescriptions/templates',
+            element: <PrescriptionTemplatesPage />,
           },
           {
             path: '/prescriptions',

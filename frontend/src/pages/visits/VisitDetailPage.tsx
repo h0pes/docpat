@@ -126,9 +126,212 @@ export function VisitDetailPage() {
   const canLock = visit.status === VisitStatus.SIGNED;
 
   return (
-    <div className="container mx-auto py-8 print:py-0">
-      {/* Header with actions */}
-      <div className="mb-6 flex items-center justify-between print:hidden">
+    <>
+      {/* Print-specific styles */}
+      <style>{`
+        @media print {
+          /* Reset print margins and optimize for medical documentation */
+          @page {
+            size: A4;
+            margin: 2cm 1.5cm;
+          }
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          /* Hide UI elements */
+          header, nav, footer, .no-print {
+            display: none !important;
+          }
+
+          /* Container adjustments */
+          .print-container {
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          /* Print header with clinic info */
+          .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 1.5cm;
+            padding-bottom: 0.5cm;
+            border-bottom: 2px solid #000;
+          }
+
+          .print-header h1 {
+            font-size: 20pt;
+            font-weight: bold;
+            margin: 0 0 0.3cm 0;
+            color: #000;
+          }
+
+          .print-header p {
+            font-size: 10pt;
+            margin: 0.1cm 0;
+            color: #333;
+          }
+
+          /* Card styling for print */
+          .print-card {
+            page-break-inside: avoid;
+            margin-bottom: 0.8cm;
+            border: 1px solid #ddd !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            background: white !important;
+          }
+
+          .print-card-header {
+            background: #f5f5f5 !important;
+            border-bottom: 1px solid #ddd !important;
+            padding: 0.4cm !important;
+          }
+
+          .print-card-title {
+            font-size: 14pt !important;
+            font-weight: bold !important;
+            color: #000 !important;
+          }
+
+          .print-card-content {
+            padding: 0.5cm !important;
+          }
+
+          /* Typography */
+          .print-label {
+            font-size: 9pt;
+            color: #666 !important;
+            font-weight: normal;
+          }
+
+          .print-value {
+            font-size: 11pt;
+            color: #000 !important;
+            font-weight: 500;
+          }
+
+          /* SOAP Notes specific styling */
+          .print-soap-section {
+            margin-bottom: 0.6cm;
+            page-break-inside: avoid;
+          }
+
+          .print-soap-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #000 !important;
+            margin-bottom: 0.2cm;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+          }
+
+          .print-soap-content {
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #000 !important;
+            white-space: pre-wrap;
+            font-family: Georgia, serif;
+          }
+
+          /* Vital signs grid */
+          .print-vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5cm;
+          }
+
+          .print-vital-item {
+            padding: 0.3cm;
+            background: #fafafa !important;
+            border: 1px solid #e0e0e0;
+          }
+
+          /* Badge styling */
+          .print-badge {
+            display: inline-block;
+            padding: 0.1cm 0.3cm;
+            border: 1px solid #333;
+            border-radius: 0;
+            font-size: 9pt;
+            font-weight: 500;
+            color: #000 !important;
+            background: white !important;
+          }
+
+          /* Metadata grid */
+          .print-metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5cm;
+            margin-bottom: 0.5cm;
+          }
+
+          /* Signature section */
+          .print-signature-section {
+            margin-top: 1cm;
+            padding-top: 0.5cm;
+            border-top: 1px solid #000;
+            page-break-inside: avoid;
+          }
+
+          .print-signature-line {
+            margin-top: 1cm;
+            padding-top: 0.3cm;
+            border-top: 1px solid #333;
+            width: 50%;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+          }
+
+          /* Footer with page numbers */
+          .print-footer {
+            display: block;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+          }
+
+          /* Prevent breaking */
+          h1, h2, h3, h4, h5, h6 {
+            page-break-after: avoid;
+          }
+
+          /* Links */
+          a {
+            color: #000 !important;
+            text-decoration: none !important;
+          }
+
+          /* Ensure black text for all content */
+          * {
+            color: #000 !important;
+          }
+
+          .text-muted-foreground {
+            color: #666 !important;
+          }
+        }
+      `}</style>
+
+      <div className="container mx-auto py-8 print:py-0 print-container">
+        {/* Print-only header */}
+        <div className="hidden print:block print-header">
+          <h1>DocPat Medical Practice</h1>
+          <p>Clinical Visit Documentation</p>
+          <p>Confidential Medical Record</p>
+        </div>
+
+        {/* Header with actions */}
+        <div className="mb-6 flex items-center justify-between print:hidden no-print">
         <Button
           variant="ghost"
           size="sm"
@@ -165,47 +368,47 @@ export function VisitDetailPage() {
       </div>
 
       {/* Visit header */}
-      <Card className="mb-6">
-        <CardHeader>
+      <Card className="mb-6 print-card">
+        <CardHeader className="print-card-header">
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle className="text-2xl">
+              <CardTitle className="text-2xl print-card-title">
                 {t('visits.visit_detail_title')}
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <Badge className={getStatusColor(visit.status)}>
+                <Badge className={`${getStatusColor(visit.status)} print-badge`}>
                   {t(`visits.status.${visit.status.toLowerCase()}`)}
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="outline" className="print-badge">
                   {t(`visits.visit_types.${visit.visit_type.toLowerCase()}`)}
                 </Badge>
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <CardContent className="print-card-content">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm print-metadata-grid">
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-muted-foreground print:hidden" />
               <div>
-                <p className="text-muted-foreground">{t('visits.visit_date')}</p>
-                <p className="font-medium">
+                <p className="text-muted-foreground print-label">{t('visits.visit_date')}</p>
+                <p className="font-medium print-value">
                   {format(new Date(visit.visit_date), 'PPP', { locale: getDateFnsLocale() })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
+              <User className="h-4 w-4 text-muted-foreground print:hidden" />
               <div>
-                <p className="text-muted-foreground">{t('visits.provider')}</p>
-                <p className="font-medium">{visit.provider_id}</p>
+                <p className="text-muted-foreground print-label">{t('visits.provider')}</p>
+                <p className="font-medium print-value">{visit.provider_id}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-muted-foreground" />
+              <Activity className="h-4 w-4 text-muted-foreground print:hidden" />
               <div>
-                <p className="text-muted-foreground">{t('visits.created_at')}</p>
-                <p className="font-medium">
+                <p className="text-muted-foreground print-label">{t('visits.created_at')}</p>
+                <p className="font-medium print-value">
                   {format(new Date(visit.created_at), 'PPp', { locale: getDateFnsLocale() })}
                 </p>
               </div>
@@ -226,16 +429,16 @@ export function VisitDetailPage() {
 
       {/* Vital Signs */}
       {visit.vital_signs && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t('visits.vitals.title')}</CardTitle>
+        <Card className="mb-6 print-card">
+          <CardHeader className="print-card-header">
+            <CardTitle className="print-card-title">{t('visits.vitals.title')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <CardContent className="print-card-content">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm print-vitals-grid">
               {formatVitalSigns(visit.vital_signs).map((vital, index) => (
-                <div key={index}>
-                  <p className="text-muted-foreground">{vital.label}</p>
-                  <p className="font-medium text-lg">{vital.value}</p>
+                <div key={index} className="print-vital-item">
+                  <p className="text-muted-foreground print-label">{vital.label}</p>
+                  <p className="font-medium text-lg print-value">{vital.value}</p>
                 </div>
               ))}
             </div>
@@ -244,42 +447,42 @@ export function VisitDetailPage() {
       )}
 
       {/* SOAP Notes */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>{t('visits.soap.title')}</CardTitle>
+      <Card className="mb-6 print-card">
+        <CardHeader className="print-card-header">
+          <CardTitle className="print-card-title">{t('visits.soap.title')}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 print-card-content">
           {visit.subjective && (
-            <div>
-              <h3 className="font-semibold text-sm mb-2">{t('visits.soap.subjective.title')}</h3>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+            <div className="print-soap-section">
+              <h3 className="font-semibold text-sm mb-2 print-soap-title">{t('visits.soap.subjective.title')}</h3>
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground print-soap-content">
                 {visit.subjective}
               </p>
             </div>
           )}
 
           {visit.objective && (
-            <div>
-              <h3 className="font-semibold text-sm mb-2">{t('visits.soap.objective.title')}</h3>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+            <div className="print-soap-section">
+              <h3 className="font-semibold text-sm mb-2 print-soap-title">{t('visits.soap.objective.title')}</h3>
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground print-soap-content">
                 {visit.objective}
               </p>
             </div>
           )}
 
           {visit.assessment && (
-            <div>
-              <h3 className="font-semibold text-sm mb-2">{t('visits.soap.assessment.title')}</h3>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+            <div className="print-soap-section">
+              <h3 className="font-semibold text-sm mb-2 print-soap-title">{t('visits.soap.assessment.title')}</h3>
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground print-soap-content">
                 {visit.assessment}
               </p>
             </div>
           )}
 
           {visit.plan && (
-            <div>
-              <h3 className="font-semibold text-sm mb-2">{t('visits.soap.plan.title')}</h3>
-              <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+            <div className="print-soap-section">
+              <h3 className="font-semibold text-sm mb-2 print-soap-title">{t('visits.soap.plan.title')}</h3>
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground print-soap-content">
                 {visit.plan}
               </p>
             </div>
@@ -295,30 +498,30 @@ export function VisitDetailPage() {
 
       {/* Signature info (if signed or locked) */}
       {(visit.status === VisitStatus.SIGNED || visit.status === VisitStatus.LOCKED) && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t('visits.signature_info')}</CardTitle>
+        <Card className="mb-6 print-card print-signature-section">
+          <CardHeader className="print-card-header">
+            <CardTitle className="print-card-title">{t('visits.signature_info')}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="print-card-content">
             <div className="space-y-2 text-sm">
               {visit.signed_at && (
                 <div>
-                  <span className="text-muted-foreground">{t('visits.signed_at')}: </span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground print-label">{t('visits.signed_at')}: </span>
+                  <span className="font-medium print-value">
                     {format(new Date(visit.signed_at), 'PPp', { locale: getDateFnsLocale() })}
                   </span>
                 </div>
               )}
               {visit.signature_hash && (
                 <div>
-                  <span className="text-muted-foreground">{t('visits.signature_hash')}: </span>
-                  <span className="font-mono text-xs">{visit.signature_hash}</span>
+                  <span className="text-muted-foreground print-label">{t('visits.signature_hash')}: </span>
+                  <span className="font-mono text-xs print-value">{visit.signature_hash}</span>
                 </div>
               )}
               {visit.locked_at && (
                 <div>
-                  <span className="text-muted-foreground">{t('visits.locked_at')}: </span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground print-label">{t('visits.locked_at')}: </span>
+                  <span className="font-medium print-value">
                     {format(new Date(visit.locked_at), 'PPp', { locale: getDateFnsLocale() })}
                   </span>
                 </div>
@@ -327,6 +530,13 @@ export function VisitDetailPage() {
           </CardContent>
         </Card>
       )}
+
+        {/* Print-only footer */}
+        <div className="hidden print:block print-footer">
+          <p>DocPat Medical Practice - Confidential Medical Record</p>
+          <p>Visit ID: {id} | Generated: {format(new Date(), 'PPp', { locale: getDateFnsLocale() })}</p>
+        </div>
+      </div>
 
       {/* Dialogs */}
       {showSignDialog && (
@@ -344,6 +554,6 @@ export function VisitDetailPage() {
           onClose={() => setShowLockDialog(false)}
         />
       )}
-    </div>
+    </>
   );
 }

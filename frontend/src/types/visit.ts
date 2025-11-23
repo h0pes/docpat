@@ -331,6 +331,22 @@ export function getStatusColor(status: VisitStatus): string {
 }
 
 /**
+ * Get status badge variant for Shadcn UI Badge component
+ */
+export function getStatusBadgeColor(status: VisitStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (status) {
+    case VisitStatus.DRAFT:
+      return 'outline';
+    case VisitStatus.SIGNED:
+      return 'default';
+    case VisitStatus.LOCKED:
+      return 'secondary';
+    default:
+      return 'default';
+  }
+}
+
+/**
  * Get visit type display color for UI
  */
 export function getTypeColor(type: VisitType): string {

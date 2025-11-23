@@ -63,7 +63,20 @@ import { DosageCalculator } from './DosageCalculator';
 import { PreviousVisitReference } from './PreviousVisitReference';
 
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDraftRecovery } from '@/hooks/useDraftRecovery';
 import { useKeyboardShortcuts, getVisitFormShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { visitTemplatesApi } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface VisitFormProps {
   /** Initial visit values for editing */
@@ -98,6 +111,17 @@ const createVisitSchema = (t: (key: string) => string) => {
 type VisitFormData = z.infer<ReturnType<typeof createVisitSchema>>;
 
 /**
+ * Draft data structure for recovery
+ */
+interface VisitDraftData {
+  formData: VisitFormData;
+  vitals?: VitalSigns;
+  soapNotes?: SOAPNoteType;
+  diagnoses: SelectedDiagnosis[];
+  prescriptions: CreatePrescriptionRequest[];
+}
+
+/**
  * VisitForm Component
  */
 export function VisitForm({
@@ -111,6 +135,21 @@ export function VisitForm({
   onAutoSave,
 }: VisitFormProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
+
+  // Draft recovery state
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+
+  // Initialize draft recovery (only for new visits, not editing)
+  const draftKey = initialValues?.id
+    ? `visit-draft-${initialValues.id}`
+    : `visit-draft-new-${patientId}`;
+
+  const { hasDraft, draftData, saveDraft, clearDraft, getDraftAge } =
+    useDraftRecovery<VisitDraftData>({
+      key: draftKey,
+      enabled: !initialValues?.id, // Only enable for new visits
+    });
 
   // Form state
   const form = useForm<VisitFormData>({
@@ -250,20 +289,147 @@ export function VisitForm({
   }, [debouncedVitals, debouncedSoapNotes, onAutoSave, initialValues?.id, buildVisitData]);
 
   /**
+   * Check for draft on mount
+   */
+  useEffect(() => {
+    if (hasDraft && !initialValues?.id) {
+      setShowDraftDialog(true);
+    }
+  }, [hasDraft, initialValues?.id]);
+
+  /**
+   * Save draft when form data changes
+   */
+  useEffect(() => {
+    if (!initialValues?.id) {
+      // Only save drafts for new visits
+      const draftData: VisitDraftData = {
+        formData: form.getValues(),
+        vitals,
+        soapNotes,
+        diagnoses,
+        prescriptions,
+      };
+      saveDraft(draftData);
+    }
+  }, [
+    form.watch(),
+    vitals,
+    soapNotes,
+    diagnoses,
+    prescriptions,
+    initialValues?.id,
+    saveDraft,
+  ]);
+
+  /**
+   * Handle draft recovery
+   */
+  const handleRecoverDraft = () => {
+    if (!draftData) return;
+
+    // Restore form data
+    form.setValue('visit_type', draftData.formData.visit_type);
+    form.setValue('chief_complaint', draftData.formData.chief_complaint);
+    form.setValue('visit_date', draftData.formData.visit_date);
+
+    // Restore other state
+    if (draftData.vitals) {
+      setVitals(draftData.vitals);
+    }
+    if (draftData.soapNotes) {
+      setSoapNotes(draftData.soapNotes);
+    }
+    if (draftData.diagnoses) {
+      setDiagnoses(draftData.diagnoses);
+    }
+    if (draftData.prescriptions) {
+      setPrescriptions(draftData.prescriptions);
+    }
+
+    setShowDraftDialog(false);
+
+    const age = getDraftAge();
+    const ageText = age ? Math.floor(age / 60000) : 0; // Convert to minutes
+
+    toast({
+      title: t('visits.draft.recovered'),
+      description: t('visits.draft.recovered_description', { minutes: ageText }),
+    });
+  };
+
+  /**
+   * Handle draft dismissal
+   */
+  const handleDismissDraft = () => {
+    clearDraft();
+    setShowDraftDialog(false);
+  };
+
+  /**
    * Handle form submission
    */
-  const handleSubmit = (formData: VisitFormData) => {
+  const handleSubmit = async (formData: VisitFormData) => {
     const visitData = buildVisitData();
-    onSubmit(visitData);
+    await onSubmit(visitData);
+
+    // Clear draft after successful submission
+    if (!initialValues?.id) {
+      clearDraft();
+    }
   };
 
   /**
    * Handle template application
    */
-  const handleApplyTemplate = (templateId: string) => {
-    // TODO: Fetch template and apply to form
-    console.log('Applying template:', templateId);
-    setShowTemplateSelector(false);
+  const handleApplyTemplate = async (templateId: string) => {
+    try {
+      // Fetch the template
+      const template = await visitTemplatesApi.getById(templateId);
+
+      // Check if form has unsaved data (only for SOAP notes, vitals can be merged)
+      const hasUnsavedData =
+        soapNotes?.subjective ||
+        soapNotes?.objective ||
+        soapNotes?.assessment ||
+        soapNotes?.plan;
+
+      if (hasUnsavedData) {
+        // Show confirmation dialog
+        if (!window.confirm(t('visits.templates.apply_template_confirmation'))) {
+          setShowTemplateSelector(false);
+          return;
+        }
+      }
+
+      // Apply template data to form
+      if (template.default_visit_type) {
+        form.setValue('visit_type', template.default_visit_type);
+      }
+
+      // Apply SOAP notes from template
+      setSoapNotes({
+        subjective: template.subjective || '',
+        objective: template.objective || '',
+        assessment: template.assessment || '',
+        plan: template.plan || '',
+      });
+
+      setShowTemplateSelector(false);
+
+      toast({
+        title: t('visits.templates.template_applied'),
+        description: t('visits.templates.template_applied_description', {
+          name: template.name,
+        }),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('visits.templates.template_apply_error'),
+      });
+    }
   };
 
   /**
@@ -571,6 +737,26 @@ export function VisitForm({
           onClose={() => setShowTemplateSelector(false)}
         />
       )}
+
+      {/* Draft recovery dialog */}
+      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('visits.draft.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('visits.draft.description')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDismissDraft}>
+              {t('visits.draft.dismiss')}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRecoverDraft}>
+              {t('visits.draft.recover')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

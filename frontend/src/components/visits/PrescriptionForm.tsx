@@ -12,6 +12,9 @@ import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { Pill, Calendar, FileText, AlertTriangle } from 'lucide-react';
 
+import { prescriptionTemplatesApi } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +44,7 @@ import {
   DrugInteractionWarning,
 } from '@/types/prescription';
 import { MedicationSearch } from './MedicationSearch';
+import { PrescriptionTemplateSelector } from './PrescriptionTemplateSelector';
 
 interface PrescriptionFormProps {
   /** Initial prescription values for editing */
@@ -99,9 +103,11 @@ export function PrescriptionForm({
   interactionWarnings = [],
 }: PrescriptionFormProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [selectedMedicationName, setSelectedMedicationName] = useState(
     initialValues?.medication_name || ''
   );
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -146,13 +152,83 @@ export function PrescriptionForm({
     }
   };
 
+  /**
+   * Handle template application
+   */
+  const handleApplyTemplate = async (templateId: string) => {
+    try {
+      // Fetch the template
+      const template = await prescriptionTemplatesApi.getById(templateId);
+
+      // Check if form has unsaved data
+      const formValues = form.getValues();
+      const hasUnsavedData =
+        formValues.medication_name ||
+        formValues.dosage ||
+        formValues.frequency;
+
+      if (hasUnsavedData) {
+        // Show confirmation dialog
+        if (!window.confirm(t('prescriptions.templates.apply_template_confirmation'))) {
+          setShowTemplateSelector(false);
+          return;
+        }
+      }
+
+      // Apply template data to form
+      setSelectedMedicationName(template.medication_name);
+      form.setValue('medication_name', template.medication_name);
+      form.setValue('generic_name', template.generic_name || '');
+      form.setValue('dosage', template.dosage);
+      form.setValue('frequency', template.frequency);
+      form.setValue('duration', template.duration || '');
+      form.setValue('refills', template.refills);
+      form.setValue('instructions', template.instructions || '');
+
+      if (template.form) {
+        form.setValue('form', template.form);
+      }
+      if (template.route) {
+        form.setValue('route', template.route);
+      }
+      if (template.quantity !== undefined) {
+        form.setValue('quantity', template.quantity);
+      }
+
+      setShowTemplateSelector(false);
+
+      toast({
+        title: t('prescriptions.templates.template_applied'),
+        description: t('prescriptions.templates.template_applied_description', {
+          name: template.name,
+        }),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.templates.template_apply_error'),
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Pill className="h-5 w-5" />
-          {t('visits.prescription.title')}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Pill className="h-5 w-5" />
+            {t('visits.prescription.title')}
+          </CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTemplateSelector(true)}
+          >
+            {t('prescriptions.load_template')}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -459,6 +535,14 @@ export function PrescriptionForm({
           </form>
         </Form>
       </CardContent>
+
+      {/* Template selector dialog */}
+      {showTemplateSelector && (
+        <PrescriptionTemplateSelector
+          onSelect={handleApplyTemplate}
+          onClose={() => setShowTemplateSelector(false)}
+        />
+      )}
     </Card>
   );
 }
