@@ -14,8 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     handlers::auth::AppState,
-    handlers::visits::AuthUser,
-    models::UserRole,
+    models::{AuthUser, UserRole},
     services::VisitService,
     utils::{AppError, Result},
 };

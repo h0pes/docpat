@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::{
     handlers::auth::AppState,
-    models::UserRole,
+    models::{AuthUser, UserRole},
     utils::AppError,
 };
 
@@ -72,7 +72,11 @@ pub async fn jwt_auth_middleware(
         }
     };
 
-    // Add user_id and role to request extensions
+    // Create AuthUser and add to request extensions
+    let auth_user = AuthUser { user_id, role: role.clone() };
+    req.extensions_mut().insert(auth_user);
+
+    // Also insert individual fields for backward compatibility
     req.extensions_mut().insert(user_id);
     req.extensions_mut().insert(role);
 

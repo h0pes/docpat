@@ -24,6 +24,7 @@ import {
   AppointmentDetailPage,
 } from '../pages/appointments';
 import {
+  VisitsPage,
   NewVisitPage,
   EditVisitPage,
   VisitDetailPage,
@@ -107,6 +108,10 @@ export const router = createBrowserRouter([
             element: <EditAppointmentPage />,
           },
           // Visit routes
+          {
+            path: '/visits',
+            element: <VisitsPage />,
+          },
           {
             path: '/visits/new',
             element: <NewVisitPage />,

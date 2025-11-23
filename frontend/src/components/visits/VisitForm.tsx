@@ -605,6 +605,7 @@ export function VisitForm({
                 onSubmit={setVitals}
                 onChange={setVitals}
                 readOnly={isReadOnly}
+                showActions={false}
               />
             </TabsContent>
 
@@ -614,6 +615,7 @@ export function VisitForm({
                 onSubmit={setSoapNotes}
                 onChange={setSoapNotes}
                 readOnly={isReadOnly}
+                showActions={false}
               />
             </TabsContent>
 

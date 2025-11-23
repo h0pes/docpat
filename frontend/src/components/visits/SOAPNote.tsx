@@ -93,6 +93,9 @@ export function SOAPNote({
     onSubmit(data as SOAPNoteType);
   };
 
+  // Use div instead of form when actions are hidden to avoid nested form warnings
+  const FormWrapper = showActions ? 'form' : 'div';
+
   return (
     <Card>
       <CardHeader>
@@ -103,7 +106,7 @@ export function SOAPNote({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <FormWrapper onSubmit={showActions ? form.handleSubmit(handleSubmit) : undefined} className="space-y-6">
             {/* Subjective Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
@@ -231,7 +234,7 @@ export function SOAPNote({
                 </Button>
               </div>
             )}
-          </form>
+          </FormWrapper>
         </Form>
       </CardContent>
     </Card>

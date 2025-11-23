@@ -16,7 +16,7 @@ import { VisitForm } from '@/components/visits';
 import { useVisit, useUpdateVisit } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
 import { UpdateVisitRequest } from '@/types/visit';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { VisitStatus } from '@/types/visit';
 
 /**

@@ -533,6 +533,35 @@ export function useCreateVisitTemplate() {
 }
 
 /**
+ * Update a visit template
+ */
+export function useUpdateVisitTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreateVisitTemplateRequest }) =>
+      visitTemplatesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitKeys.templates() });
+    },
+  });
+}
+
+/**
+ * Delete a visit template
+ */
+export function useDeleteVisitTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => visitTemplatesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: visitKeys.templates() });
+    },
+  });
+}
+
+/**
  * Create a prescription template
  */
 export function useCreatePrescriptionTemplate() {
@@ -540,6 +569,35 @@ export function useCreatePrescriptionTemplate() {
 
   return useMutation({
     mutationFn: (data: CreatePrescriptionTemplateRequest) => prescriptionTemplatesApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.templates() });
+    },
+  });
+}
+
+/**
+ * Update a prescription template
+ */
+export function useUpdatePrescriptionTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CreatePrescriptionTemplateRequest }) =>
+      prescriptionTemplatesApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.templates() });
+    },
+  });
+}
+
+/**
+ * Delete a prescription template
+ */
+export function useDeletePrescriptionTemplate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => prescriptionTemplatesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: prescriptionKeys.templates() });
     },

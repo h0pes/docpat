@@ -32,6 +32,14 @@ pub use patient_insurance::{
     PolicyholderRelationship, ProviderAddress, UpdateInsuranceRequest,
 };
 pub use user::{User, UserDto, UserRole};
+
+/// Authenticated user information extracted from JWT token
+/// This is added as a request extension by the auth middleware
+#[derive(Debug, Clone)]
+pub struct AuthUser {
+    pub user_id: uuid::Uuid,
+    pub role: UserRole,
+}
 pub use visit::{
     CreateVisitRequest, ReviewOfSystems, UpdateVisitRequest, Visit, VisitResponse, VisitStatus,
     VisitType, VitalSigns,

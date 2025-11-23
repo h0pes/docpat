@@ -16,8 +16,7 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    handlers::visits::AuthUser,
-    models::{CreatePrescriptionRequest, UpdatePrescriptionRequest, UserRole},
+    models::{AuthUser, CreatePrescriptionRequest, UpdatePrescriptionRequest, UserRole},
     services::{MedicationSearchResult, PrescriptionService},
     utils::{AppError, Result},
 };

@@ -14,7 +14,7 @@ import { VisitForm } from '@/components/visits';
 import { useCreateVisit } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
 import { CreateVisitRequest } from '@/types/visit';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/store/authStore';
 
 /**
  * NewVisitPage Component

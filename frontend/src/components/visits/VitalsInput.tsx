@@ -158,6 +158,9 @@ export function VitalsInput({
   const bmiValue = form.watch('bmi');
   const bmiCategory = getBMICategory(bmiValue);
 
+  // Use div instead of form when actions are hidden to avoid nested form warnings
+  const FormWrapper = showActions ? 'form' : 'div';
+
   return (
     <Card>
       <CardHeader>
@@ -168,7 +171,7 @@ export function VitalsInput({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <FormWrapper onSubmit={showActions ? form.handleSubmit(handleSubmit) : undefined} className="space-y-6">
             {/* Blood Pressure */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -450,7 +453,7 @@ export function VitalsInput({
                 </Button>
               </div>
             )}
-          </form>
+          </FormWrapper>
         </Form>
       </CardContent>
     </Card>

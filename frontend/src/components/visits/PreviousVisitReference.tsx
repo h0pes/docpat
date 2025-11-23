@@ -236,7 +236,7 @@ export function PreviousVisitReference({
   const { data: visits, isLoading, isError } = usePatientVisits(patientId);
 
   // Filter to recent visits (excluding current draft if creating new)
-  const recentVisits = visits
+  const recentVisits = visits?.visits
     ?.filter((v) => v.status !== 'DRAFT')
     .slice(0, maxVisits) || [];
 

@@ -16,8 +16,7 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    handlers::visits::AuthUser,
-    models::{CreateVisitDiagnosisRequest, UpdateVisitDiagnosisRequest, UserRole},
+    models::{AuthUser, CreateVisitDiagnosisRequest, UpdateVisitDiagnosisRequest, UserRole},
     services::{ICD10SearchResult, VisitDiagnosisService},
     utils::{AppError, Result},
 };
