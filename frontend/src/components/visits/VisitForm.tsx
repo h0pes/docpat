@@ -6,7 +6,7 @@
  * with auto-save, template support, and status management.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -194,6 +194,28 @@ export function VisitForm({
   const [prescriptions, setPrescriptions] = useState<CreatePrescriptionRequest[]>([]);
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
 
+  /**
+   * Wrapper for setVitals that tracks user interaction
+   */
+  const handleVitalsChange = useCallback((newVitals: VitalSigns | undefined) => {
+    // Only mark as user interaction if component has initialized
+    if (isInitializedRef.current) {
+      hasUserInteractedRef.current = true;
+    }
+    setVitals(newVitals);
+  }, []);
+
+  /**
+   * Wrapper for setSoapNotes that tracks user interaction
+   */
+  const handleSoapNotesChange = useCallback((newNotes: SOAPNoteType | undefined) => {
+    // Only mark as user interaction if component has initialized
+    if (isInitializedRef.current) {
+      hasUserInteractedRef.current = true;
+    }
+    setSoapNotes(newNotes);
+  }, []);
+
   // Auto-save state
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>(
     'idle'
@@ -207,6 +229,10 @@ export function VisitForm({
   const [showQuickText, setShowQuickText] = useState(false);
   const [showDosageCalculator, setShowDosageCalculator] = useState(false);
   const [showPreviousVisits, setShowPreviousVisits] = useState(false);
+
+  // Track if component has initialized (to skip first auto-save)
+  const isInitializedRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
 
   // Keyboard shortcuts
   useKeyboardShortcuts(
@@ -264,8 +290,24 @@ export function VisitForm({
   const debouncedVitals = useDebounce(vitals, 30000); // 30 seconds
   const debouncedSoapNotes = useDebounce(soapNotes, 30000);
 
+  // Mark component as initialized after first render
   useEffect(() => {
-    if (!onAutoSave || !initialValues?.id) return; // Only auto-save for existing visits
+    // Use a small timeout to ensure all initial state is settled
+    const timer = setTimeout(() => {
+      isInitializedRef.current = true;
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Skip auto-save if:
+    // - No onAutoSave callback
+    // - Not editing an existing visit
+    // - Component hasn't initialized yet (prevents initial render auto-save)
+    // - User hasn't interacted yet
+    if (!onAutoSave || !initialValues?.id || !isInitializedRef.current || !hasUserInteractedRef.current) {
+      return;
+    }
 
     const performAutoSave = async () => {
       try {
@@ -286,7 +328,10 @@ export function VisitForm({
     };
 
     performAutoSave();
-  }, [debouncedVitals, debouncedSoapNotes, onAutoSave, initialValues?.id, buildVisitData]);
+    // Note: buildVisitData is intentionally excluded from dependencies to prevent
+    // infinite loops. It's called inside the effect when needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedVitals, debouncedSoapNotes, onAutoSave, initialValues?.id]);
 
   /**
    * Check for draft on mount
@@ -296,6 +341,11 @@ export function VisitForm({
       setShowDraftDialog(true);
     }
   }, [hasDraft, initialValues?.id]);
+
+  /**
+   * Watch form values for draft saving (must be called at component level)
+   */
+  const watchedFormValues = form.watch();
 
   /**
    * Save draft when form data changes
@@ -312,8 +362,10 @@ export function VisitForm({
       };
       saveDraft(draftData);
     }
+    // Note: We use JSON.stringify of watched values to prevent infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    form.watch(),
+    JSON.stringify(watchedFormValues),
     vitals,
     soapNotes,
     diagnoses,
@@ -602,8 +654,8 @@ export function VisitForm({
             <TabsContent value="vitals" className="mt-6">
               <VitalsInput
                 initialValues={vitals}
-                onSubmit={setVitals}
-                onChange={setVitals}
+                onSubmit={handleVitalsChange}
+                onChange={handleVitalsChange}
                 readOnly={isReadOnly}
                 showActions={false}
               />
@@ -612,8 +664,8 @@ export function VisitForm({
             <TabsContent value="soap" className="mt-6">
               <SOAPNote
                 initialValues={soapNotes}
-                onSubmit={setSoapNotes}
-                onChange={setSoapNotes}
+                onSubmit={handleSoapNotesChange}
+                onChange={handleSoapNotesChange}
                 readOnly={isReadOnly}
                 showActions={false}
               />

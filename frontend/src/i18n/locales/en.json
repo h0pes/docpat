@@ -29,7 +29,8 @@
       "backToList": "Back to List",
       "deleting": "Deleting...",
       "cancel": "Cancel",
-      "delete": "Delete"
+      "delete": "Delete",
+      "viewAll": "View All"
     },
     "required": "Required",
     "optional": "Optional",
@@ -601,6 +602,8 @@
     "recent_visits": "Recent Visits",
     "recent_visits_description": "Click on a visit to view details",
     "create_first_visit": "Create First Visit",
+    "no_visits_yet": "No visits recorded yet",
+    "no_chief_complaint": "No chief complaint recorded",
     "error_loading": "Failed to load visits. Please try again.",
     "type": {
       "new_patient": "New Patient",
@@ -641,6 +644,11 @@
       "consultation": "Consultation",
       "procedure": "Procedure",
       "other": "Other"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "signed": "Signed",
+      "locked": "Locked"
     },
     "auto_save": {
       "saving": "Saving...",

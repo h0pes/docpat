@@ -3,12 +3,22 @@
  *
  * Page for viewing comprehensive patient information.
  * Uses the PatientDetail component for display.
+ * Includes Visit History section with recent visits.
  */
 
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Edit, Trash2, AlertCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Edit,
+  Trash2,
+  AlertCircle,
+  Plus,
+  FileText,
+  Calendar,
+  Eye,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -21,12 +31,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PatientDetail } from '@/components/patients/PatientDetail';
 import { FullPageSpinner } from '@/components/Spinner';
 import { patientsApi } from '@/services/api/patients';
+import { usePatientVisits } from '@/hooks/useVisits';
+import { getStatusBadgeColor, VisitStatus, VisitType } from '@/types/visit';
 import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { format } from 'date-fns';
 
 /**
  * PatientDetailPage Component
@@ -36,6 +52,8 @@ import { useAuthStore } from '@/store/authStore';
  * - Edit navigation
  * - Delete functionality (with confirmation)
  * - Role-based action visibility
+ * - Visit history section with recent visits
+ * - New Visit button for quick access
  */
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +63,14 @@ export function PatientDetailPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  /**
+   * Fetch patient visits (limit to 5 recent visits)
+   */
+  const {
+    data: visitsData,
+    isLoading: visitsLoading,
+  } = usePatientVisits(id!, { limit: 5 }, { enabled: !!id });
 
   /**
    * Fetch patient data
@@ -133,6 +159,27 @@ export function PatientDetailPage() {
   };
 
   /**
+   * Handle new visit button
+   */
+  const handleNewVisit = () => {
+    navigate(`/visits/new?patientId=${id}`);
+  };
+
+  /**
+   * Handle view visit
+   */
+  const handleViewVisit = (visitId: string) => {
+    navigate(`/visits/${visitId}`);
+  };
+
+  /**
+   * Handle view all visits
+   */
+  const handleViewAllVisits = () => {
+    navigate(`/patients/${id}/visits`);
+  };
+
+  /**
    * Handle delete button
    */
   const handleDelete = () => {
@@ -215,7 +262,11 @@ export function PatientDetailPage() {
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          <Button onClick={handleEdit} className="gap-2">
+          <Button onClick={handleNewVisit} className="gap-2">
+            <Plus className="h-4 w-4" />
+            {t('visits.new_visit')}
+          </Button>
+          <Button onClick={handleEdit} variant="outline" className="gap-2">
             <Edit className="h-4 w-4" />
             {t('patients.actions.edit')}
           </Button>
@@ -235,6 +286,90 @@ export function PatientDetailPage() {
 
       {/* Patient detail component */}
       <PatientDetail patient={patient} />
+
+      {/* Visit History Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {t('visits.recent_visits')}
+            </CardTitle>
+            <CardDescription>
+              {t('visits.recent_visits_description')}
+            </CardDescription>
+          </div>
+          {visitsData?.visits && visitsData.visits.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleViewAllVisits}>
+              {t('common.actions.viewAll')}
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {visitsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : !visitsData?.visits || visitsData.visits.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4">
+                {t('visits.no_visits_yet')}
+              </p>
+              <Button onClick={handleNewVisit} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('visits.create_first_visit')}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visitsData.visits.map((visit) => (
+                <div
+                  key={visit.id}
+                  className="flex items-center gap-4 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleViewVisit(visit.id)}
+                >
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">
+                        {format(new Date(visit.visit_date), 'PPP')}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {t(`visits.visit_types.${visit.visit_type.toLowerCase()}`, visit.visit_type)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {visit.chief_complaint || t('visits.no_chief_complaint')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getStatusBadgeColor(visit.status as VisitStatus)}>
+                      {t(`visits.statuses.${visit.status.toLowerCase()}`, visit.status)}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

@@ -199,3 +199,20 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock pointer capture methods for Radix UI components (Select, etc.)
+// jsdom doesn't support these methods which Radix UI uses
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = vi.fn().mockReturnValue(false);
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = vi.fn();
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = vi.fn();
+}
+
+// Mock scrollIntoView for components that use it
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = vi.fn();
+}

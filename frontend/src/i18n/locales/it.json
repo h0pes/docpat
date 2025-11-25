@@ -29,7 +29,8 @@
       "backToList": "Torna all'Elenco",
       "deleting": "Eliminazione...",
       "cancel": "Annulla",
-      "delete": "Elimina"
+      "delete": "Elimina",
+      "viewAll": "Visualizza Tutto"
     },
     "required": "Obbligatorio",
     "optional": "Facoltativo",
@@ -601,6 +602,8 @@
     "recent_visits": "Visite Recenti",
     "recent_visits_description": "Clicca su una visita per visualizzare i dettagli",
     "create_first_visit": "Crea Prima Visita",
+    "no_visits_yet": "Nessuna visita registrata",
+    "no_chief_complaint": "Nessun motivo della visita registrato",
     "error_loading": "Impossibile caricare le visite. Riprova.",
     "type": {
       "new_patient": "Nuovo Paziente",
@@ -641,6 +644,11 @@
       "consultation": "Consultazione",
       "procedure": "Procedura",
       "other": "Altro"
+    },
+    "statuses": {
+      "draft": "Bozza",
+      "signed": "Firmata",
+      "locked": "Bloccata"
     },
     "auto_save": {
       "saving": "Salvataggio...",
