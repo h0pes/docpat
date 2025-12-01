@@ -86,6 +86,10 @@ tera = { version = "1.20", optional = true }
 
 # PDF Generation (Optional)
 printpdf = { version = "0.8", optional = true }
+genpdf = { version = "0.2", optional = true }
+
+# HTML Template Rendering (for document generation)
+minijinja = { version = "2.5", optional = true }
 
 # Rate Limiting
 governor = "0.10"
@@ -152,7 +156,7 @@ email = ["dep:lettre", "dep:tera"]
 sms = []
 whatsapp = []
 metrics = ["dep:metrics"]
-pdf-export = ["dep:printpdf"]
+pdf-export = ["dep:printpdf", "dep:genpdf", "dep:minijinja"]
 rbac = ["dep:casbin"]
 
 # Build metadata

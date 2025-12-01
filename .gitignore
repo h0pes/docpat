@@ -13,6 +13,7 @@ docs/TASKS.md
 docs/SESSIONS.md
 docs/sessions/
 docs/PRODUCTION_TODOS.md
+docs/TEST_CASES_MILESTONE11.md
 
 # ============================================
 # RUST BACKEND
@@ -275,6 +276,9 @@ out/
 
 # Claude Code agents
 .claude/agents/*
+
+# Playwright MCP screenshots
+.playwright-mcp/
 
 # ============================================
 # MEDICAL DATA (CRITICAL - NEVER COMMIT)

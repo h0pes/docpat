@@ -35,7 +35,7 @@ use handlers::auth::AppState;
 use middleware::cors::cors_from_env;
 use middleware::session_timeout::SessionManager;
 use routes::create_api_v1_routes;
-use services::AuthService;
+use services::{AuthService, EmailService};
 use utils::EncryptionKey;
 
 #[cfg(feature = "rbac")]
@@ -133,12 +133,30 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    // Initialize email service (optional - for document delivery)
+    let email_service = match EmailService::new(config.email.as_ref()) {
+        Ok(service) => {
+            if service.is_enabled() {
+                tracing::info!("Email service initialized and enabled");
+                Some(service)
+            } else {
+                tracing::info!("Email service disabled - SMTP not configured");
+                None
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Failed to initialize email service: {}. Document email delivery will be unavailable.", e);
+            None
+        }
+    };
+
     // Create application state
     let app_state = AppState {
         pool: pool.clone(),
         auth_service,
         session_manager,
         encryption_key,
+        email_service,
         #[cfg(feature = "rbac")]
         enforcer,
     };

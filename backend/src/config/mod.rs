@@ -18,6 +18,53 @@ pub struct Config {
     pub jwt: JwtConfig,
     /// Security configuration
     pub security: SecurityConfig,
+    /// Email configuration (optional - for document delivery)
+    pub email: Option<EmailConfig>,
+}
+
+/// Email/SMTP configuration
+/// SECURITY: These credentials are loaded from environment variables only.
+/// They are NEVER stored in the database, logs, or any persistent storage.
+#[derive(Clone)]
+pub struct EmailConfig {
+    /// SMTP server host (e.g., "smtp.gmail.com")
+    pub smtp_host: String,
+    /// SMTP server port (e.g., 587 for TLS)
+    pub smtp_port: u16,
+    /// SMTP username (email address)
+    pub smtp_username: String,
+    /// SMTP password or app-specific password
+    /// SECURITY: This is sensitive - never log or store this value
+    smtp_password: String,
+    /// Sender email address (typically same as username)
+    pub from_email: String,
+    /// Sender display name
+    pub from_name: String,
+    /// Whether email sending is enabled
+    pub enabled: bool,
+}
+
+impl EmailConfig {
+    /// Get the SMTP password securely
+    /// This method exists to make password access explicit and auditable
+    pub fn smtp_password(&self) -> &str {
+        &self.smtp_password
+    }
+}
+
+// Custom Debug implementation to prevent password leakage in logs
+impl std::fmt::Debug for EmailConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EmailConfig")
+            .field("smtp_host", &self.smtp_host)
+            .field("smtp_port", &self.smtp_port)
+            .field("smtp_username", &self.smtp_username)
+            .field("smtp_password", &"[REDACTED]")
+            .field("from_email", &self.from_email)
+            .field("from_name", &self.from_name)
+            .field("enabled", &self.enabled)
+            .finish()
+    }
 }
 
 /// Server configuration
@@ -157,9 +204,47 @@ impl Config {
                     .parse()
                     .unwrap_or(900),
             },
+
+            email: Self::load_email_config(),
         };
 
         Ok(config)
+    }
+
+    /// Load email configuration from environment variables
+    /// Returns None if SMTP_ENABLED is false or not set
+    fn load_email_config() -> Option<EmailConfig> {
+        let enabled = std::env::var("SMTP_ENABLED")
+            .unwrap_or_else(|_| "false".to_string())
+            .parse::<bool>()
+            .unwrap_or(false);
+
+        if !enabled {
+            return None;
+        }
+
+        // Only load sensitive credentials if email is enabled
+        let smtp_host = std::env::var("SMTP_HOST").ok()?;
+        let smtp_port = std::env::var("SMTP_PORT")
+            .ok()?
+            .parse()
+            .ok()?;
+        let smtp_username = std::env::var("SMTP_USERNAME").ok()?;
+        let smtp_password = std::env::var("SMTP_PASSWORD").ok()?;
+        let from_email = std::env::var("SMTP_FROM_EMAIL")
+            .unwrap_or_else(|_| smtp_username.clone());
+        let from_name = std::env::var("SMTP_FROM_NAME")
+            .unwrap_or_else(|_| "DocPat".to_string());
+
+        Some(EmailConfig {
+            smtp_host,
+            smtp_port,
+            smtp_username,
+            smtp_password,
+            from_email,
+            from_name,
+            enabled,
+        })
     }
 }
 

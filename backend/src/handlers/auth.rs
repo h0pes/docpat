@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     middleware::session_timeout::SessionManager,
-    services::{AuthService, LoginRequest, LoginResponse, TokenPair},
+    services::{AuthService, EmailService, LoginRequest, LoginResponse, TokenPair},
     utils::{EncryptionKey, Result},
 };
 use sqlx::PgPool;
@@ -24,6 +24,8 @@ pub struct AppState {
     pub auth_service: AuthService,
     pub session_manager: SessionManager,
     pub encryption_key: Option<EncryptionKey>,
+    /// Email service for document delivery (optional - None if not configured)
+    pub email_service: Option<EmailService>,
     #[cfg(feature = "rbac")]
     pub enforcer: CasbinEnforcer,
 }

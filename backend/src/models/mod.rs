@@ -6,6 +6,8 @@
 
 pub mod appointment;
 pub mod audit_log;
+pub mod document_template;
+pub mod generated_document;
 pub mod patient;
 pub mod patient_insurance;
 pub mod prescription;
@@ -62,3 +64,15 @@ pub use visit_template::{
     VisitTemplateResponse,
 };
 pub use visit_version::{VisitVersion, VisitVersionResponse, VisitVersionSummary};
+pub use document_template::{
+    CreateDocumentTemplateRequest, DocumentTemplate, DocumentTemplateFilter,
+    DocumentTemplateResponse, DocumentTemplateSummary, DocumentType, ListDocumentTemplatesResponse,
+    PageOrientation, PageSize, TemplateLanguage, UpdateDocumentTemplateRequest,
+};
+pub use generated_document::{
+    BulkGenerateError, BulkGenerateRequest, BulkGenerateResult, DeliverDocumentRequest,
+    DocumentStatistics, DocumentStatus, DocumentStatusCount, DocumentTypeCount,
+    GenerateDocumentRequest, GeneratedDocument, GeneratedDocumentFilter,
+    GeneratedDocumentResponse, GeneratedDocumentSummary, ListGeneratedDocumentsResponse,
+    SignDocumentRequest,
+};

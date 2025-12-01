@@ -18,6 +18,7 @@ import {
   Calendar,
   User,
   Activity,
+  FileOutput,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, it } from 'date-fns/locale';
@@ -32,6 +33,8 @@ import { useToast } from '@/hooks/use-toast';
 import { VisitStatus, getStatusColor, formatVitalSigns } from '@/types/visit';
 import { DigitalSignatureDialog } from '@/components/visits/DigitalSignatureDialog';
 import { VisitLockDialog } from '@/components/visits/VisitLockDialog';
+import { DocumentGenerationDialog, VisitDocumentsSection } from '@/components/documents';
+import type { GeneratedDocument } from '@/types/document';
 
 /**
  * VisitDetailPage Component
@@ -45,6 +48,7 @@ export function VisitDetailPage() {
   // State for dialogs
   const [showSignDialog, setShowSignDialog] = useState(false);
   const [showLockDialog, setShowLockDialog] = useState(false);
+  const [showGenerateDocDialog, setShowGenerateDocDialog] = useState(false);
 
   // Fetch visit data
   const { data: visit, isLoading, isError, error } = useVisit(id!);
@@ -88,6 +92,18 @@ export function VisitDetailPage() {
       title: t('visits.messages.lockSuccess'),
       description: t('visits.messages.lockSuccessDescription'),
     });
+  };
+
+  /**
+   * Handle document generation success
+   */
+  const handleDocumentGenerationSuccess = (document: GeneratedDocument) => {
+    setShowGenerateDocDialog(false);
+    toast({
+      title: t('documents.generation.success'),
+      description: t('documents.generation.success_description', { title: document.document_title }),
+    });
+    // Optionally navigate to documents page or stay on current page
   };
 
   // Loading state
@@ -360,6 +376,10 @@ export function VisitDetailPage() {
               {t('visits.lock_visit')}
             </Button>
           )}
+          <Button variant="outline" size="sm" onClick={() => setShowGenerateDocDialog(true)}>
+            <FileOutput className="mr-2 h-4 w-4" />
+            {t('documents.generate_document')}
+          </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             {t('common.print')}
@@ -531,6 +551,14 @@ export function VisitDetailPage() {
         </Card>
       )}
 
+      {/* Visit Documents Section */}
+      <div className="mb-6">
+        <VisitDocumentsSection
+          visitId={id!}
+          onGenerateDocument={() => setShowGenerateDocDialog(true)}
+        />
+      </div>
+
         {/* Print-only footer */}
         <div className="hidden print:block print-footer">
           <p>DocPat Medical Practice - Confidential Medical Record</p>
@@ -552,6 +580,16 @@ export function VisitDetailPage() {
           visitId={id!}
           onSuccess={handleLockSuccess}
           onClose={() => setShowLockDialog(false)}
+        />
+      )}
+
+      {showGenerateDocDialog && visit && (
+        <DocumentGenerationDialog
+          patientId={visit.patient_id}
+          visitId={id!}
+          visitDate={visit.visit_date}
+          onSuccess={handleDocumentGenerationSuccess}
+          onClose={() => setShowGenerateDocDialog(false)}
         />
       )}
     </>

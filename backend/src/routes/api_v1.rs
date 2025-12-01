@@ -33,6 +33,9 @@ use crate::middleware::auth::jwt_auth_middleware;
 #[cfg(feature = "rbac")]
 use crate::handlers::users;
 
+#[cfg(feature = "pdf-export")]
+use crate::handlers::documents;
+
 /// Create API v1 routes
 ///
 /// # Arguments
@@ -150,6 +153,32 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Document template routes (PDF export feature) - requires authentication
+    #[cfg(feature = "pdf-export")]
+    let document_template_routes = Router::new()
+        .route("/", post(documents::create_document_template).get(documents::list_document_templates))
+        .route("/default", get(documents::get_default_document_template))
+        .route("/{id}", get(documents::get_document_template).put(documents::update_document_template).delete(documents::delete_document_template))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Generated document routes (PDF export feature) - requires authentication
+    #[cfg(feature = "pdf-export")]
+    let document_routes = Router::new()
+        .route("/", get(documents::list_generated_documents))
+        .route("/generate", post(documents::generate_document))
+        .route("/statistics", get(documents::get_document_statistics))
+        .route("/{id}", get(documents::get_generated_document).delete(documents::delete_generated_document))
+        .route("/{id}/download", get(documents::download_document))
+        .route("/{id}/sign", post(documents::sign_document))
+        .route("/{id}/deliver", post(documents::deliver_document))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
@@ -164,6 +193,13 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
     #[cfg(feature = "rbac")]
     {
         router = router.nest("/users", user_routes);
+    }
+
+    #[cfg(feature = "pdf-export")]
+    {
+        router = router
+            .nest("/document-templates", document_template_routes)
+            .nest("/documents", document_routes);
     }
 
     router.with_state(state)

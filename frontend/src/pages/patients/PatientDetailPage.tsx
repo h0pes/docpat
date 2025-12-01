@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PatientDetail } from '@/components/patients/PatientDetail';
 import { FullPageSpinner } from '@/components/Spinner';
+import { PatientDocumentsSection, DocumentGenerationDialog } from '@/components/documents';
 import { patientsApi } from '@/services/api/patients';
 import { usePatientVisits } from '@/hooks/useVisits';
 import { getStatusBadgeColor, VisitStatus, VisitType } from '@/types/visit';
@@ -43,6 +44,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { format } from 'date-fns';
+import type { GeneratedDocument } from '@/types/document';
 
 /**
  * PatientDetailPage Component
@@ -63,6 +65,7 @@ export function PatientDetailPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showGenerateDocDialog, setShowGenerateDocDialog] = useState(false);
 
   /**
    * Fetch patient visits (limit to 5 recent visits)
@@ -198,6 +201,19 @@ export function PatientDetailPage() {
    */
   const handleBack = () => {
     navigate('/patients');
+  };
+
+  /**
+   * Handle document generation success
+   */
+  const handleDocumentGenerationSuccess = (document: GeneratedDocument) => {
+    setShowGenerateDocDialog(false);
+    toast({
+      title: t('documents.generation.success'),
+      description: t('documents.generation.success_description', { title: document.document_title }),
+    });
+    // Invalidate patient documents query to refresh the list
+    queryClient.invalidateQueries({ queryKey: ['documents', 'patient', id] });
   };
 
   // Check if user has admin role for delete permission
@@ -371,6 +387,13 @@ export function PatientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Patient Documents Section */}
+      <PatientDocumentsSection
+        patientId={id!}
+        onGenerateDocument={() => setShowGenerateDocDialog(true)}
+        limit={5}
+      />
+
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -400,6 +423,15 @@ export function PatientDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Document generation dialog */}
+      {showGenerateDocDialog && (
+        <DocumentGenerationDialog
+          patientId={id!}
+          onSuccess={handleDocumentGenerationSuccess}
+          onClose={() => setShowGenerateDocDialog(false)}
+        />
+      )}
     </div>
   );
 }

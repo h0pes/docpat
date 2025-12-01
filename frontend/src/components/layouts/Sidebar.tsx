@@ -21,6 +21,7 @@ import {
   Settings,
   UserCircle,
   HelpCircle,
+  FileCog,
   LucideIcon,
 } from 'lucide-react';
 
@@ -89,6 +90,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       icon: FolderOpen,
       label: t('nav.documents'),
       href: '/documents',
+    },
+    {
+      key: 'document-templates',
+      icon: FileCog,
+      label: t('nav.document_templates'),
+      href: '/document-templates',
+      roles: ['ADMIN'], // Only admins can manage templates
     },
     {
       key: 'reports',

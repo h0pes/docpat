@@ -18,6 +18,9 @@ pub mod visit_versions;
 #[cfg(feature = "rbac")]
 pub mod users;
 
+#[cfg(feature = "pdf-export")]
+pub mod documents;
+
 pub use appointments::{
     cancel_appointment, check_availability, create_appointment, get_appointment,
     get_daily_schedule, get_monthly_schedule, get_weekly_schedule, list_appointments,
@@ -54,4 +57,12 @@ pub use prescription_templates::{
 };
 pub use visit_versions::{
     get_visit_version, list_visit_versions, restore_visit_version,
+};
+
+#[cfg(feature = "pdf-export")]
+pub use documents::{
+    create_document_template, delete_document_template, delete_generated_document,
+    deliver_document, download_document, generate_document, get_default_document_template,
+    get_document_statistics, get_generated_document, get_document_template, list_document_templates,
+    list_generated_documents, sign_document, update_document_template,
 };
