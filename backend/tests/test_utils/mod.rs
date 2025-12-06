@@ -96,6 +96,7 @@ impl TestApp {
             auth_service,
             session_manager,
             encryption_key: Some(encryption_key),
+            email_service: None, // Email service not needed for tests
             #[cfg(feature = "rbac")]
             enforcer,
         };

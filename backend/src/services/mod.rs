@@ -12,6 +12,8 @@ pub mod jwt_service;
 pub mod patient_service;
 pub mod prescription_service;
 pub mod prescription_template_service;
+pub mod report_export_service;
+pub mod report_service;
 pub mod visit_diagnosis_service;
 pub mod visit_service;
 pub mod visit_template_service;
@@ -26,6 +28,8 @@ pub use patient_service::{
 };
 pub use prescription_service::{MedicationSearchResult, PrescriptionService};
 pub use prescription_template_service::PrescriptionTemplateService;
+pub use report_export_service::{ExportResponse, ReportExportService};
+pub use report_service::ReportService;
 pub use visit_diagnosis_service::{ICD10SearchResult, VisitDiagnosisService};
 pub use visit_service::{
     LockVisitRequest, SignVisitRequest, VisitSearchFilter, VisitService, VisitStatistics,

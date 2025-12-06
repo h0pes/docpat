@@ -229,6 +229,7 @@ mod tests {
             auth_service: test_auth_service(),
             session_manager: SessionManager::new(1800),
             encryption_key: None, // Not needed for auth test
+            email_service: None,  // Not needed for auth test
             #[cfg(feature = "rbac")]
             enforcer,
         };

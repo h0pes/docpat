@@ -15,12 +15,13 @@ use crate::handlers::{
     cancel_appointment, check_availability, create_appointment, create_diagnosis, create_patient,
     create_prescription, create_prescription_template, create_visit, create_visit_template,
     delete_diagnosis, delete_patient, delete_prescription, delete_prescription_template,
-    delete_visit, delete_visit_template, discontinue_prescription, get_appointment,
-    get_daily_schedule, get_diagnosis, get_monthly_schedule, get_patient,
-    get_patient_diagnoses, get_patient_prescriptions, get_patient_statistics, get_patient_visits,
-    get_prescription, get_prescription_template, get_visit, get_visit_diagnoses,
-    get_visit_prescriptions, get_visit_statistics, get_visit_template, get_visit_version,
-    get_weekly_schedule,
+    delete_visit, delete_visit_template, discontinue_prescription, export_report,
+    get_appointment, get_appointment_report, get_daily_schedule, get_dashboard_report,
+    get_diagnosis, get_diagnosis_report, get_monthly_schedule, get_patient,
+    get_patient_diagnoses, get_patient_prescriptions, get_patient_report, get_patient_statistics,
+    get_patient_visits, get_prescription, get_prescription_template, get_productivity_report,
+    get_revenue_report, get_visit, get_visit_diagnoses, get_visit_prescriptions,
+    get_visit_statistics, get_visit_template, get_visit_version, get_weekly_schedule,
     list_appointments, list_patients, list_prescription_templates, list_visit_templates,
     list_visits, list_visit_versions, lock_visit, login_handler, logout_handler,
     mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, restore_visit_version,
@@ -153,6 +154,20 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Reporting & Analytics routes - requires authentication
+    let report_routes = Router::new()
+        .route("/appointments", get(get_appointment_report))
+        .route("/patients", get(get_patient_report))
+        .route("/diagnoses", get(get_diagnosis_report))
+        .route("/productivity", get(get_productivity_report))
+        .route("/revenue", get(get_revenue_report))
+        .route("/dashboard", get(get_dashboard_report))
+        .route("/export", post(export_report))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Document template routes (PDF export feature) - requires authentication
     #[cfg(feature = "pdf-export")]
     let document_template_routes = Router::new()
@@ -188,7 +203,8 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .nest("/diagnoses", diagnosis_routes)
         .nest("/prescriptions", prescription_routes)
         .nest("/visit-templates", visit_template_routes)
-        .nest("/prescription-templates", prescription_template_routes);
+        .nest("/prescription-templates", prescription_template_routes)
+        .nest("/reports", report_routes);
 
     #[cfg(feature = "rbac")]
     {
@@ -257,6 +273,7 @@ mod tests {
             auth_service: AuthService::new(jwt_config, security_config.clone()),
             session_manager: crate::middleware::session_timeout::SessionManager::new(security_config.session_timeout),
             encryption_key: None, // Not needed for auth routes test
+            email_service: None,  // Not needed for routes test
             #[cfg(feature = "rbac")]
             enforcer,
         }

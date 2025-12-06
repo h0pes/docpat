@@ -9,6 +9,7 @@ pub mod audit_log;
 pub mod document_template;
 pub mod generated_document;
 pub mod patient;
+pub mod report;
 pub mod patient_insurance;
 pub mod prescription;
 pub mod prescription_template;
@@ -75,4 +76,14 @@ pub use generated_document::{
     GenerateDocumentRequest, GeneratedDocument, GeneratedDocumentFilter,
     GeneratedDocumentResponse, GeneratedDocumentSummary, ListGeneratedDocumentsResponse,
     SignDocumentRequest,
+};
+pub use report::{
+    AgeGroupCount, AppointmentReportFilter, AppointmentUtilizationReport, DailyAppointmentCount,
+    DashboardReport, DateRangeFilter, DayOfWeekCount, DiagnosisCategoryCount, DiagnosisCount,
+    DiagnosisReportFilter, DiagnosisTrendsReport, ExportFormat, ExportReportRequest,
+    GenderBreakdown, HourlyCount, MonthlyCount, MonthlyDiagnosisCount, NewPatientSummary,
+    PatientReportFilter, PatientStatisticsReport, ProductivityReportFilter, ProductivitySummary,
+    ProviderProductivity, ProviderProductivityReport, QuickStats, RecentActivity,
+    RecentAppointment, RecentVisit, ReportDateRange, ReportType, RevenueReport,
+    RevenueReportFilter,
 };

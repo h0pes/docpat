@@ -91,6 +91,12 @@ genpdf = { version = "0.2", optional = true }
 # HTML Template Rendering (for document generation)
 minijinja = { version = "2.5", optional = true }
 
+# CSV Export (lightweight, secure CSV handling)
+csv = { version = "1.3", optional = true }
+
+# Excel Export
+rust_xlsxwriter = { version = "0.92", optional = true }
+
 # Rate Limiting
 governor = "0.10"
 tower_governor = "0.8"
@@ -150,13 +156,14 @@ migrations = "./migrations"
 
 # Cargo features for optional functionality
 [features]
-default = ["redis-cache", "email", "metrics", "rbac"]
+default = ["redis-cache", "email", "metrics", "rbac", "report-export"]
 redis-cache = ["dep:redis"]
 email = ["dep:lettre", "dep:tera"]
 sms = []
 whatsapp = []
 metrics = ["dep:metrics"]
 pdf-export = ["dep:printpdf", "dep:genpdf", "dep:minijinja"]
+report-export = ["dep:csv", "dep:rust_xlsxwriter", "dep:genpdf", "dep:minijinja"]
 rbac = ["dep:casbin"]
 
 # Build metadata

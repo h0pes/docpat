@@ -90,6 +90,11 @@ cargo test --test document_integration_tests --features "rbac,pdf-export" -- --t
 DOCUMENT_RESULT=$?
 TEST_RESULT=$((TEST_RESULT + DOCUMENT_RESULT))
 
+echo -e "\n${YELLOW}Running reporting & analytics tests...${NC}"
+cargo test --test report_integration_tests --features rbac -- --test-threads=1 "$@"
+REPORT_RESULT=$?
+TEST_RESULT=$((TEST_RESULT + REPORT_RESULT))
+
 # Summary
 echo -e "\n${YELLOW}=== Test Results Summary ===${NC}"
 [ $AUTH_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Authentication tests passed" || echo -e "${RED}✗${NC} Authentication tests failed"
@@ -99,6 +104,7 @@ echo -e "\n${YELLOW}=== Test Results Summary ===${NC}"
 [ $APPOINTMENT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Appointment scheduling tests passed" || echo -e "${RED}✗${NC} Appointment scheduling tests failed"
 [ $VISIT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Visit management tests passed" || echo -e "${RED}✗${NC} Visit management tests failed"
 [ $DOCUMENT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Document generation tests passed" || echo -e "${RED}✗${NC} Document generation tests failed"
+[ $REPORT_RESULT -eq 0 ] && echo -e "${GREEN}✓${NC} Reporting & analytics tests passed" || echo -e "${RED}✗${NC} Reporting & analytics tests failed"
 
 if [ $TEST_RESULT -eq 0 ]; then
     echo -e "\n${GREEN}✓ All integration tests passed!${NC}"

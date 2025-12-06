@@ -11,6 +11,7 @@ pub mod mfa;
 pub mod patients;
 pub mod prescriptions;
 pub mod prescription_templates;
+pub mod reports;
 pub mod visits;
 pub mod visit_templates;
 pub mod visit_versions;
@@ -57,6 +58,10 @@ pub use prescription_templates::{
 };
 pub use visit_versions::{
     get_visit_version, list_visit_versions, restore_visit_version,
+};
+pub use reports::{
+    export_report, get_appointment_report, get_dashboard_report, get_diagnosis_report,
+    get_patient_report, get_productivity_report, get_revenue_report,
 };
 
 #[cfg(feature = "pdf-export")]

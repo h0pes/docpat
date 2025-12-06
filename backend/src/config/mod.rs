@@ -135,9 +135,9 @@ impl Config {
             server: ServerConfig {
                 host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
                 port: std::env::var("SERVER_PORT")
-                    .unwrap_or_else(|_| "8080".to_string())
+                    .unwrap_or_else(|_| "8000".to_string())
                     .parse()
-                    .unwrap_or(8080),
+                    .unwrap_or(8000),
                 environment: std::env::var("ENVIRONMENT")
                     .unwrap_or_else(|_| "development".to_string()),
             },

@@ -153,6 +153,7 @@ mod tests {
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
+            email_service: None,  // Not needed for auth middleware test
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -199,6 +200,7 @@ mod tests {
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
+            email_service: None,  // Not needed for auth middleware test
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -243,6 +245,7 @@ mod tests {
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
+            email_service: None,  // Not needed for auth middleware test
             #[cfg(feature = "rbac")]
             enforcer,
         };

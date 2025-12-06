@@ -34,6 +34,7 @@ import {
 import { PatientVisitsPage } from '../pages/patients/PatientVisitsPage';
 import { DocumentTemplatesPage } from '../components/documents';
 import { DocumentsPage } from '../pages/documents/DocumentsPage';
+import { ReportsPage } from '../pages/reports';
 
 /**
  * Application router configuration
@@ -149,7 +150,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/reports',
-            element: <div>Reports page - Coming soon</div>,
+            element: <ReportsPage />,
           },
           {
             path: '/settings',
