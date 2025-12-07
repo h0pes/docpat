@@ -1243,6 +1243,222 @@
       "is_default": "Default Template",
       "is_default_hint": "This template will be pre-selected for its document type",
       "validation_errors": "Please fix the following errors before submitting:"
+    },
+    "variables": {
+      "panel_title": "Template Variables",
+      "search_placeholder": "Search variables...",
+      "no_results": "No matching variables found",
+      "click_to_insert": "Click on a variable to insert it at cursor position",
+      "example": "Example",
+      "categories": {
+        "patient": "Patient",
+        "provider": "Provider (Doctor)",
+        "clinic": "Clinic",
+        "document": "Document",
+        "certificate": "Certificate",
+        "referral": "Referral",
+        "lab": "Lab Request",
+        "visit": "Visit",
+        "prescription": "Prescription",
+        "pagination": "Pagination"
+      },
+      "patient": {
+        "full_name": "Patient's full name",
+        "first_name": "Patient's first name",
+        "last_name": "Patient's last name",
+        "middle_name": "Patient's middle name",
+        "date_of_birth": "Date of birth (DD/MM/YYYY)",
+        "gender": "Gender (M/F/Other)",
+        "fiscal_code": "Fiscal code",
+        "email": "Email address",
+        "phone": "Phone number"
+      },
+      "provider": {
+        "full_name": "Doctor's full name",
+        "first_name": "Doctor's first name",
+        "last_name": "Doctor's last name",
+        "email": "Doctor's email",
+        "specialization": "Medical specialization",
+        "license_number": "Medical license number"
+      },
+      "clinic": {
+        "name": "Clinic name",
+        "address": "Street address",
+        "city": "City",
+        "province": "Province/State",
+        "phone": "Phone number",
+        "email": "Email address"
+      },
+      "document": {
+        "date": "Document generation date"
+      },
+      "certificate": {
+        "content": "Certificate content/body",
+        "prognosis_days": "Number of prognosis days",
+        "start_date": "Start date",
+        "end_date": "End date",
+        "notes": "Additional notes"
+      },
+      "referral": {
+        "specialist_name": "Specialist's name",
+        "specialist_department": "Specialist department",
+        "specialist_address": "Specialist address",
+        "reason": "Referral reason",
+        "clinical_history": "Clinical history summary",
+        "current_medications": "Current medications",
+        "allergies": "Known allergies",
+        "examination_findings": "Examination findings",
+        "suspected_diagnosis": "Suspected diagnosis",
+        "request": "Specific request"
+      },
+      "lab": {
+        "diagnostic_question": "Diagnostic question",
+        "clinical_notes": "Clinical notes",
+        "fasting_required": "Fasting required (true/false)",
+        "special_instructions": "Special instructions",
+        "tests": "List of lab tests (array)",
+        "test_code": "Test code",
+        "test_name": "Test name",
+        "test_priority": "Test priority"
+      },
+      "visit": {
+        "date": "Visit date",
+        "reason": "Visit reason",
+        "chief_complaint": "Chief complaint",
+        "physical_examination": "Physical examination findings",
+        "treatment_plan": "Treatment plan",
+        "follow_up": "Follow-up instructions",
+        "notes": "Additional notes",
+        "vital_signs": "Vital signs object",
+        "blood_pressure": "Blood pressure (e.g., 120/80)",
+        "heart_rate": "Heart rate (bpm)",
+        "temperature": "Temperature (°C)",
+        "spo2": "Oxygen saturation (%)",
+        "weight": "Weight (kg)",
+        "height": "Height (cm)",
+        "diagnoses": "List of diagnoses (array)",
+        "diagnosis_code": "ICD-10 code",
+        "diagnosis_description": "Diagnosis description",
+        "prescriptions": "List of prescriptions (array)",
+        "prescription_medication": "Medication name",
+        "prescription_dosage": "Dosage",
+        "prescription_duration": "Duration"
+      },
+      "prescription": {
+        "notes": "Prescription notes",
+        "medications": "List of medications (array)",
+        "medication_name": "Medication name",
+        "medication_strength": "Strength (e.g., 500mg)",
+        "medication_form": "Form (tablets, capsules, etc.)",
+        "medication_dosage": "Dosage instructions",
+        "medication_instructions": "Patient instructions",
+        "medication_quantity": "Quantity to dispense"
+      },
+      "pagination": {
+        "page_number": "Current page number",
+        "total_pages": "Total number of pages"
+      }
+    },
+    "editor": {
+      "hide_variables": "Hide Variables",
+      "show_variables": "Show Variables",
+      "toggle_panel": "Toggle variable reference panel"
+    },
+    "toolbar": {
+      "conditionals": "If/Else",
+      "conditionals_tooltip": "Insert conditional blocks",
+      "loops": "Loops",
+      "loops_tooltip": "Insert loop blocks for arrays",
+      "tables": "Tables",
+      "tables_tooltip": "Insert table templates",
+      "sections": "Sections",
+      "sections_tooltip": "Insert common document sections",
+      "align_left": "Align left",
+      "align_center": "Align center",
+      "align_right": "Align right",
+      "syntax_info": "HTML with Jinja2 template syntax"
+    },
+    "snippets": {
+      "if_simple": "Simple If",
+      "if_simple_desc": "Conditional block for optional content",
+      "if_else": "If-Else",
+      "if_else_desc": "Conditional with alternative content",
+      "if_patient_phone": "If Patient Phone",
+      "if_patient_phone_desc": "Show phone if available",
+      "if_notes": "If Notes Exist",
+      "if_notes_desc": "Show notes section conditionally",
+      "for_simple": "Simple Loop",
+      "for_simple_desc": "Basic loop structure",
+      "for_medications": "Medications Loop",
+      "for_medications_desc": "Loop through prescription medications",
+      "for_diagnoses": "Diagnoses Loop",
+      "for_diagnoses_desc": "Loop through visit diagnoses",
+      "for_lab_tests": "Lab Tests Loop",
+      "for_lab_tests_desc": "Loop through lab test requests",
+      "table_simple": "Simple Table",
+      "table_simple_desc": "Basic two-column table",
+      "table_patient_info": "Patient Info Table",
+      "table_patient_info_desc": "Table with patient details",
+      "table_vital_signs": "Vital Signs Table",
+      "table_vital_signs_desc": "Table with vital sign measurements",
+      "header_clinic": "Clinic Header",
+      "header_clinic_desc": "Standard clinic header with contact info",
+      "signature_block": "Signature Block",
+      "signature_block_desc": "Doctor signature with credentials",
+      "footer_page": "Page Footer",
+      "footer_page_desc": "Footer with page numbers"
+    },
+    "help": {
+      "title": "Template Guide",
+      "description": "Learn how to create document templates with variables and dynamic content",
+      "basics": {
+        "title": "Basic Syntax",
+        "variables": "Variables",
+        "variables_desc": "Use double curly braces to insert dynamic values from patient, provider, or clinic data.",
+        "nested": "Nested Properties",
+        "nested_desc": "Access nested properties using dot notation."
+      },
+      "conditionals": {
+        "title": "Conditional Blocks",
+        "desc": "Use conditional blocks to show or hide content based on whether a value exists.",
+        "simple": "Simple Conditional",
+        "if_else": "If-Else Block",
+        "multiple": "Multiple Conditions"
+      },
+      "loops": {
+        "title": "Loops (Repeating Content)",
+        "desc": "Use loops to iterate over arrays like medications, diagnoses, or lab tests.",
+        "medications": "Medications Example",
+        "diagnoses": "Diagnoses Example",
+        "lab_tests": "Lab Tests Example"
+      },
+      "best_practices": {
+        "title": "Best Practices",
+        "tip1": "Always wrap optional fields in conditional blocks to avoid showing empty content.",
+        "optional_fields": "Handle Optional Fields",
+        "optional_fields_desc": "Always check if a field exists before displaying it.",
+        "structure": "Document Structure",
+        "structure_desc": "Organize your template with clear sections for maintainability.",
+        "css_classes": "Use CSS Classes",
+        "css_classes_desc": "Define reusable styles in the CSS Styles tab."
+      },
+      "patterns": {
+        "title": "Common Patterns",
+        "clinic_header": "Clinic Header",
+        "patient_info": "Patient Information Block",
+        "signature": "Signature Block"
+      },
+      "troubleshooting": {
+        "title": "Troubleshooting",
+        "undefined_vars": "Undefined variables will render as empty strings. Use conditionals to handle missing data gracefully.",
+        "empty_values": "Empty Values",
+        "empty_values_desc": "If a variable shows nothing, it may be empty or undefined. Wrap it in a conditional block.",
+        "syntax_errors": "Syntax Errors",
+        "syntax_errors_desc": "Common syntax issues include missing closing braces or endif statements.",
+        "common_mistakes": "Common Mistakes",
+        "type_specific": "Document Type Variables",
+        "type_specific_desc": "Some variables are only available for specific document types (e.g., certificate.* is only for Medical Certificates)."
+      }
     }
   },
   "reports": {

@@ -2,15 +2,22 @@
  * DocumentTemplateForm Component
  *
  * Form for creating and editing document templates.
- * Supports HTML template editing, CSS styling, and page settings.
+ * Supports HTML template editing with variable reference, snippets, and syntax help.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { FileText, Save, Loader2, AlertCircle } from 'lucide-react';
+import {
+  FileText,
+  Save,
+  Loader2,
+  AlertCircle,
+  PanelRightOpen,
+  PanelRightClose,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,6 +49,13 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 import {
   useCreateDocumentTemplate,
@@ -55,14 +69,22 @@ import {
   type DocumentTemplate,
 } from '@/types/document';
 
+import { TemplateVariableReference } from './TemplateVariableReference';
+import { TemplateEditorToolbar } from './TemplateEditorToolbar';
+import { TemplateHelpDrawer } from './TemplateHelpDrawer';
+
 /**
  * Form schema for document template
  */
 const templateFormSchema = z.object({
-  template_key: z.string()
+  template_key: z
+    .string()
     .min(1, 'Template key is required')
     .max(100)
-    .regex(/^[a-z0-9_-]+$/, 'Only lowercase letters, numbers, hyphens, and underscores'),
+    .regex(
+      /^[a-z0-9_-]+$/,
+      'Only lowercase letters, numbers, hyphens, and underscores'
+    ),
   template_name: z.string().min(1, 'Template name is required').max(255),
   description: z.string().max(2000).optional(),
   document_type: z.nativeEnum(DocumentType),
@@ -115,6 +137,16 @@ export function DocumentTemplateForm({
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showVariablePanel, setShowVariablePanel] = useState(true);
+  const [activeTextarea, setActiveTextarea] = useState<
+    'template_html' | 'header_html' | 'footer_html' | 'css_styles' | null
+  >('template_html');
+
+  // Refs for textareas to manage cursor position
+  const templateHtmlRef = useRef<HTMLTextAreaElement>(null);
+  const headerHtmlRef = useRef<HTMLTextAreaElement>(null);
+  const footerHtmlRef = useRef<HTMLTextAreaElement>(null);
+  const cssStylesRef = useRef<HTMLTextAreaElement>(null);
 
   const isEditing = !!template;
 
@@ -165,6 +197,54 @@ export function DocumentTemplateForm({
           language: TemplateLanguage.ITALIAN,
         },
   });
+
+  const documentType = form.watch('document_type');
+
+  /**
+   * Get the active textarea ref
+   */
+  const getActiveTextareaRef = useCallback(() => {
+    switch (activeTextarea) {
+      case 'template_html':
+        return templateHtmlRef;
+      case 'header_html':
+        return headerHtmlRef;
+      case 'footer_html':
+        return footerHtmlRef;
+      case 'css_styles':
+        return cssStylesRef;
+      default:
+        return templateHtmlRef;
+    }
+  }, [activeTextarea]);
+
+  /**
+   * Insert text at cursor position in the active textarea
+   */
+  const insertAtCursor = useCallback(
+    (text: string) => {
+      const ref = getActiveTextareaRef();
+      const textarea = ref.current;
+      if (!textarea) return;
+
+      const fieldName = activeTextarea || 'template_html';
+      const currentValue = form.getValues(fieldName) || '';
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      const newValue =
+        currentValue.substring(0, start) + text + currentValue.substring(end);
+
+      form.setValue(fieldName, newValue, { shouldDirty: true });
+
+      // Set cursor position after inserted text
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
+    },
+    [activeTextarea, form, getActiveTextareaRef]
+  );
 
   /**
    * Map field names to their tabs for error display
@@ -268,7 +348,7 @@ export function DocumentTemplateForm({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -284,24 +364,39 @@ export function DocumentTemplateForm({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit, handleInvalid)} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
+            className="flex flex-col flex-1 overflow-hidden"
+          >
+            <Tabs defaultValue="basic" className="flex flex-col flex-1 overflow-hidden">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">{t('documents.templates.tab_basic')}</TabsTrigger>
-                <TabsTrigger value="content">{t('documents.templates.tab_content')}</TabsTrigger>
-                <TabsTrigger value="styling">{t('documents.templates.tab_styling')}</TabsTrigger>
-                <TabsTrigger value="settings">{t('documents.templates.tab_settings')}</TabsTrigger>
+                <TabsTrigger value="basic">
+                  {t('documents.templates.tab_basic')}
+                </TabsTrigger>
+                <TabsTrigger value="content">
+                  {t('documents.templates.tab_content')}
+                </TabsTrigger>
+                <TabsTrigger value="styling">
+                  {t('documents.templates.tab_styling')}
+                </TabsTrigger>
+                <TabsTrigger value="settings">
+                  {t('documents.templates.tab_settings')}
+                </TabsTrigger>
               </TabsList>
 
               {/* Basic Info Tab */}
-              <TabsContent value="basic" className="space-y-4 mt-4">
+              <TabsContent value="basic" className="space-y-4 mt-4 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="template_key"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel><RequiredLabel>{t('documents.templates.template_key')}</RequiredLabel></FormLabel>
+                        <FormLabel>
+                          <RequiredLabel>
+                            {t('documents.templates.template_key')}
+                          </RequiredLabel>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -322,9 +417,18 @@ export function DocumentTemplateForm({
                     name="template_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel><RequiredLabel>{t('documents.templates.template_name')}</RequiredLabel></FormLabel>
+                        <FormLabel>
+                          <RequiredLabel>
+                            {t('documents.templates.template_name')}
+                          </RequiredLabel>
+                        </FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder={t('documents.templates.template_name_placeholder')} />
+                          <Input
+                            {...field}
+                            placeholder={t(
+                              'documents.templates.template_name_placeholder'
+                            )}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -342,7 +446,9 @@ export function DocumentTemplateForm({
                         <Textarea
                           {...field}
                           rows={3}
-                          placeholder={t('documents.templates.description_placeholder')}
+                          placeholder={t(
+                            'documents.templates.description_placeholder'
+                          )}
                         />
                       </FormControl>
                       <FormMessage />
@@ -408,73 +514,149 @@ export function DocumentTemplateForm({
                 </div>
               </TabsContent>
 
-              {/* Content Tab */}
-              <TabsContent value="content" className="space-y-4 mt-4">
-                <FormField
-                  control={form.control}
-                  name="template_html"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel><RequiredLabel>{t('documents.templates.template_html')}</RequiredLabel></FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          rows={12}
-                          className="font-mono text-sm"
-                          placeholder={t('documents.templates.template_html_placeholder')}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t('documents.templates.template_html_hint')}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+              {/* Content Tab - Enhanced with variable reference panel */}
+              <TabsContent value="content" className="mt-4 flex-1 overflow-hidden">
+                <div className="flex h-full gap-4">
+                  {/* Main editor area */}
+                  <div className={cn('flex-1 flex flex-col min-w-0', showVariablePanel ? 'max-w-[calc(100%-320px)]' : '')}>
+                    {/* Toolbar and Help button row */}
+                    <div className="flex items-center justify-between mb-2">
+                      <TemplateHelpDrawer />
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowVariablePanel(!showVariablePanel)}
+                            >
+                              {showVariablePanel ? (
+                                <PanelRightClose className="h-4 w-4" />
+                              ) : (
+                                <PanelRightOpen className="h-4 w-4" />
+                              )}
+                              <span className="ml-2">
+                                {showVariablePanel
+                                  ? t('documents.editor.hide_variables')
+                                  : t('documents.editor.show_variables')}
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {t('documents.editor.toggle_panel')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    {/* Template HTML Editor */}
+                    <FormField
+                      control={form.control}
+                      name="template_html"
+                      render={({ field }) => (
+                        <FormItem className="flex-1 flex flex-col min-h-0">
+                          <FormLabel>
+                            <RequiredLabel>
+                              {t('documents.templates.template_html')}
+                            </RequiredLabel>
+                          </FormLabel>
+                          <div className="flex-1 flex flex-col min-h-0">
+                            <TemplateEditorToolbar onInsert={insertAtCursor} />
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                ref={templateHtmlRef}
+                                className="flex-1 font-mono text-sm rounded-t-none min-h-[200px] resize-none"
+                                placeholder={t(
+                                  'documents.templates.template_html_placeholder'
+                                )}
+                                onFocus={() => setActiveTextarea('template_html')}
+                              />
+                            </FormControl>
+                          </div>
+                          <FormDescription>
+                            {t('documents.templates.template_html_hint')}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Header and Footer */}
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <FormField
+                        control={form.control}
+                        name="header_html"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t('documents.templates.header_html')}
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                ref={headerHtmlRef}
+                                rows={4}
+                                className="font-mono text-sm"
+                                placeholder={t(
+                                  'documents.templates.header_html_placeholder'
+                                )}
+                                onFocus={() => setActiveTextarea('header_html')}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="footer_html"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {t('documents.templates.footer_html')}
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                ref={footerHtmlRef}
+                                rows={4}
+                                className="font-mono text-sm"
+                                placeholder={t(
+                                  'documents.templates.footer_html_placeholder'
+                                )}
+                                onFocus={() => setActiveTextarea('footer_html')}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Variable Reference Panel */}
+                  {showVariablePanel && (
+                    <div className="w-[300px] border rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="bg-muted/50 px-3 py-2 border-b">
+                        <h4 className="text-sm font-medium">
+                          {t('documents.variables.panel_title')}
+                        </h4>
+                      </div>
+                      <TemplateVariableReference
+                        documentType={documentType}
+                        onInsertVariable={insertAtCursor}
+                        className="h-[calc(100%-40px)]"
+                      />
+                    </div>
                   )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="header_html"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('documents.templates.header_html')}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            rows={4}
-                            className="font-mono text-sm"
-                            placeholder={t('documents.templates.header_html_placeholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="footer_html"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('documents.templates.footer_html')}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            rows={4}
-                            className="font-mono text-sm"
-                            placeholder={t('documents.templates.footer_html_placeholder')}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               </TabsContent>
 
               {/* Styling Tab */}
-              <TabsContent value="styling" className="space-y-4 mt-4">
+              <TabsContent value="styling" className="space-y-4 mt-4 overflow-y-auto flex-1">
                 <FormField
                   control={form.control}
                   name="css_styles"
@@ -484,9 +666,13 @@ export function DocumentTemplateForm({
                       <FormControl>
                         <Textarea
                           {...field}
-                          rows={10}
+                          ref={cssStylesRef}
+                          rows={15}
                           className="font-mono text-sm"
-                          placeholder={t('documents.templates.css_styles_placeholder')}
+                          placeholder={t(
+                            'documents.templates.css_styles_placeholder'
+                          )}
+                          onFocus={() => setActiveTextarea('css_styles')}
                         />
                       </FormControl>
                       <FormDescription>
@@ -499,7 +685,7 @@ export function DocumentTemplateForm({
               </TabsContent>
 
               {/* Settings Tab */}
-              <TabsContent value="settings" className="space-y-4 mt-4">
+              <TabsContent value="settings" className="space-y-4 mt-4 overflow-y-auto flex-1">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -529,7 +715,9 @@ export function DocumentTemplateForm({
                     name="page_orientation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('documents.templates.page_orientation')}</FormLabel>
+                        <FormLabel>
+                          {t('documents.templates.page_orientation')}
+                        </FormLabel>
                         <Select value={field.value} onValueChange={field.onChange}>
                           <FormControl>
                             <SelectTrigger>
@@ -562,7 +750,9 @@ export function DocumentTemplateForm({
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -575,12 +765,16 @@ export function DocumentTemplateForm({
                     name="margin_bottom_mm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('documents.templates.margin_bottom')}</FormLabel>
+                        <FormLabel>
+                          {t('documents.templates.margin_bottom')}
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -598,7 +792,9 @@ export function DocumentTemplateForm({
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -611,12 +807,16 @@ export function DocumentTemplateForm({
                     name="margin_right_mm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('documents.templates.margin_right')}</FormLabel>
+                        <FormLabel>
+                          {t('documents.templates.margin_right')}
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -653,7 +853,9 @@ export function DocumentTemplateForm({
                     render={({ field }) => (
                       <FormItem className="flex items-center justify-between rounded-lg border p-3">
                         <div className="space-y-0.5">
-                          <FormLabel>{t('documents.templates.is_default')}</FormLabel>
+                          <FormLabel>
+                            {t('documents.templates.is_default')}
+                          </FormLabel>
                           <FormDescription>
                             {t('documents.templates.is_default_hint')}
                           </FormDescription>
@@ -673,10 +875,12 @@ export function DocumentTemplateForm({
 
             {/* Validation errors summary */}
             {validationErrors.length > 0 && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <p className="font-medium mb-2">{t('documents.templates.validation_errors')}</p>
+                  <p className="font-medium mb-2">
+                    {t('documents.templates.validation_errors')}
+                  </p>
                   <ul className="list-disc list-inside space-y-1">
                     {validationErrors.map((err, index) => (
                       <li key={index}>{err}</li>
@@ -688,13 +892,13 @@ export function DocumentTemplateForm({
 
             {/* Server error display */}
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="mt-4">
               <Button
                 type="button"
                 variant="outline"

@@ -1243,6 +1243,222 @@
       "is_default": "Modello Predefinito",
       "is_default_hint": "Questo modello sarà pre-selezionato per il suo tipo di documento",
       "validation_errors": "Correggi i seguenti errori prima di inviare:"
+    },
+    "variables": {
+      "panel_title": "Variabili del Modello",
+      "search_placeholder": "Cerca variabili...",
+      "no_results": "Nessuna variabile trovata",
+      "click_to_insert": "Clicca su una variabile per inserirla alla posizione del cursore",
+      "example": "Esempio",
+      "categories": {
+        "patient": "Paziente",
+        "provider": "Medico",
+        "clinic": "Clinica",
+        "document": "Documento",
+        "certificate": "Certificato",
+        "referral": "Referenza",
+        "lab": "Richiesta Esami",
+        "visit": "Visita",
+        "prescription": "Prescrizione",
+        "pagination": "Paginazione"
+      },
+      "patient": {
+        "full_name": "Nome completo del paziente",
+        "first_name": "Nome del paziente",
+        "last_name": "Cognome del paziente",
+        "middle_name": "Secondo nome del paziente",
+        "date_of_birth": "Data di nascita (GG/MM/AAAA)",
+        "gender": "Sesso (M/F/Altro)",
+        "fiscal_code": "Codice fiscale",
+        "email": "Indirizzo email",
+        "phone": "Numero di telefono"
+      },
+      "provider": {
+        "full_name": "Nome completo del medico",
+        "first_name": "Nome del medico",
+        "last_name": "Cognome del medico",
+        "email": "Email del medico",
+        "specialization": "Specializzazione medica",
+        "license_number": "Numero iscrizione all'ordine"
+      },
+      "clinic": {
+        "name": "Nome della clinica",
+        "address": "Indirizzo",
+        "city": "Città",
+        "province": "Provincia",
+        "phone": "Numero di telefono",
+        "email": "Indirizzo email"
+      },
+      "document": {
+        "date": "Data di generazione del documento"
+      },
+      "certificate": {
+        "content": "Contenuto/corpo del certificato",
+        "prognosis_days": "Numero di giorni di prognosi",
+        "start_date": "Data di inizio",
+        "end_date": "Data di fine",
+        "notes": "Note aggiuntive"
+      },
+      "referral": {
+        "specialist_name": "Nome dello specialista",
+        "specialist_department": "Reparto dello specialista",
+        "specialist_address": "Indirizzo dello specialista",
+        "reason": "Motivo della referenza",
+        "clinical_history": "Riepilogo anamnesi",
+        "current_medications": "Farmaci attuali",
+        "allergies": "Allergie note",
+        "examination_findings": "Risultati dell'esame",
+        "suspected_diagnosis": "Diagnosi sospetta",
+        "request": "Richiesta specifica"
+      },
+      "lab": {
+        "diagnostic_question": "Quesito diagnostico",
+        "clinical_notes": "Note cliniche",
+        "fasting_required": "Digiuno richiesto (vero/falso)",
+        "special_instructions": "Istruzioni speciali",
+        "tests": "Lista degli esami (array)",
+        "test_code": "Codice esame",
+        "test_name": "Nome esame",
+        "test_priority": "Priorità esame"
+      },
+      "visit": {
+        "date": "Data della visita",
+        "reason": "Motivo della visita",
+        "chief_complaint": "Sintomo principale",
+        "physical_examination": "Esame obiettivo",
+        "treatment_plan": "Piano terapeutico",
+        "follow_up": "Istruzioni per il follow-up",
+        "notes": "Note aggiuntive",
+        "vital_signs": "Oggetto parametri vitali",
+        "blood_pressure": "Pressione arteriosa (es. 120/80)",
+        "heart_rate": "Frequenza cardiaca (bpm)",
+        "temperature": "Temperatura (°C)",
+        "spo2": "Saturazione ossigeno (%)",
+        "weight": "Peso (kg)",
+        "height": "Altezza (cm)",
+        "diagnoses": "Lista delle diagnosi (array)",
+        "diagnosis_code": "Codice ICD-10",
+        "diagnosis_description": "Descrizione diagnosi",
+        "prescriptions": "Lista delle prescrizioni (array)",
+        "prescription_medication": "Nome del farmaco",
+        "prescription_dosage": "Dosaggio",
+        "prescription_duration": "Durata"
+      },
+      "prescription": {
+        "notes": "Note della prescrizione",
+        "medications": "Lista dei farmaci (array)",
+        "medication_name": "Nome del farmaco",
+        "medication_strength": "Dosaggio (es. 500mg)",
+        "medication_form": "Forma (compresse, capsule, ecc.)",
+        "medication_dosage": "Istruzioni di dosaggio",
+        "medication_instructions": "Istruzioni per il paziente",
+        "medication_quantity": "Quantità da dispensare"
+      },
+      "pagination": {
+        "page_number": "Numero di pagina corrente",
+        "total_pages": "Numero totale di pagine"
+      }
+    },
+    "editor": {
+      "hide_variables": "Nascondi Variabili",
+      "show_variables": "Mostra Variabili",
+      "toggle_panel": "Mostra/nascondi pannello variabili"
+    },
+    "toolbar": {
+      "conditionals": "Se/Altrimenti",
+      "conditionals_tooltip": "Inserisci blocchi condizionali",
+      "loops": "Cicli",
+      "loops_tooltip": "Inserisci blocchi di ciclo per array",
+      "tables": "Tabelle",
+      "tables_tooltip": "Inserisci modelli di tabella",
+      "sections": "Sezioni",
+      "sections_tooltip": "Inserisci sezioni comuni del documento",
+      "align_left": "Allinea a sinistra",
+      "align_center": "Allinea al centro",
+      "align_right": "Allinea a destra",
+      "syntax_info": "HTML con sintassi template Jinja2"
+    },
+    "snippets": {
+      "if_simple": "Se Semplice",
+      "if_simple_desc": "Blocco condizionale per contenuto opzionale",
+      "if_else": "Se-Altrimenti",
+      "if_else_desc": "Condizionale con contenuto alternativo",
+      "if_patient_phone": "Se Telefono Paziente",
+      "if_patient_phone_desc": "Mostra telefono se disponibile",
+      "if_notes": "Se Note Esistono",
+      "if_notes_desc": "Mostra sezione note condizionalmente",
+      "for_simple": "Ciclo Semplice",
+      "for_simple_desc": "Struttura di ciclo base",
+      "for_medications": "Ciclo Farmaci",
+      "for_medications_desc": "Cicla attraverso i farmaci della prescrizione",
+      "for_diagnoses": "Ciclo Diagnosi",
+      "for_diagnoses_desc": "Cicla attraverso le diagnosi della visita",
+      "for_lab_tests": "Ciclo Esami",
+      "for_lab_tests_desc": "Cicla attraverso le richieste di esami",
+      "table_simple": "Tabella Semplice",
+      "table_simple_desc": "Tabella base a due colonne",
+      "table_patient_info": "Tabella Info Paziente",
+      "table_patient_info_desc": "Tabella con dettagli del paziente",
+      "table_vital_signs": "Tabella Parametri Vitali",
+      "table_vital_signs_desc": "Tabella con misurazioni dei parametri vitali",
+      "header_clinic": "Intestazione Clinica",
+      "header_clinic_desc": "Intestazione standard con contatti della clinica",
+      "signature_block": "Blocco Firma",
+      "signature_block_desc": "Firma del medico con credenziali",
+      "footer_page": "Piè di Pagina",
+      "footer_page_desc": "Piè di pagina con numeri di pagina"
+    },
+    "help": {
+      "title": "Guida ai Modelli",
+      "description": "Impara come creare modelli di documento con variabili e contenuto dinamico",
+      "basics": {
+        "title": "Sintassi di Base",
+        "variables": "Variabili",
+        "variables_desc": "Usa le doppie parentesi graffe per inserire valori dinamici dai dati del paziente, medico o clinica.",
+        "nested": "Proprietà Annidate",
+        "nested_desc": "Accedi alle proprietà annidate usando la notazione con punto."
+      },
+      "conditionals": {
+        "title": "Blocchi Condizionali",
+        "desc": "Usa i blocchi condizionali per mostrare o nascondere contenuto in base all'esistenza di un valore.",
+        "simple": "Condizionale Semplice",
+        "if_else": "Blocco Se-Altrimenti",
+        "multiple": "Condizioni Multiple"
+      },
+      "loops": {
+        "title": "Cicli (Contenuto Ripetuto)",
+        "desc": "Usa i cicli per iterare su array come farmaci, diagnosi o esami di laboratorio.",
+        "medications": "Esempio Farmaci",
+        "diagnoses": "Esempio Diagnosi",
+        "lab_tests": "Esempio Esami"
+      },
+      "best_practices": {
+        "title": "Buone Pratiche",
+        "tip1": "Racchiudi sempre i campi opzionali in blocchi condizionali per evitare di mostrare contenuto vuoto.",
+        "optional_fields": "Gestire Campi Opzionali",
+        "optional_fields_desc": "Verifica sempre se un campo esiste prima di visualizzarlo.",
+        "structure": "Struttura del Documento",
+        "structure_desc": "Organizza il tuo modello con sezioni chiare per una migliore manutenibilità.",
+        "css_classes": "Usa Classi CSS",
+        "css_classes_desc": "Definisci stili riutilizzabili nella scheda Stili CSS."
+      },
+      "patterns": {
+        "title": "Pattern Comuni",
+        "clinic_header": "Intestazione Clinica",
+        "patient_info": "Blocco Informazioni Paziente",
+        "signature": "Blocco Firma"
+      },
+      "troubleshooting": {
+        "title": "Risoluzione Problemi",
+        "undefined_vars": "Le variabili non definite verranno visualizzate come stringhe vuote. Usa i condizionali per gestire i dati mancanti.",
+        "empty_values": "Valori Vuoti",
+        "empty_values_desc": "Se una variabile non mostra nulla, potrebbe essere vuota o non definita. Racchiudila in un blocco condizionale.",
+        "syntax_errors": "Errori di Sintassi",
+        "syntax_errors_desc": "Problemi di sintassi comuni includono parentesi graffe mancanti o istruzioni endif mancanti.",
+        "common_mistakes": "Errori Comuni",
+        "type_specific": "Variabili per Tipo di Documento",
+        "type_specific_desc": "Alcune variabili sono disponibili solo per tipi di documento specifici (es. certificate.* è solo per Certificati Medici)."
+      }
     }
   },
   "reports": {
