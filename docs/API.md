@@ -1,8 +1,8 @@
 # API Documentation - Medical Practice Management System
 
-**Version**: 1.1.0
+**Version**: 1.2.0
 **Base URL**: `/api/v1`
-**Last Updated**: November 2025
+**Last Updated**: December 2025
 
 ---
 
@@ -25,6 +25,18 @@
   - [Visit Templates](#visit-template-endpoints)
   - [Prescription Templates](#prescription-template-endpoints)
   - [Visit Versions](#visit-version-history-endpoints)
+  - [Reports & Analytics](#reports--analytics-endpoints)
+  - [Settings](#settings-endpoints)
+  - [Working Hours](#working-hours-endpoints)
+  - [Holidays](#holidays-endpoints)
+  - [Audit Logs](#audit-logs-endpoints)
+  - [System Health](#system-health-endpoints)
+  - [File Upload](#file-upload-endpoints)
+  - [Logo](#logo-endpoints)
+  - [Document Templates](#document-templates-endpoints)
+  - [Generated Documents](#generated-documents-endpoints)
+- [Appendix](#appendix)
+- [Changelog](#changelog)
 
 ---
 
@@ -2247,6 +2259,2026 @@ Returns the restored visit object. Creates a new version recording the restorati
 
 ---
 
+## Reports & Analytics Endpoints
+
+Reports provide comprehensive analytics on appointments, patients, diagnoses, productivity, and revenue.
+
+### GET /api/v1/reports/appointments
+
+Get appointment utilization report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `start_date` (string, optional): Start date (YYYY-MM-DD)
+- `end_date` (string, optional): End date (YYYY-MM-DD)
+- `provider_id` (UUID, optional): Filter by provider
+
+**Response** `200 OK`
+
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31"
+  },
+  "total_appointments": 450,
+  "completed_appointments": 380,
+  "cancelled_appointments": 45,
+  "no_show_appointments": 25,
+  "utilization_rate": 84.4,
+  "by_type": [
+    { "type": "NEW_PATIENT", "count": 120 },
+    { "type": "FOLLOW_UP", "count": 280 },
+    { "type": "ACUPUNCTURE", "count": 50 }
+  ],
+  "by_day_of_week": [
+    { "day": "Monday", "count": 95 },
+    { "day": "Tuesday", "count": 88 }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/reports/patients
+
+Get patient statistics report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `start_date` (string, optional): Start date (YYYY-MM-DD)
+- `end_date` (string, optional): End date (YYYY-MM-DD)
+
+**Response** `200 OK`
+
+```json
+{
+  "total_patients": 1250,
+  "new_patients_this_period": 45,
+  "active_patients": 980,
+  "inactive_patients": 270,
+  "by_gender": {
+    "M": 580,
+    "F": 620,
+    "OTHER": 30,
+    "UNKNOWN": 20
+  },
+  "by_age_group": [
+    { "group": "0-18", "count": 45 },
+    { "group": "19-35", "count": 180 },
+    { "group": "36-50", "count": 320 },
+    { "group": "51-65", "count": 380 },
+    { "group": "65+", "count": 325 }
+  ],
+  "average_age": 52.3
+}
+```
+
+---
+
+### GET /api/v1/reports/diagnoses
+
+Get diagnosis trends report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `start_date` (string, optional): Start date (YYYY-MM-DD)
+- `end_date` (string, optional): End date (YYYY-MM-DD)
+- `provider_id` (UUID, optional): Filter by provider
+- `limit` (integer, optional): Limit results (default: 10)
+
+**Response** `200 OK`
+
+```json
+{
+  "total_diagnoses": 1850,
+  "top_diagnoses": [
+    {
+      "icd10_code": "I10",
+      "description": "Essential hypertension",
+      "count": 245
+    },
+    {
+      "icd10_code": "E11",
+      "description": "Type 2 diabetes mellitus",
+      "count": 180
+    }
+  ],
+  "by_category": [
+    { "category": "Cardiovascular", "count": 420 },
+    { "category": "Metabolic", "count": 380 }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/reports/productivity
+
+Get provider productivity report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `start_date` (string, optional): Start date (YYYY-MM-DD)
+- `end_date` (string, optional): End date (YYYY-MM-DD)
+- `provider_id` (UUID, optional): Filter by provider
+
+**Response** `200 OK`
+
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31"
+  },
+  "total_visits": 380,
+  "total_appointments": 420,
+  "completion_rate": 90.5,
+  "average_visit_duration_minutes": 28,
+  "visits_per_day_average": 8.2,
+  "by_provider": [
+    {
+      "provider_id": "550e8400-e29b-41d4-a716-446655440000",
+      "provider_name": "Dr. Smith",
+      "visits": 380,
+      "appointments": 420
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/reports/revenue
+
+Get revenue report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `start_date` (string, optional): Start date (YYYY-MM-DD)
+- `end_date` (string, optional): End date (YYYY-MM-DD)
+- `provider_id` (UUID, optional): Filter by provider
+
+**Response** `200 OK`
+
+```json
+{
+  "period": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31"
+  },
+  "total_revenue": 125000.00,
+  "by_service_type": [
+    { "type": "CONSULTATION", "amount": 85000.00 },
+    { "type": "ACUPUNCTURE", "amount": 40000.00 }
+  ],
+  "by_month": [
+    { "month": "2024-01", "amount": 10500.00 },
+    { "month": "2024-02", "amount": 11200.00 }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/reports/dashboard
+
+Get dashboard summary report.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Response** `200 OK`
+
+```json
+{
+  "today": {
+    "appointments_scheduled": 12,
+    "appointments_completed": 8,
+    "patients_seen": 8,
+    "new_patients": 2
+  },
+  "this_week": {
+    "appointments_scheduled": 45,
+    "appointments_completed": 38,
+    "patients_seen": 38,
+    "new_patients": 8
+  },
+  "this_month": {
+    "appointments_scheduled": 180,
+    "appointments_completed": 160,
+    "patients_seen": 155,
+    "new_patients": 28
+  },
+  "upcoming_appointments": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "patient_name": "John Doe",
+      "scheduled_start": "2024-11-15T10:00:00Z",
+      "type": "FOLLOW_UP"
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/v1/reports/export
+
+Export report in various formats.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Request Body**
+
+```json
+{
+  "report_type": "appointment_utilization",
+  "format": "pdf",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31",
+  "provider_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Report Types**
+- `appointment_utilization`
+- `patient_statistics`
+- `diagnosis_trends`
+- `provider_productivity`
+- `revenue`
+- `dashboard`
+
+**Export Formats**
+- `json`
+- `csv`
+- `pdf`
+- `excel`
+
+**Response** `200 OK`
+
+Returns file download with appropriate Content-Type header.
+
+---
+
+## Settings Endpoints
+
+System settings for practice configuration. Settings are organized by groups (clinic, security, notifications, system, etc.).
+
+### GET /api/v1/settings
+
+List all settings.
+
+**Authentication**: Required
+**Authorization**: ADMIN (non-admins see only public settings)
+
+**Query Parameters**
+
+- `group` (string, optional): Filter by group (clinic, security, notifications, system)
+- `public_only` (boolean, optional): Only return public settings
+- `search` (string, optional): Search settings by key or name
+
+**Response** `200 OK`
+
+```json
+{
+  "settings": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "setting_key": "clinic.name",
+      "setting_group": "clinic",
+      "setting_name": "Practice Name",
+      "setting_value": "Medical Practice",
+      "value_type": "STRING",
+      "description": "Name of the medical practice",
+      "default_value": "",
+      "is_public": true,
+      "is_readonly": false,
+      "updated_at": "2024-11-15T10:00:00Z"
+    }
+  ],
+  "total": 45
+}
+```
+
+---
+
+### GET /api/v1/settings/groups
+
+List all setting groups.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "groups": [
+    {
+      "name": "clinic",
+      "label": "Clinic Settings",
+      "count": 12
+    },
+    {
+      "name": "security",
+      "label": "Security Settings",
+      "count": 8
+    },
+    {
+      "name": "notifications",
+      "label": "Notification Settings",
+      "count": 6
+    },
+    {
+      "name": "system",
+      "label": "System Settings",
+      "count": 10
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/settings/group/:group
+
+Get settings for a specific group.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `group` (string): Setting group name
+
+**Response** `200 OK`
+
+Returns array of settings in the specified group.
+
+---
+
+### GET /api/v1/settings/:key
+
+Get a specific setting by key.
+
+**Authentication**: Required
+**Authorization**: ADMIN (or authenticated user for public settings)
+
+**Path Parameters**
+
+- `key` (string): Setting key (e.g., "clinic.name")
+
+**Response** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "setting_key": "clinic.name",
+  "setting_group": "clinic",
+  "setting_name": "Practice Name",
+  "setting_value": "Medical Practice",
+  "value_type": "STRING",
+  "description": "Name of the medical practice",
+  "default_value": "",
+  "is_public": true,
+  "is_readonly": false,
+  "updated_at": "2024-11-15T10:00:00Z"
+}
+```
+
+---
+
+### PUT /api/v1/settings/:key
+
+Update a setting value.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `key` (string): Setting key
+
+**Request Body**
+
+```json
+{
+  "value": "New Practice Name",
+  "description": "Optional updated description"
+}
+```
+
+**Response** `200 OK`
+
+Returns updated setting object.
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid value type or validation failed
+- `403 Forbidden`: Setting is readonly
+- `404 Not Found`: Setting not found
+
+---
+
+### POST /api/v1/settings/bulk
+
+Bulk update multiple settings.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request Body**
+
+```json
+{
+  "settings": [
+    {
+      "key": "clinic.name",
+      "value": "Updated Practice Name"
+    },
+    {
+      "key": "clinic.phone",
+      "value": "+1-555-123-4567"
+    }
+  ]
+}
+```
+
+**Response** `200 OK`
+
+```json
+{
+  "updated": [
+    { "key": "clinic.name", "success": true },
+    { "key": "clinic.phone", "success": true }
+  ],
+  "errors": []
+}
+```
+
+---
+
+### POST /api/v1/settings/reset/:key
+
+Reset a setting to its default value.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `key` (string): Setting key
+
+**Response** `200 OK`
+
+Returns setting object with default value restored.
+
+---
+
+## Working Hours Endpoints
+
+Manage practice working hours schedule and overrides for holidays or special days.
+
+### GET /api/v1/working-hours
+
+Get the weekly working hours schedule.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Response** `200 OK`
+
+```json
+{
+  "days": [
+    {
+      "day_of_week": 1,
+      "day_name": "Monday",
+      "is_working_day": true,
+      "start_time": "09:00:00",
+      "end_time": "18:00:00"
+    },
+    {
+      "day_of_week": 2,
+      "day_name": "Tuesday",
+      "is_working_day": true,
+      "start_time": "09:00:00",
+      "end_time": "18:00:00"
+    },
+    {
+      "day_of_week": 6,
+      "day_name": "Saturday",
+      "is_working_day": false,
+      "start_time": null,
+      "end_time": null
+    },
+    {
+      "day_of_week": 7,
+      "day_name": "Sunday",
+      "is_working_day": false,
+      "start_time": null,
+      "end_time": null
+    }
+  ]
+}
+```
+
+---
+
+### PUT /api/v1/working-hours
+
+Update the entire weekly working hours schedule.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request Body**
+
+```json
+{
+  "days": [
+    {
+      "day_of_week": 1,
+      "is_working_day": true,
+      "start_time": "08:00:00",
+      "end_time": "17:00:00"
+    },
+    {
+      "day_of_week": 6,
+      "is_working_day": false,
+      "start_time": null,
+      "end_time": null
+    }
+  ]
+}
+```
+
+**Response** `200 OK`
+
+Returns updated weekly schedule.
+
+---
+
+### PUT /api/v1/working-hours/:day
+
+Update working hours for a specific day.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `day` (integer): Day of week (1=Monday, 7=Sunday)
+
+**Request Body**
+
+```json
+{
+  "is_working_day": true,
+  "start_time": "08:00:00",
+  "end_time": "18:00:00"
+}
+```
+
+**Response** `200 OK`
+
+Returns updated day schedule.
+
+---
+
+### GET /api/v1/working-hours/effective
+
+Get effective working hours for a date range (combines default schedule with overrides).
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `from_date` (string, required): Start date (YYYY-MM-DD)
+- `to_date` (string, required): End date (YYYY-MM-DD, max 90 days range)
+
+**Response** `200 OK`
+
+```json
+{
+  "from_date": "2024-12-01",
+  "to_date": "2024-12-31",
+  "days": [
+    {
+      "date": "2024-12-25",
+      "is_working_day": false,
+      "start_time": null,
+      "end_time": null,
+      "override_reason": "Christmas Day",
+      "override_type": "CLOSED"
+    },
+    {
+      "date": "2024-12-26",
+      "is_working_day": true,
+      "start_time": "09:00:00",
+      "end_time": "18:00:00",
+      "override_reason": null,
+      "override_type": null
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/working-hours/check/:date
+
+Check if a specific date is a working day.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `date` (string): Date to check (YYYY-MM-DD)
+
+**Response** `200 OK`
+
+```json
+{
+  "date": "2024-12-25",
+  "is_working_day": false
+}
+```
+
+---
+
+### GET /api/v1/working-hours/overrides
+
+List working hours overrides.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `from_date` (string, optional): Start date filter
+- `to_date` (string, optional): End date filter
+- `override_type` (string, optional): Filter by type (CLOSED, CUSTOM_HOURS, EXTENDED_HOURS)
+- `future_only` (boolean, optional): Only return future overrides
+
+**Response** `200 OK`
+
+```json
+{
+  "overrides": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "date": "2024-12-25",
+      "override_type": "CLOSED",
+      "start_time": null,
+      "end_time": null,
+      "reason": "Christmas Day",
+      "is_recurring": true,
+      "created_at": "2024-01-15T10:00:00Z"
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+### POST /api/v1/working-hours/overrides
+
+Create a working hours override.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request Body**
+
+```json
+{
+  "date": "2024-12-31",
+  "override_type": "CUSTOM_HOURS",
+  "start_time": "09:00:00",
+  "end_time": "13:00:00",
+  "reason": "New Year's Eve - Half day",
+  "is_recurring": false
+}
+```
+
+**Override Types**
+- `CLOSED` - Practice closed (no start_time/end_time)
+- `CUSTOM_HOURS` - Custom working hours
+- `EXTENDED_HOURS` - Extended working hours
+
+**Response** `201 Created`
+
+Returns created override object.
+
+---
+
+### GET /api/v1/working-hours/overrides/:id
+
+Get a specific working hours override.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Override ID
+
+**Response** `200 OK`
+
+Returns override object.
+
+---
+
+### PUT /api/v1/working-hours/overrides/:id
+
+Update a working hours override.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): Override ID
+
+**Request Body**
+
+```json
+{
+  "start_time": "09:00:00",
+  "end_time": "14:00:00",
+  "reason": "Updated reason"
+}
+```
+
+**Response** `200 OK`
+
+Returns updated override object.
+
+---
+
+### DELETE /api/v1/working-hours/overrides/:id
+
+Delete a working hours override.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): Override ID
+
+**Response** `204 No Content`
+
+---
+
+## Holidays Endpoints
+
+Manage practice holidays (national holidays, practice closures, vacations).
+
+### GET /api/v1/holidays
+
+List holidays.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `from_date` (string, optional): Start date filter
+- `to_date` (string, optional): End date filter
+- `holiday_type` (string, optional): Filter by type (NATIONAL, PRACTICE_CLOSED, VACATION)
+- `year` (integer, optional): Filter by year
+- `include_recurring` (boolean, optional): Include recurring holidays
+
+**Response** `200 OK`
+
+```json
+{
+  "holidays": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "holiday_date": "2024-12-25",
+      "name": "Christmas Day",
+      "holiday_type": "NATIONAL",
+      "description": "National holiday",
+      "is_recurring": true,
+      "recurring_pattern": "YEARLY",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
+### POST /api/v1/holidays
+
+Create a holiday.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request Body**
+
+```json
+{
+  "holiday_date": "2024-08-15",
+  "name": "Ferragosto",
+  "holiday_type": "NATIONAL",
+  "description": "Italian national holiday",
+  "is_recurring": true,
+  "recurring_pattern": "YEARLY"
+}
+```
+
+**Holiday Types**
+- `NATIONAL` - National/public holiday
+- `PRACTICE_CLOSED` - Practice closure
+- `VACATION` - Vacation day
+
+**Recurring Patterns**
+- `YEARLY` - Same date every year
+- `MONTHLY` - Same date every month
+- `WEEKLY` - Same day every week
+
+**Response** `201 Created`
+
+Returns created holiday object.
+
+---
+
+### GET /api/v1/holidays/:id
+
+Get a specific holiday.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Holiday ID
+
+**Response** `200 OK`
+
+Returns holiday object.
+
+---
+
+### PUT /api/v1/holidays/:id
+
+Update a holiday.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): Holiday ID
+
+**Request Body**
+
+```json
+{
+  "name": "Updated Holiday Name",
+  "description": "Updated description"
+}
+```
+
+**Response** `200 OK`
+
+Returns updated holiday object.
+
+---
+
+### DELETE /api/v1/holidays/:id
+
+Delete a holiday.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): Holiday ID
+
+**Response** `204 No Content`
+
+---
+
+### GET /api/v1/holidays/check/:date
+
+Check if a date is a holiday.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `date` (string): Date to check (YYYY-MM-DD)
+
+**Response** `200 OK`
+
+```json
+{
+  "date": "2024-12-25",
+  "is_holiday": true,
+  "holiday": {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "name": "Christmas Day",
+    "holiday_type": "NATIONAL",
+    "description": "National holiday"
+  }
+}
+```
+
+---
+
+### GET /api/v1/holidays/range
+
+Get holidays within a date range.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `from_date` (string, required): Start date (YYYY-MM-DD)
+- `to_date` (string, required): End date (YYYY-MM-DD, max 1 year range)
+
+**Response** `200 OK`
+
+Returns array of holiday objects within the specified range.
+
+---
+
+### POST /api/v1/holidays/import-national
+
+Import national holidays for a country/year.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request Body**
+
+```json
+{
+  "country": "IT",
+  "year": 2025,
+  "replace_existing": false
+}
+```
+
+**Supported Countries**
+- `IT` - Italy
+
+**Response** `200 OK`
+
+```json
+{
+  "imported": 12,
+  "skipped": 3,
+  "holidays": [
+    { "name": "Capodanno", "date": "2025-01-01" },
+    { "name": "Epifania", "date": "2025-01-06" }
+  ]
+}
+```
+
+---
+
+## Audit Logs Endpoints
+
+View audit trail of system activities. All audit endpoints require ADMIN role.
+
+### GET /api/v1/audit-logs
+
+List audit logs with filtering.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Query Parameters**
+
+- `user_id` (UUID, optional): Filter by user
+- `action` (string, optional): Filter by action (CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, SEARCH, EXPORT)
+- `entity_type` (string, optional): Filter by entity type (PATIENT, VISIT, PRESCRIPTION, APPOINTMENT, USER, SETTING, etc.)
+- `entity_id` (UUID, optional): Filter by specific entity
+- `date_from` (string, optional): Start date filter
+- `date_to` (string, optional): End date filter
+- `ip_address` (string, optional): Filter by IP address
+- `page` (integer, optional): Page number (default: 1)
+- `page_size` (integer, optional): Items per page (default: 50, max: 100)
+
+**Response** `200 OK`
+
+```json
+{
+  "logs": [
+    {
+      "id": 12345,
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_name": "Dr. Smith",
+      "action": "UPDATE",
+      "entity_type": "PATIENT",
+      "entity_id": "550e8400-e29b-41d4-a716-446655440001",
+      "description": "Updated patient demographics",
+      "ip_address": "192.168.1.100",
+      "user_agent": "Mozilla/5.0...",
+      "created_at": "2024-11-15T10:30:00Z",
+      "old_values": { "phone": "+1-555-111-1111" },
+      "new_values": { "phone": "+1-555-222-2222" }
+    }
+  ],
+  "total": 5420,
+  "page": 1,
+  "page_size": 50,
+  "total_pages": 109
+}
+```
+
+---
+
+### GET /api/v1/audit-logs/:id
+
+Get a specific audit log entry.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (integer): Audit log ID
+
+**Response** `200 OK`
+
+Returns detailed audit log object including old/new values.
+
+---
+
+### GET /api/v1/audit-logs/statistics
+
+Get audit log statistics.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "total_logs": 54280,
+  "logs_today": 125,
+  "logs_this_week": 890,
+  "logs_this_month": 3450,
+  "by_action": {
+    "CREATE": 12500,
+    "UPDATE": 28000,
+    "DELETE": 1200,
+    "READ": 10000,
+    "LOGIN": 2580
+  },
+  "by_entity_type": {
+    "PATIENT": 18000,
+    "VISIT": 15000,
+    "APPOINTMENT": 12000,
+    "USER": 5000
+  },
+  "top_users": [
+    {
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_name": "Dr. Smith",
+      "action_count": 25000
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/audit-logs/user/:user_id/activity
+
+Get activity summary for a specific user.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `user_id` (UUID): User ID
+
+**Response** `200 OK`
+
+```json
+{
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_name": "Dr. Smith",
+  "total_actions": 25000,
+  "last_activity": "2024-11-15T10:30:00Z",
+  "first_activity": "2024-01-15T08:00:00Z",
+  "by_action": {
+    "CREATE": 5000,
+    "UPDATE": 12000,
+    "READ": 8000
+  },
+  "recent_activity": [
+    {
+      "id": 12345,
+      "action": "UPDATE",
+      "entity_type": "PATIENT",
+      "description": "Updated patient record",
+      "created_at": "2024-11-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/audit-logs/export
+
+Export audit logs.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Query Parameters**
+
+- All filter parameters from list endpoint
+- `format` (string, optional): Export format (csv, json) - default: csv
+- `limit` (integer, optional): Maximum records (max: 50000)
+
+**Response** `200 OK`
+
+Returns file download with appropriate Content-Type header.
+
+---
+
+### GET /api/v1/audit-logs/filter-options
+
+Get available filter options for audit logs.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "actions": ["CREATE", "READ", "UPDATE", "DELETE", "LOGIN", "LOGOUT", "SEARCH", "EXPORT"],
+  "entity_types": ["PATIENT", "VISIT", "PRESCRIPTION", "DIAGNOSIS", "APPOINTMENT", "USER", "SETTING", "TEMPLATE", "DOCUMENT"]
+}
+```
+
+---
+
+## System Health Endpoints
+
+Monitor system health, resources, and status. All endpoints require ADMIN role.
+
+### GET /api/v1/system/health/detailed
+
+Get detailed system health status.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-11-15T10:30:00Z",
+  "uptime_seconds": 864000,
+  "database": {
+    "status": "healthy",
+    "latency_ms": 2,
+    "connections": {
+      "active": 5,
+      "idle": 15,
+      "max": 100
+    }
+  },
+  "memory": {
+    "used_mb": 256,
+    "total_mb": 8192,
+    "percentage": 3.1
+  },
+  "cpu": {
+    "usage_percentage": 12.5,
+    "load_average": [0.85, 0.72, 0.68]
+  },
+  "disk": {
+    "used_gb": 45.2,
+    "total_gb": 500,
+    "percentage": 9.0
+  },
+  "version": "1.1.0",
+  "environment": "production"
+}
+```
+
+**Status Values**
+- `healthy` - All systems operational
+- `degraded` - Some issues detected
+- `unhealthy` - Critical issues
+
+---
+
+### GET /api/v1/system/info
+
+Get system information.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "version": "1.1.0",
+  "environment": "production",
+  "rust_version": "1.90.0",
+  "database_version": "PostgreSQL 17.0",
+  "started_at": "2024-11-01T00:00:00Z",
+  "features": {
+    "rbac": true,
+    "pdf_export": true,
+    "report_export": true
+  }
+}
+```
+
+---
+
+### GET /api/v1/system/storage
+
+Get storage statistics.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "database": {
+    "total_size_mb": 1250,
+    "tables_size_mb": 980,
+    "indexes_size_mb": 270,
+    "top_tables": [
+      { "name": "audit_logs", "size_mb": 450 },
+      { "name": "visits", "size_mb": 320 },
+      { "name": "patients", "size_mb": 150 }
+    ]
+  },
+  "files": {
+    "documents_count": 1250,
+    "documents_size_mb": 580,
+    "uploads_count": 320,
+    "uploads_size_mb": 125,
+    "total_size_mb": 705
+  },
+  "disk": {
+    "total_gb": 500,
+    "available_gb": 454.8,
+    "used_percentage": 9.0
+  }
+}
+```
+
+---
+
+### GET /api/v1/system/backup-status
+
+Get backup status.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `200 OK`
+
+```json
+{
+  "last_backup": {
+    "timestamp": "2024-11-15T02:00:00Z",
+    "type": "full",
+    "size_mb": 850,
+    "duration_seconds": 120,
+    "status": "success"
+  },
+  "next_scheduled": "2024-11-16T02:00:00Z",
+  "backup_location": "/backups/mpms",
+  "retention": {
+    "daily": 30,
+    "weekly": 12,
+    "monthly": 12
+  },
+  "backups_count": {
+    "daily": 30,
+    "weekly": 12,
+    "monthly": 8
+  }
+}
+```
+
+---
+
+## File Upload Endpoints
+
+Manage file uploads including practice logo, attachments, and documents.
+
+### GET /api/v1/files
+
+List uploaded files.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `purpose` (string, optional): Filter by purpose (LOGO, ATTACHMENT, DOCUMENT, AVATAR)
+- `created_by` (UUID, optional): Filter by uploader
+- `search` (string, optional): Search by filename
+- `page` (integer, optional): Page number
+- `page_size` (integer, optional): Items per page
+
+**Response** `200 OK`
+
+```json
+{
+  "files": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "filename": "lab_results.pdf",
+      "original_filename": "Lab Results - Nov 2024.pdf",
+      "mime_type": "application/pdf",
+      "size_bytes": 125000,
+      "purpose": "ATTACHMENT",
+      "alt_text": "Patient lab results",
+      "description": "Blood test results from November 2024",
+      "created_by": "550e8400-e29b-41d4-a716-446655440000",
+      "created_at": "2024-11-15T10:00:00Z"
+    }
+  ],
+  "total": 125,
+  "page": 1,
+  "page_size": 20
+}
+```
+
+---
+
+### POST /api/v1/files/upload
+
+Upload a file.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request**: Multipart form data
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| file | binary | Yes | File to upload (max 50MB) |
+| purpose | string | No | LOGO, ATTACHMENT, DOCUMENT, AVATAR (default: ATTACHMENT) |
+| alt_text | string | No | Alt text for accessibility |
+| description | string | No | File description |
+
+**Response** `201 Created`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "filename": "550e8400-e29b-41d4-a716-446655440001.pdf",
+  "original_filename": "document.pdf",
+  "mime_type": "application/pdf",
+  "size_bytes": 125000,
+  "purpose": "ATTACHMENT",
+  "storage_path": "/uploads/550e8400-e29b-41d4-a716-446655440001.pdf",
+  "created_at": "2024-11-15T10:00:00Z"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid file type or missing file
+- `413 Payload Too Large`: File exceeds 50MB limit
+
+**Blocked File Types**
+- SVG files (security risk)
+
+---
+
+### GET /api/v1/files/:id
+
+Get file metadata.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): File ID
+
+**Response** `200 OK`
+
+Returns file metadata object.
+
+---
+
+### PUT /api/v1/files/:id
+
+Update file metadata.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): File ID
+
+**Request Body**
+
+```json
+{
+  "alt_text": "Updated alt text",
+  "description": "Updated description"
+}
+```
+
+**Response** `200 OK`
+
+Returns updated file metadata.
+
+---
+
+### DELETE /api/v1/files/:id
+
+Delete a file.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): File ID
+
+**Response** `204 No Content`
+
+---
+
+### GET /api/v1/files/:id/download
+
+Download a file (attachment disposition).
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): File ID
+
+**Response** `200 OK`
+
+Returns file with `Content-Disposition: attachment` header.
+
+---
+
+### GET /api/v1/files/:id/serve
+
+Serve a file inline (for embedding).
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): File ID
+
+**Response** `200 OK`
+
+Returns file with `Content-Disposition: inline` header.
+
+---
+
+## Logo Endpoints
+
+Manage practice logo. Located under settings path.
+
+### GET /api/v1/settings/logo
+
+Get current logo metadata.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Response** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "filename": "logo.png",
+  "mime_type": "image/png",
+  "size_bytes": 25000,
+  "created_at": "2024-11-15T10:00:00Z",
+  "url": "/api/v1/settings/logo/image"
+}
+```
+
+**Response** `404 Not Found`
+
+No logo has been uploaded.
+
+---
+
+### POST /api/v1/settings/logo
+
+Upload practice logo.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Request**: Multipart form data
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| file | binary | Yes | Image file (PNG, JPG, GIF, WebP) |
+
+**Response** `201 Created`
+
+Returns logo metadata object.
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid image type
+- `413 Payload Too Large`: File too large
+
+---
+
+### DELETE /api/v1/settings/logo
+
+Delete practice logo.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Response** `204 No Content`
+
+---
+
+### GET /api/v1/settings/logo/image
+
+Serve logo image (public endpoint).
+
+**Authentication**: Not required
+**Authorization**: Public
+
+**Response** `200 OK`
+
+Returns image file with appropriate Content-Type header.
+
+**Response** `404 Not Found`
+
+No logo has been uploaded.
+
+---
+
+## Document Templates Endpoints
+
+Manage document templates for generating medical documents. Requires `pdf-export` feature.
+
+### GET /api/v1/document-templates
+
+List document templates.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `document_type` (string, optional): Filter by type
+- `language` (string, optional): Filter by language (ITALIAN, ENGLISH)
+- `is_active` (boolean, optional): Filter active/inactive
+- `is_default` (boolean, optional): Filter default templates
+- `search` (string, optional): Search by name/description
+- `limit` (integer, optional): Items per page
+- `offset` (integer, optional): Offset for pagination
+
+**Response** `200 OK`
+
+```json
+{
+  "templates": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Medical Report",
+      "description": "Standard medical report template",
+      "document_type": "MEDICAL_REPORT",
+      "language": "ITALIAN",
+      "is_active": true,
+      "is_default": true,
+      "created_by": "550e8400-e29b-41d4-a716-446655440000",
+      "created_at": "2024-11-15T10:00:00Z",
+      "updated_at": "2024-11-15T10:00:00Z"
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+### POST /api/v1/document-templates
+
+Create a document template.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Request Body**
+
+```json
+{
+  "name": "Referral Letter",
+  "description": "Template for specialist referral letters",
+  "document_type": "REFERRAL",
+  "language": "ITALIAN",
+  "content": "<html><head>...</head><body>{{patient.name}}...</body></html>",
+  "is_active": true,
+  "is_default": false
+}
+```
+
+**Document Types**
+- `MEDICAL_REPORT` - Clinical assessment report
+- `PRESCRIPTION` - Prescription document
+- `CERTIFICATE` - Medical certificate
+- `REFERRAL` - Referral letter
+- `DISCHARGE_SUMMARY` - Discharge summary
+
+**Template Variables**
+
+Templates support variable substitution using `{{variable}}` syntax:
+- `{{patient.name}}`, `{{patient.date_of_birth}}`, `{{patient.fiscal_code}}`
+- `{{visit.date}}`, `{{visit.chief_complaint}}`, `{{visit.assessment}}`
+- `{{provider.name}}`, `{{provider.specialty}}`
+- `{{clinic.name}}`, `{{clinic.address}}`, `{{clinic.phone}}`, `{{clinic.logo}}`
+- `{{document.date}}`, `{{document.number}}`
+
+**Response** `201 Created`
+
+Returns created template object.
+
+---
+
+### GET /api/v1/document-templates/default
+
+Get default template for a document type.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `document_type` (string, required): Document type
+- `language` (string, optional): Language preference (default: ITALIAN)
+
+**Response** `200 OK`
+
+Returns template object.
+
+**Response** `404 Not Found`
+
+No default template found for specified type/language.
+
+---
+
+### GET /api/v1/document-templates/:id
+
+Get a specific template.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Template ID
+
+**Response** `200 OK`
+
+Returns template object including content.
+
+---
+
+### PUT /api/v1/document-templates/:id
+
+Update a template.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR (must own template or be ADMIN)
+
+**Path Parameters**
+
+- `id` (UUID): Template ID
+
+**Request Body**
+
+```json
+{
+  "name": "Updated Template Name",
+  "description": "Updated description",
+  "content": "<html>...</html>",
+  "is_active": true,
+  "is_default": true
+}
+```
+
+**Response** `200 OK`
+
+Returns updated template object.
+
+---
+
+### DELETE /api/v1/document-templates/:id
+
+Delete a template.
+
+**Authentication**: Required
+**Authorization**: ADMIN
+
+**Path Parameters**
+
+- `id` (UUID): Template ID
+
+**Response** `204 No Content`
+
+---
+
+## Generated Documents Endpoints
+
+Generate and manage medical documents. Requires `pdf-export` feature.
+
+### GET /api/v1/documents
+
+List generated documents.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+- `patient_id` (UUID, optional): Filter by patient
+- `visit_id` (UUID, optional): Filter by visit
+- `provider_id` (UUID, optional): Filter by provider
+- `document_type` (string, optional): Filter by type
+- `status` (string, optional): Filter by status
+- `is_signed` (boolean, optional): Filter signed/unsigned
+- `from_date` (string, optional): Created after date
+- `to_date` (string, optional): Created before date
+- `limit` (integer, optional): Items per page
+- `offset` (integer, optional): Offset for pagination
+
+**Response** `200 OK`
+
+```json
+{
+  "documents": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "document_type": "MEDICAL_REPORT",
+      "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+      "patient_name": "John Doe",
+      "visit_id": "550e8400-e29b-41d4-a716-446655440020",
+      "provider_id": "550e8400-e29b-41d4-a716-446655440000",
+      "provider_name": "Dr. Smith",
+      "status": "SIGNED",
+      "is_signed": true,
+      "signed_at": "2024-11-15T11:00:00Z",
+      "file_path": "/documents/550e8400.pdf",
+      "file_size_bytes": 125000,
+      "created_at": "2024-11-15T10:00:00Z"
+    }
+  ],
+  "total": 450
+}
+```
+
+---
+
+### POST /api/v1/documents/generate
+
+Generate a new document.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Request Body**
+
+```json
+{
+  "template_id": "550e8400-e29b-41d4-a716-446655440001",
+  "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+  "visit_id": "550e8400-e29b-41d4-a716-446655440020",
+  "variables": {
+    "custom_field": "Custom value",
+    "additional_notes": "Additional notes to include"
+  }
+}
+```
+
+**Response** `201 Created`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "document_type": "MEDICAL_REPORT",
+  "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+  "visit_id": "550e8400-e29b-41d4-a716-446655440020",
+  "status": "DRAFT",
+  "is_signed": false,
+  "file_path": "/documents/550e8400.pdf",
+  "file_size_bytes": 125000,
+  "created_at": "2024-11-15T10:00:00Z"
+}
+```
+
+---
+
+### GET /api/v1/documents/statistics
+
+Get document generation statistics.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Response** `200 OK`
+
+```json
+{
+  "total_documents": 1250,
+  "documents_this_month": 85,
+  "by_type": {
+    "MEDICAL_REPORT": 450,
+    "PRESCRIPTION": 380,
+    "CERTIFICATE": 220,
+    "REFERRAL": 150,
+    "DISCHARGE_SUMMARY": 50
+  },
+  "by_status": {
+    "DRAFT": 45,
+    "SIGNED": 1180,
+    "DELIVERED": 25
+  },
+  "total_size_mb": 580
+}
+```
+
+---
+
+### GET /api/v1/documents/:id
+
+Get document details.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Document ID
+
+**Response** `200 OK`
+
+Returns document object with all metadata.
+
+---
+
+### DELETE /api/v1/documents/:id
+
+Delete a document.
+
+**Authentication**: Required
+**Authorization**: ADMIN (signed documents can only be deleted by ADMIN)
+
+**Path Parameters**
+
+- `id` (UUID): Document ID
+
+**Response** `204 No Content`
+
+**Error Responses**
+
+- `403 Forbidden`: Cannot delete signed document (non-admin)
+
+---
+
+### GET /api/v1/documents/:id/download
+
+Download document PDF.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Document ID
+
+**Response** `200 OK`
+
+Returns PDF file with `Content-Disposition: attachment` header.
+
+---
+
+### POST /api/v1/documents/:id/sign
+
+Sign a document.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Document ID
+
+**Response** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "status": "SIGNED",
+  "is_signed": true,
+  "signed_at": "2024-11-15T11:00:00Z",
+  "signed_by": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Document already signed
+
+---
+
+### POST /api/v1/documents/:id/deliver
+
+Record document delivery.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Document ID
+
+**Request Body**
+
+```json
+{
+  "delivery_method": "email",
+  "delivered_to": "patient@example.com",
+  "delivery_notes": "Sent per patient request"
+}
+```
+
+**Delivery Methods**
+- `email` - Sent via email
+- `printed` - Printed and given to patient
+- `downloaded` - Downloaded by patient/provider
+
+**Response** `200 OK`
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "status": "DELIVERED",
+  "delivered_at": "2024-11-15T11:30:00Z",
+  "delivery_method": "email",
+  "delivered_to": "patient@example.com"
+}
+```
+
+---
+
 ## Appendix
 
 ### Enum Values Reference
@@ -2306,9 +4338,97 @@ Returns the restored visit object. Creates a new version recording the restorati
 - `DISCONTINUED` - Discontinued prescription
 - `EXPIRED` - Expired prescription
 
+#### Holiday Type
+- `NATIONAL` - National/public holiday
+- `PRACTICE_CLOSED` - Practice closure
+- `VACATION` - Vacation day
+
+#### Holiday Recurring Pattern
+- `YEARLY` - Same date every year
+- `MONTHLY` - Same date every month
+- `WEEKLY` - Same day every week
+
+#### Working Hours Override Type
+- `CLOSED` - Practice closed
+- `CUSTOM_HOURS` - Custom working hours
+- `EXTENDED_HOURS` - Extended working hours
+
+#### Document Type
+- `MEDICAL_REPORT` - Clinical assessment report
+- `PRESCRIPTION` - Prescription document
+- `CERTIFICATE` - Medical certificate
+- `REFERRAL` - Referral letter
+- `DISCHARGE_SUMMARY` - Discharge summary
+
+#### Document Status
+- `DRAFT` - Editable document
+- `SIGNED` - Signed by provider
+- `DELIVERED` - Delivered to patient
+
+#### File Purpose
+- `LOGO` - Practice logo
+- `ATTACHMENT` - File attachment
+- `DOCUMENT` - Generated document
+- `AVATAR` - User avatar
+
+#### Audit Log Actions
+- `CREATE` - Resource creation
+- `READ` - Resource read
+- `UPDATE` - Resource update
+- `DELETE` - Resource deletion
+- `LOGIN` - User login
+- `LOGOUT` - User logout
+- `SEARCH` - Search operation
+- `EXPORT` - Data export
+
+#### Audit Log Entity Types
+- `PATIENT` - Patient records
+- `VISIT` - Visit records
+- `PRESCRIPTION` - Prescriptions
+- `DIAGNOSIS` - Diagnoses
+- `APPOINTMENT` - Appointments
+- `USER` - User accounts
+- `SETTING` - System settings
+- `TEMPLATE` - Document templates
+- `DOCUMENT` - Generated documents
+
+#### System Health Status
+- `healthy` - All systems operational
+- `degraded` - Some issues detected
+- `unhealthy` - Critical issues
+
+#### Report Types
+- `appointment_utilization` - Appointment utilization report
+- `patient_statistics` - Patient statistics report
+- `diagnosis_trends` - Diagnosis trends report
+- `provider_productivity` - Provider productivity report
+- `revenue` - Revenue report
+- `dashboard` - Dashboard summary
+
+#### Export Formats
+- `json` - JSON format
+- `csv` - CSV format
+- `pdf` - PDF format
+- `excel` - Excel format
+
 ---
 
 ## Changelog
+
+### Version 1.2.0 (December 2025)
+
+- Added Reports & Analytics endpoints (appointments, patients, diagnoses, productivity, revenue, dashboard, export)
+- Added Settings management endpoints (list, groups, get/update/reset, bulk operations)
+- Added Working Hours endpoints (weekly schedule, overrides, effective hours, day checks)
+- Added Holidays endpoints (CRUD, check, range, import national holidays)
+- Added Audit Logs endpoints (list, statistics, user activity, export, filter options)
+- Added System Health endpoints (detailed health, system info, storage, backup status)
+- Added File Upload endpoints (list, upload, metadata, download, serve)
+- Added Logo management endpoints (upload, get, delete, serve)
+- Added Document Templates endpoints (CRUD, get default template)
+- Added Generated Documents endpoints (generate, list, statistics, download, sign, deliver)
+- Added comprehensive enum values documentation
+- Updated API documentation to reflect all implemented features
 
 ### Version 1.1.0 (November 2025)
 
@@ -2342,6 +4462,6 @@ For API support, questions, or issues:
 
 ---
 
-**Last Updated**: November 2025
-**API Version**: 1.1.0
+**Last Updated**: December 2025
+**API Version**: 1.2.0
 **Status**: Production Ready

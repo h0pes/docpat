@@ -22,6 +22,7 @@
     "filter": "Filtra",
     "reset": "Reimposta",
     "submit": "Invia",
+    "refresh": "Aggiorna",
     "loading": "Caricamento...",
     "noResults": "Nessun risultato trovato",
     "comingSoon": "Prossimamente",
@@ -53,7 +54,21 @@
     "print": "Stampa",
     "errors": {
       "generic": "Si è verificato un errore. Riprova."
-    }
+    },
+    "not_provided": "Non fornito",
+    "day": "Giorno",
+    "days": "giorni",
+    "hour": "ora",
+    "hours": "ore",
+    "minute": "minuto",
+    "minutes": "minuti",
+    "monday": "Lunedì",
+    "tuesday": "Martedì",
+    "wednesday": "Mercoledì",
+    "thursday": "Giovedì",
+    "friday": "Venerdì",
+    "saturday": "Sabato",
+    "sunday": "Domenica"
   },
   "auth": {
     "login": "Accedi",
@@ -170,9 +185,14 @@
     "documents": "Documenti",
     "document_templates": "Modelli Documento",
     "reports": "Report",
+    "users": "Utenti",
     "settings": "Impostazioni",
+    "audit_logs": "Log di Audit",
+    "system_health": "Stato Sistema",
     "profile": "Profilo",
-    "help": "Aiuto"
+    "help": "Aiuto",
+    "admin_section": "Amministrazione",
+    "personal_section": "Personale"
   },
   "theme": {
     "light": "Chiaro",
@@ -482,7 +502,10 @@
       "future_date_required": "L'appuntamento deve essere nel futuro",
       "reason_max": "Il motivo non può superare 2000 caratteri",
       "notes_max": "Le note non possono superare 5000 caratteri",
-      "cancellation_reason_required": "Il motivo dell'annullamento è obbligatorio"
+      "cancellation_reason_required": "Il motivo dell'annullamento è obbligatorio",
+      "holiday_selected": "Impossibile fissare appuntamento in giorno festivo: {{name}}",
+      "non_working_day": "Impossibile fissare appuntamento in un giorno non lavorativo",
+      "slot_unavailable": "La fascia oraria selezionata non è disponibile. Scegli un orario diverso."
     },
     "actions": {
       "new": "Nuovo Appuntamento",
@@ -1586,6 +1609,545 @@
       "providerDetails": "Dettagli Medici",
       "providerDetailsDesc": "Metriche di produttività dettagliate per ogni medico",
       "noProviders": "Nessun dato medico disponibile"
+    }
+  },
+  "users": {
+    "title": "Utenti",
+    "subtitle": "Gestisci gli account utente",
+    "list": {
+      "title": "Gestione Utenti",
+      "subtitle": "Visualizza e gestisci tutti gli account utente"
+    },
+    "new": {
+      "title": "Crea Utente",
+      "subtitle": "Crea un nuovo account utente"
+    },
+    "edit": {
+      "title": "Modifica Utente",
+      "subtitle": "Modifica di {{name}}"
+    },
+    "detail": {
+      "title": "Dettagli Utente",
+      "contact_info": "Informazioni di Contatto",
+      "activity_info": "Informazioni Attività",
+      "created_at": "Account Creato",
+      "actions": "Azioni Utente",
+      "actions_description": "Gestisci lo stato e la sicurezza dell'account utente"
+    },
+    "total_count": "{{count}} utenti",
+    "search_placeholder": "Cerca per nome, username o email...",
+    "filters": "Filtri",
+    "clear_filters": "Cancella Filtri",
+    "showing_results": "Mostrando da {{from}} a {{to}} di {{total}} risultati",
+    "page_of": "Pagina {{current}} di {{total}}",
+    "previous": "Precedente",
+    "next": "Successivo",
+    "no_results": "Nessun Utente Trovato",
+    "no_results_description": "Prova a modificare la ricerca o i filtri",
+    "no_users": "Nessun Utente",
+    "no_users_description": "Inizia aggiungendo il tuo primo utente",
+    "error_title": "Errore nel Caricamento Utenti",
+    "error_loading": "Impossibile caricare gli utenti. Riprova.",
+    "retry": "Riprova",
+    "last_login": "Ultimo Accesso",
+    "never_logged_in": "Mai effettuato accesso",
+    "mfa_enabled": "Autenticazione a due fattori abilitata",
+    "roles": {
+      "admin": "Amministratore",
+      "doctor": "Medico"
+    },
+    "status": {
+      "label": "Stato",
+      "all": "Tutti gli Stati",
+      "active": "Attivo",
+      "inactive": "Inattivo"
+    },
+    "role": {
+      "label": "Ruolo",
+      "all": "Tutti i Ruoli"
+    },
+    "form": {
+      "account_info": "Informazioni Account",
+      "account_info_description": "Credenziali di accesso e assegnazione ruolo",
+      "personal_info": "Informazioni Personali",
+      "username": "Nome Utente",
+      "username_placeholder": "Inserisci nome utente",
+      "username_hint": "Il nome utente può contenere solo lettere, numeri e underscore",
+      "email": "Email",
+      "email_placeholder": "Inserisci indirizzo email",
+      "password": "Password",
+      "password_placeholder": "Inserisci una password sicura",
+      "role": "Ruolo",
+      "role_placeholder": "Seleziona un ruolo",
+      "role_description": "Gli amministratori hanno accesso completo al sistema. I medici hanno solo accesso clinico.",
+      "first_name": "Nome",
+      "first_name_placeholder": "Inserisci nome",
+      "last_name": "Cognome",
+      "last_name_placeholder": "Inserisci cognome",
+      "phone": "Numero di Telefono",
+      "phone_placeholder": "Inserisci numero di telefono",
+      "phone_hint": "Numero di contatto opzionale"
+    },
+    "validation": {
+      "username_min": "Il nome utente deve essere di almeno 3 caratteri",
+      "username_max": "Il nome utente deve essere al massimo di 50 caratteri",
+      "username_format": "Il nome utente può contenere solo lettere, numeri e underscore",
+      "email_invalid": "Inserisci un indirizzo email valido",
+      "first_name_required": "Il nome è obbligatorio",
+      "last_name_required": "Il cognome è obbligatorio",
+      "password_min": "La password deve essere di almeno 8 caratteri",
+      "password_uppercase": "La password deve contenere almeno una lettera maiuscola",
+      "password_lowercase": "La password deve contenere almeno una lettera minuscola",
+      "password_number": "La password deve contenere almeno un numero",
+      "password_special": "La password deve contenere almeno un carattere speciale"
+    },
+    "actions": {
+      "new": "Nuovo Utente",
+      "view": "Visualizza Dettagli",
+      "edit": "Modifica Utente",
+      "activate": "Attiva",
+      "deactivate": "Disattiva",
+      "reset_password": "Reimposta Password",
+      "reset_mfa": "Reimposta MFA"
+    },
+    "dialogs": {
+      "deactivate": {
+        "title": "Disattiva Utente",
+        "description": "Sei sicuro di voler disattivare {{name}}?",
+        "warning_title": "Questa azione comporterà:",
+        "effect_1": "Impedirà all'utente di effettuare l'accesso",
+        "effect_2": "Revocherà tutte le sessioni attive",
+        "effect_3": "Disabiliterà l'MFA se abilitato"
+      },
+      "activate": {
+        "title": "Attiva Utente",
+        "description": "Sei sicuro di voler attivare {{name}}? Potrà effettuare nuovamente l'accesso."
+      },
+      "reset_password": {
+        "title": "Reimposta Password",
+        "description": "Imposta una nuova password per {{name}}",
+        "new_password": "Nuova Password",
+        "placeholder": "Inserisci nuova password",
+        "confirm": "Reimposta Password"
+      },
+      "reset_mfa": {
+        "title": "Reimposta MFA",
+        "description": "Sei sicuro di voler reimpostare l'MFA per {{name}}?",
+        "warning_title": "Questa azione comporterà:",
+        "effect_1": "Disabiliterà l'autenticazione a due fattori",
+        "effect_2": "Invaliderà i codici di backup",
+        "effect_3": "L'utente dovrà configurare nuovamente l'MFA",
+        "confirm": "Reimposta MFA"
+      }
+    },
+    "messages": {
+      "createSuccess": "Utente Creato",
+      "createSuccessDescription": "L'account utente è stato creato con successo",
+      "createError": "Impossibile Creare Utente",
+      "updateSuccess": "Utente Aggiornato",
+      "updateSuccessDescription": "L'account utente è stato aggiornato con successo",
+      "updateError": "Impossibile Aggiornare Utente",
+      "loadError": "Impossibile Caricare Utente",
+      "activateSuccess": "Utente Attivato",
+      "activateSuccessDescription": "L'account utente è stato attivato",
+      "activateError": "Impossibile Attivare Utente",
+      "deactivateSuccess": "Utente Disattivato",
+      "deactivateSuccessDescription": "L'account utente è stato disattivato",
+      "deactivateError": "Impossibile Disattivare Utente",
+      "resetPasswordSuccess": "Password Reimpostata",
+      "resetPasswordSuccessDescription": "La password è stata reimpostata con successo",
+      "resetPasswordError": "Impossibile Reimpostare Password",
+      "resetMfaSuccess": "MFA Reimpostato",
+      "resetMfaSuccessDescription": "L'autenticazione a due fattori è stata reimpostata",
+      "resetMfaError": "Impossibile Reimpostare MFA"
+    },
+    "errors": {
+      "admin_only": "Questa pagina è accessibile solo agli amministratori",
+      "cannot_deactivate_self": "Non puoi disattivare il tuo account"
+    },
+    "sort": {
+      "nameAsc": "Nome (A-Z)",
+      "nameDesc": "Nome (Z-A)",
+      "usernameAsc": "Username (A-Z)",
+      "usernameDesc": "Username (Z-A)",
+      "createdAsc": "Meno Recente",
+      "createdDesc": "Più Recente"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "description": "Configura le impostazioni e le preferenze dello studio",
+    "saved": "Impostazioni Salvate",
+    "save_error": "Impossibile salvare le impostazioni. Riprova.",
+    "tabs": {
+      "practice": "Studio",
+      "appointments": "Appuntamenti",
+      "localization": "Localizzazione",
+      "security": "Sicurezza",
+      "working_hours": "Orari di Lavoro",
+      "holidays": "Festività"
+    },
+    "errors": {
+      "admin_only": "Le impostazioni sono accessibili solo agli amministratori"
+    },
+    "practice": {
+      "title": "Informazioni Studio",
+      "description": "Configura le informazioni di base dello studio",
+      "saved_description": "Le impostazioni dello studio sono state aggiornate",
+      "name": "Nome Studio",
+      "name_placeholder": "Inserisci il nome dello studio",
+      "name_hint": "Il nome visualizzato in tutta l'applicazione",
+      "address": "Indirizzo",
+      "address_placeholder": "Inserisci l'indirizzo dello studio",
+      "city": "Città",
+      "city_placeholder": "Inserisci la città",
+      "phone": "Telefono",
+      "phone_placeholder": "Inserisci il numero di telefono",
+      "email": "Email",
+      "email_placeholder": "Inserisci l'indirizzo email",
+      "website": "Sito Web",
+      "website_placeholder": "https://www.esempio.com",
+      "tax_id": "Codice Fiscale / Partita IVA",
+      "tax_id_placeholder": "Inserisci il codice fiscale o partita IVA",
+      "logo": "Logo",
+      "logo_hint": "Carica il logo dello studio (PNG, JPG, max 2MB)",
+      "upload_logo": "Carica Logo",
+      "remove_logo": "Rimuovi Logo",
+      "contact_details": "Dettagli Contatto"
+    },
+    "appointment": {
+      "title": "Impostazioni Appuntamenti",
+      "description": "Configura il comportamento predefinito degli appuntamenti",
+      "saved_description": "Le impostazioni degli appuntamenti sono state aggiornate",
+      "default_duration": "Durata Predefinita",
+      "default_duration_hint": "Durata predefinita per i nuovi appuntamenti",
+      "buffer_minutes": "Tempo Buffer",
+      "buffer_hint": "Tempo tra appuntamenti consecutivi",
+      "no_buffer": "Nessun buffer",
+      "booking_rules": "Regole di Prenotazione",
+      "advance_booking_days": "Giorni di Prenotazione Anticipata",
+      "advance_booking_hint": "Quanto tempo prima i pazienti possono prenotare",
+      "cancellation_notice": "Preavviso Cancellazione (ore)",
+      "cancellation_notice_hint": "Preavviso richiesto per le cancellazioni",
+      "max_per_day": "Max Appuntamenti al Giorno",
+      "max_per_day_hint": "Numero massimo di appuntamenti programmabili al giorno",
+      "allow_same_day": "Consenti Prenotazione Stesso Giorno",
+      "allow_same_day_hint": "Consenti ai pazienti di prenotare appuntamenti per lo stesso giorno"
+    },
+    "localization": {
+      "title": "Localizzazione",
+      "description": "Configura lingua, formato data e ora",
+      "saved_description": "Le impostazioni di localizzazione sono state aggiornate",
+      "language": "Lingua Predefinita",
+      "language_hint": "La lingua predefinita dell'interfaccia",
+      "timezone": "Fuso Orario",
+      "timezone_hint": "Il fuso orario dello studio",
+      "date_format": "Formato Data",
+      "date_format_hint": "Come vengono visualizzate le date",
+      "time_format": "Formato Ora",
+      "time_format_hint": "Formato 12 o 24 ore",
+      "first_day_of_week": "Primo Giorno della Settimana",
+      "first_day_hint": "Giorno iniziale per le viste calendario"
+    },
+    "security": {
+      "title": "Impostazioni Sicurezza",
+      "description": "Configura autenticazione e controllo accessi",
+      "saved_description": "Le impostazioni di sicurezza sono state aggiornate",
+      "warning_title": "Attenzione",
+      "warning_description": "Le modifiche alle impostazioni di sicurezza hanno effetto immediato e potrebbero influire su tutti gli utenti.",
+      "session_settings": "Impostazioni Sessione",
+      "session_timeout": "Timeout Sessione",
+      "session_timeout_hint": "Tempo prima che le sessioni inattive scadano",
+      "login_protection": "Protezione Accesso",
+      "max_login_attempts": "Max Tentativi di Accesso",
+      "max_login_attempts_hint": "Tentativi falliti prima del blocco account",
+      "lockout_duration": "Durata Blocco",
+      "lockout_duration_hint": "Quanto tempo gli account rimangono bloccati",
+      "mfa_settings": "Autenticazione Multi-Fattore",
+      "require_mfa": "Richiedi MFA per Tutti gli Utenti",
+      "require_mfa_hint": "Imponi l'autenticazione a due fattori per tutti gli account",
+      "mfa_warning_title": "Importante",
+      "mfa_warning_description": "Abilitando questa opzione, tutti gli utenti dovranno configurare l'MFA al prossimo accesso.",
+      "password_policy": "Policy Password",
+      "password_policy_info": "Tutte le password devono soddisfare i seguenti requisiti:",
+      "password_min_length": "Minimo 8 caratteri",
+      "password_uppercase": "Almeno una lettera maiuscola",
+      "password_lowercase": "Almeno una lettera minuscola",
+      "password_number": "Almeno un numero",
+      "password_special": "Almeno un carattere speciale"
+    },
+    "working_hours": {
+      "title": "Orari di Lavoro",
+      "description": "Configura gli orari settimanali dello studio",
+      "saved_description": "Gli orari di lavoro sono stati aggiornati",
+      "open": "Aperto",
+      "hours": "Orari",
+      "break": "Pausa",
+      "closed": "Chiuso",
+      "hint": "Configura l'orario settimanale regolare. Usa la scheda Festività per chiusure e giorni speciali."
+    },
+    "holidays": {
+      "title": "Festività e Chiusure",
+      "description": "Gestisci festività, chiusure e orari speciali",
+      "year_label": "Anno",
+      "add_holiday": "Aggiungi Festività",
+      "import_national": "Importa Festività Nazionali",
+      "import_italian": "Importa Festività Italiane",
+      "import_success": "Festività Importate",
+      "import_success_description": "{{count}} festività nazionali sono state importate",
+      "import_error": "Impossibile importare le festività",
+      "no_holidays": "Nessuna Festività",
+      "no_holidays_description": "Nessuna festività configurata per quest'anno",
+      "form": {
+        "title_create": "Aggiungi Festività",
+        "title_edit": "Modifica Festività",
+        "name": "Nome Festività",
+        "name_placeholder": "es. Natale",
+        "date": "Data",
+        "type": "Tipo",
+        "description": "Descrizione",
+        "description_placeholder": "Dettagli aggiuntivi su questa festività...",
+        "is_recurring": "Ricorrente Annuale",
+        "is_recurring_hint": "Ripeti automaticamente questa festività ogni anno"
+      },
+      "types": {
+        "national": "Festività Nazionale",
+        "practice_closed": "Studio Chiuso",
+        "vacation": "Ferie"
+      },
+      "delete": {
+        "title": "Elimina Festività",
+        "description": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata."
+      },
+      "messages": {
+        "create_success": "Festività Aggiunta",
+        "create_success_description": "La festività è stata aggiunta con successo",
+        "create_error": "Impossibile aggiungere la festività",
+        "update_success": "Festività Aggiornata",
+        "update_success_description": "La festività è stata aggiornata con successo",
+        "update_error": "Impossibile aggiornare la festività",
+        "delete_success": "Festività Eliminata",
+        "delete_success_description": "La festività è stata eliminata con successo",
+        "delete_error": "Impossibile eliminare la festività"
+      }
+    }
+  },
+  "audit": {
+    "page": {
+      "title": "Log di Audit",
+      "description": "Visualizza ed esporta i log delle attività di sistema per conformità e monitoraggio della sicurezza"
+    },
+    "tabs": {
+      "logs": "Log",
+      "statistics": "Statistiche"
+    },
+    "filters": {
+      "title": "Filtri",
+      "date_range": "Intervallo Date",
+      "presets": {
+        "today": "Oggi",
+        "yesterday": "Ieri",
+        "last_7_days": "Ultimi 7 giorni",
+        "last_30_days": "Ultimi 30 giorni",
+        "this_month": "Questo mese",
+        "custom": "Personalizzato"
+      },
+      "from_date": "Da",
+      "to_date": "A",
+      "user": "Utente",
+      "all_users": "Tutti gli Utenti",
+      "action": "Azione",
+      "all_actions": "Tutte le Azioni",
+      "entity_type": "Tipo Entità",
+      "all_entities": "Tutti i Tipi di Entità",
+      "entity_id": "ID Entità",
+      "entity_id_placeholder": "Inserisci UUID entità...",
+      "ip_address": "Indirizzo IP",
+      "ip_placeholder": "es. 192.168.1.1",
+      "apply": "Applica Filtri",
+      "reset": "Reimposta"
+    },
+    "table": {
+      "timestamp": "Data/Ora",
+      "user": "Utente",
+      "action": "Azione",
+      "entity": "Entità",
+      "ip_address": "Indirizzo IP",
+      "details": "Dettagli",
+      "view_details": "Visualizza Dettagli",
+      "no_logs": "Nessun Log di Audit Trovato",
+      "no_logs_description": "Nessun log di audit corrisponde ai filtri correnti",
+      "loading": "Caricamento log di audit...",
+      "error": "Impossibile caricare i log di audit",
+      "showing": "Visualizzando da {{from}} a {{to}} di {{total}} log",
+      "page_of": "Pagina {{current}} di {{total}}"
+    },
+    "detail": {
+      "title": "Dettagli Log di Audit",
+      "basic_info": "Informazioni di Base",
+      "timestamp": "Data/Ora",
+      "user": "Utente",
+      "entity_id": "ID Entità",
+      "request_info": "Informazioni Richiesta",
+      "ip_address": "Indirizzo IP",
+      "user_agent": "User Agent",
+      "request_id": "ID Richiesta",
+      "changes": "Modifiche",
+      "not_applicable": "N/D",
+      "not_recorded": "Non registrato",
+      "system_action": "Azione di Sistema"
+    },
+    "export": {
+      "title": "Esporta Log di Audit",
+      "description": "Esporta i log di audit in un file per analisi esterna o archiviazione",
+      "active_filters": "Filtri Attivi",
+      "no_filters": "Nessun filtro applicato (tutti i log)",
+      "filter_date_range": "Data: da {{from}} a {{to}}",
+      "filter_from": "Da: {{from}}",
+      "filter_to": "A: {{to}}",
+      "filter_user": "Filtrato per utente",
+      "filter_action": "Azione: {{action}}",
+      "filter_entity": "Entità: {{entity}}",
+      "format": "Formato Esportazione",
+      "csv_description": "Formato foglio di calcolo",
+      "json_description": "Leggibile da macchina",
+      "max_records": "Numero Massimo Record",
+      "max_records_hint": "Massimo 50.000 record per esportazione",
+      "export_button": "Esporta",
+      "exporting": "Esportazione...",
+      "success_title": "Esportazione Completata",
+      "success_description": "I log di audit sono stati esportati e scaricati",
+      "error_title": "Esportazione Fallita",
+      "error_description": "Impossibile esportare i log di audit. Riprova."
+    },
+    "stats": {
+      "total_logs": "Log Totali",
+      "all_time": "Di sempre",
+      "today": "Oggi",
+      "this_week": "Questa Settimana",
+      "this_month": "Questo Mese",
+      "logs_count": "registrazioni di audit",
+      "actions_breakdown": "Ripartizione Azioni",
+      "entity_breakdown": "Tipi di Entità",
+      "top_users": "Utenti Più Attivi",
+      "top_users_period": "Basato sugli ultimi 30 giorni",
+      "unknown_user": "Utente Sconosciuto",
+      "no_data": "Nessun dato disponibile"
+    },
+    "actions": {
+      "create": "Creazione",
+      "read": "Lettura",
+      "update": "Aggiornamento",
+      "delete": "Eliminazione",
+      "login": "Accesso",
+      "logout": "Disconnessione",
+      "search": "Ricerca",
+      "export": "Esportazione",
+      "sign": "Firma",
+      "lock": "Blocco",
+      "password_reset": "Reset Password",
+      "mfa_setup": "Configurazione MFA",
+      "mfa_disable": "Disabilitazione MFA"
+    },
+    "entities": {
+      "patient": "Paziente",
+      "visit": "Visita",
+      "appointment": "Appuntamento",
+      "user": "Utente",
+      "prescription": "Prescrizione",
+      "document": "Documento",
+      "template": "Modello",
+      "report": "Report",
+      "setting": "Impostazione",
+      "session": "Sessione",
+      "audit_log": "Log di Audit"
+    }
+  },
+  "system": {
+    "page": {
+      "title": "Stato Sistema",
+      "description": "Monitoraggio stato, prestazioni e metriche operative del sistema",
+      "auto_refresh": "Aggiornamento auto",
+      "last_updated": "Ultimo aggiornamento"
+    },
+    "status": {
+      "healthy": "Operativo",
+      "degraded": "Degradato",
+      "unhealthy": "Non operativo"
+    },
+    "database": {
+      "title": "Stato Database",
+      "status": "Stato",
+      "latency": "Latenza",
+      "pool_usage": "Utilizzo Pool",
+      "pool_size": "Dimensione Pool",
+      "available": "Disponibili"
+    },
+    "storage": {
+      "title": "Utilizzo Storage",
+      "disk_usage": "Utilizzo Disco",
+      "available": "disponibile",
+      "total": "totale",
+      "database": "Database",
+      "db_total": "Dimensione Totale",
+      "tables": "Tabelle",
+      "indexes": "Indici",
+      "rows": "Righe Stimate",
+      "files": "File Storage",
+      "documents": "Documenti",
+      "uploads": "Caricamenti",
+      "logs": "Log"
+    },
+    "backup": {
+      "title": "Stato Backup",
+      "status": "Stato",
+      "disabled": "Disabilitato",
+      "no_backup": "Nessun Backup",
+      "success": "Completato",
+      "failed": "Fallito",
+      "last_backup": "Ultimo Backup",
+      "backup_time": "Data Backup",
+      "size": "Dimensione",
+      "duration": "Durata",
+      "next_scheduled": "Prossimo Programmato",
+      "retention": "Conservazione",
+      "days": "giorni"
+    },
+    "info": {
+      "title": "Informazioni Sistema",
+      "application": "Applicazione",
+      "version": "Versione",
+      "rust_version": "Versione Rust",
+      "git_commit": "Commit Git",
+      "server": "Server",
+      "hostname": "Hostname",
+      "os": "Sistema Operativo",
+      "uptime": "Tempo Attivo",
+      "database": "Database",
+      "db_version": "Versione",
+      "db_name": "Database",
+      "tables": "Tabelle",
+      "pool_size": "Dimensione Pool",
+      "environment": "Ambiente",
+      "env_name": "Ambiente",
+      "log_level": "Livello Log",
+      "debug_mode": "Modalità Debug",
+      "timezone": "Fuso Orario"
+    },
+    "actions": {
+      "title": "Azioni Rapide",
+      "users": "Gestione Utenti",
+      "users_desc": "Gestisci utenti e ruoli",
+      "settings": "Impostazioni Sistema",
+      "settings_desc": "Configura impostazioni applicazione",
+      "audit_logs": "Log di Audit",
+      "audit_logs_desc": "Visualizza log attività sistema",
+      "working_hours": "Orari di Lavoro",
+      "working_hours_desc": "Configura orari dello studio",
+      "holidays": "Festività",
+      "holidays_desc": "Gestisci calendario festività",
+      "documents": "Documenti",
+      "documents_desc": "Gestisci modelli documento"
     }
   }
 }

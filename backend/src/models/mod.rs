@@ -8,13 +8,18 @@ pub mod appointment;
 pub mod audit_log;
 pub mod document_template;
 pub mod generated_document;
+pub mod holiday;
 pub mod patient;
+pub mod system_health;
 pub mod report;
 pub mod patient_insurance;
 pub mod prescription;
 pub mod prescription_template;
+pub mod system_setting;
+pub mod uploaded_file;
 pub mod user;
 pub mod visit;
+pub mod working_hours;
 pub mod visit_diagnosis;
 pub mod visit_template;
 pub mod visit_version;
@@ -86,4 +91,33 @@ pub use report::{
     ProviderProductivity, ProviderProductivityReport, QuickStats, RecentActivity,
     RecentAppointment, RecentVisit, ReportDateRange, ReportType, RevenueReport,
     RevenueReportFilter,
+};
+pub use system_setting::{
+    BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse, SettingChangeAudit,
+    SettingGroupInfo, SettingsFilter, SettingUpdate, SettingValueType, SystemSetting,
+    SystemSettingResponse, UpdateSettingRequest,
+};
+pub use working_hours::{
+    CreateOverrideRequest, DayOfWeek, DefaultWorkingHours, DefaultWorkingHoursResponse,
+    EffectiveHoursQuery, EffectiveHoursResponse, EffectiveWorkingHours, ListOverridesResponse,
+    OverrideType, OverridesFilter, UpdateAllWorkingHoursRequest, UpdateDayWorkingHoursRequest,
+    UpdateOverrideRequest, WeeklyScheduleResponse, WorkingHoursOverride,
+    WorkingHoursOverrideResponse,
+};
+pub use holiday::{
+    CheckHolidayResponse, CreateHolidayRequest, Holiday, HolidayResponse, HolidayType,
+    HolidaysFilter, ImportHolidaysResponse, ImportNationalHolidaysRequest, ListHolidaysResponse,
+    UpdateHolidayRequest,
+};
+pub use system_health::{
+    ApplicationInfo, BackupInfo, BackupStatusFile, BackupStatusResponse, ComponentHealth,
+    DatabaseInfo, DatabasePoolMetrics, DatabaseStorageStats, DetailedHealthResponse,
+    EnvironmentInfo, FileSystemStats, HealthStatus, ServerInfo, StorageBreakdown,
+    StorageStatsResponse, SystemInfoResponse, SystemResources, TableStorageInfo,
+};
+pub use uploaded_file::{
+    FilePurpose, FilesFilter, FileValidationResult, ListFilesResponse, LogoResponse,
+    UpdateFileRequest, UploadedFile, UploadedFileResponse, UploadFileRequest,
+    ALLOWED_DOCUMENT_MIME_TYPES, ALLOWED_IMAGE_MIME_TYPES, ALLOWED_LOGO_MIME_TYPES,
+    MAX_FILE_SIZE, MAX_FILENAME_LENGTH,
 };

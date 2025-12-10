@@ -12,23 +12,28 @@ use axum::{
 
 use crate::handlers::auth::AppState;
 use crate::handlers::{
-    cancel_appointment, check_availability, create_appointment, create_diagnosis, create_patient,
-    create_prescription, create_prescription_template, create_visit, create_visit_template,
-    delete_diagnosis, delete_patient, delete_prescription, delete_prescription_template,
-    delete_visit, delete_visit_template, discontinue_prescription, export_report,
-    get_appointment, get_appointment_report, get_daily_schedule, get_dashboard_report,
-    get_diagnosis, get_diagnosis_report, get_monthly_schedule, get_patient,
+    bulk_update_settings, cancel_appointment, check_availability, create_appointment,
+    create_diagnosis, create_patient, create_prescription, create_prescription_template,
+    create_visit, create_visit_template, delete_diagnosis, delete_patient, delete_prescription,
+    delete_prescription_template, delete_visit, delete_visit_template, discontinue_prescription,
+    export_report, get_appointment, get_appointment_report, get_daily_schedule,
+    get_dashboard_report, get_diagnosis, get_diagnosis_report, get_monthly_schedule, get_patient,
     get_patient_diagnoses, get_patient_prescriptions, get_patient_report, get_patient_statistics,
     get_patient_visits, get_prescription, get_prescription_template, get_productivity_report,
-    get_revenue_report, get_visit, get_visit_diagnoses, get_visit_prescriptions,
-    get_visit_statistics, get_visit_template, get_visit_version, get_weekly_schedule,
-    list_appointments, list_patients, list_prescription_templates, list_visit_templates,
-    list_visits, list_visit_versions, lock_visit, login_handler, logout_handler,
-    mfa_enroll_handler, mfa_setup_handler, refresh_token_handler, restore_visit_version,
-    search_icd10, search_medications, search_patients, sign_visit, update_appointment,
-    update_diagnosis, update_patient, update_prescription, update_prescription_template,
-    update_visit, update_visit_template,
+    get_revenue_report, get_setting, get_settings_by_group, get_visit, get_visit_diagnoses,
+    get_visit_prescriptions, get_visit_statistics, get_visit_template, get_visit_version,
+    get_weekly_schedule, list_appointments, list_groups, list_patients, list_prescription_templates,
+    list_settings, list_visit_templates, list_visits, list_visit_versions, lock_visit,
+    login_handler, logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler,
+    reset_setting, restore_visit_version, search_icd10, search_medications, search_patients,
+    sign_visit, update_appointment, update_diagnosis, update_patient, update_prescription,
+    update_prescription_template, update_setting, update_visit, update_visit_template,
 };
+use crate::handlers::audit_logs;
+use crate::handlers::files;
+use crate::handlers::holidays;
+use crate::handlers::system_health;
+use crate::handlers::working_hours;
 use crate::middleware::auth::jwt_auth_middleware;
 
 #[cfg(feature = "rbac")]
@@ -194,6 +199,89 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // System settings routes - requires authentication
+    let settings_routes = Router::new()
+        .route("/", get(list_settings))
+        .route("/groups", get(list_groups))
+        .route("/bulk", post(bulk_update_settings))
+        .route("/group/{group}", get(get_settings_by_group))
+        .route("/{key}", get(get_setting).put(update_setting))
+        .route("/reset/{key}", post(reset_setting))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Working hours routes - requires authentication
+    let working_hours_routes = Router::new()
+        .route("/", get(working_hours::get_weekly_schedule).put(working_hours::update_all_working_hours))
+        .route("/effective", get(working_hours::get_effective_hours))
+        .route("/check/{date}", get(working_hours::check_working_day))
+        .route("/overrides", get(working_hours::list_overrides).post(working_hours::create_override))
+        .route("/overrides/{id}", get(working_hours::get_override).put(working_hours::update_override).delete(working_hours::delete_override))
+        .route("/{day}", put(working_hours::update_day_working_hours))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Holidays routes - requires authentication
+    let holidays_routes = Router::new()
+        .route("/", get(holidays::list_holidays).post(holidays::create_holiday))
+        .route("/check/{date}", get(holidays::check_holiday))
+        .route("/range", get(holidays::get_holidays_range))
+        .route("/import-national", post(holidays::import_national_holidays))
+        .route("/{id}", get(holidays::get_holiday).put(holidays::update_holiday).delete(holidays::delete_holiday))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Audit logs routes - requires authentication (ADMIN only via RBAC)
+    let audit_logs_routes = Router::new()
+        .route("/", get(audit_logs::list_audit_logs))
+        .route("/statistics", get(audit_logs::get_statistics))
+        .route("/export", get(audit_logs::export_audit_logs))
+        .route("/filter-options", get(audit_logs::get_filter_options))
+        .route("/user/{user_id}/activity", get(audit_logs::get_user_activity))
+        .route("/{id}", get(audit_logs::get_audit_log))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // System health & status routes - requires authentication (ADMIN only via RBAC)
+    let system_routes = Router::new()
+        .route("/health/detailed", get(system_health::get_detailed_health))
+        .route("/info", get(system_health::get_system_info))
+        .route("/storage", get(system_health::get_storage_stats))
+        .route("/backup-status", get(system_health::get_backup_status))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // File upload routes - requires authentication (ADMIN only for upload/delete)
+    let files_routes = Router::new()
+        .route("/", get(files::list_files))
+        .route("/upload", post(files::upload_file))
+        .route("/{id}", get(files::get_file_metadata).put(files::update_file).delete(files::delete_file))
+        .route("/{id}/download", get(files::download_file))
+        .route("/{id}/serve", get(files::serve_file))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Logo routes - mixed authentication (serve is public, upload/delete require ADMIN)
+    let logo_routes = Router::new()
+        .route("/", post(files::upload_logo).get(files::get_logo).delete(files::delete_logo))
+        .route("/image", get(files::serve_logo))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
@@ -204,7 +292,14 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .nest("/prescriptions", prescription_routes)
         .nest("/visit-templates", visit_template_routes)
         .nest("/prescription-templates", prescription_template_routes)
-        .nest("/reports", report_routes);
+        .nest("/reports", report_routes)
+        .nest("/settings", settings_routes)
+        .nest("/settings/logo", logo_routes)
+        .nest("/working-hours", working_hours_routes)
+        .nest("/holidays", holidays_routes)
+        .nest("/audit-logs", audit_logs_routes)
+        .nest("/system", system_routes)
+        .nest("/files", files_routes);
 
     #[cfg(feature = "rbac")]
     {
@@ -226,7 +321,8 @@ mod tests {
     use super::*;
     use crate::config::{DatabaseConfig, JwtConfig, SecurityConfig};
     use crate::db::create_pool;
-    use crate::services::AuthService;
+    use crate::services::{AuthService, SettingsService};
+    use std::sync::Arc;
     use std::time::Duration;
 
     async fn test_app_state() -> AppState {
@@ -269,11 +365,14 @@ mod tests {
         };
 
         AppState {
-            pool,
+            pool: pool.clone(),
             auth_service: AuthService::new(jwt_config, security_config.clone()),
             session_manager: crate::middleware::session_timeout::SessionManager::new(security_config.session_timeout),
             encryption_key: None, // Not needed for auth routes test
             email_service: None,  // Not needed for routes test
+            settings_service: Arc::new(SettingsService::new(pool)),
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         }

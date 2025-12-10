@@ -18,9 +18,11 @@ use crate::{
         ListGeneratedDocumentsResponse, PageOrientation, PageSize, TemplateLanguage,
         UpdateDocumentTemplateRequest,
     },
+    services::FileUploadService,
     utils::encryption::EncryptionKey,
 };
 use anyhow::{Context, Result};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use chrono::Utc;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
@@ -503,6 +505,33 @@ impl DocumentService {
 
         tracing::debug!("Patient and provider data fetched successfully");
 
+        // Fetch practice logo (outside transaction)
+        let logo_data = match FileUploadService::get_logo(&self.pool).await {
+            Ok(Some(logo)) => {
+                // Read logo file and convert to base64 data URI
+                match FileUploadService::read_file(&logo.storage_path).await {
+                    Ok(bytes) => {
+                        let base64_data = BASE64.encode(&bytes);
+                        let data_uri = format!("data:{};base64,{}", logo.mime_type, base64_data);
+                        tracing::debug!("Logo loaded successfully, size: {} bytes", bytes.len());
+                        Some(data_uri)
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to read logo file: {}", e);
+                        None
+                    }
+                }
+            }
+            Ok(None) => {
+                tracing::debug!("No practice logo configured");
+                None
+            }
+            Err(e) => {
+                tracing::warn!("Failed to fetch logo: {}", e);
+                None
+            }
+        };
+
         // Build patient data for template (using decrypted values)
         let patient_full_name = if let Some(ref middle) = patient_middle_name {
             format!("{} {} {}", patient_first_name, middle, patient_last_name)
@@ -541,6 +570,9 @@ impl DocumentService {
         let mut clinic_address = String::new();
         let mut clinic_phone = String::new();
         let mut clinic_email = String::new();
+        let mut clinic_vat = String::new();
+        let mut clinic_website = String::new();
+        let mut clinic_fax = String::new();
 
         for setting in &clinic_settings {
             // Extract string value from JSON (removing quotes if present)
@@ -553,6 +585,9 @@ impl DocumentService {
                 "clinic.address" => clinic_address = value,
                 "clinic.phone" => clinic_phone = value,
                 "clinic.email" => clinic_email = value,
+                "clinic.vat_number" => clinic_vat = value,
+                "clinic.website" => clinic_website = value,
+                "clinic.fax" => clinic_fax = value,
                 _ => {}
             }
         }
@@ -569,10 +604,15 @@ impl DocumentService {
         let clinic_data = serde_json::json!({
             "name": clinic_name,
             "address": street,
+            "full_address": clinic_address,
             "city": city,
             "province": province,
             "phone": clinic_phone,
+            "fax": clinic_fax,
             "email": clinic_email,
+            "website": clinic_website,
+            "vat_number": clinic_vat,
+            "logo": logo_data,
         });
 
         // Build document metadata

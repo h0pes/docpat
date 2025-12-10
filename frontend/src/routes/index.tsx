@@ -35,6 +35,15 @@ import { PatientVisitsPage } from '../pages/patients/PatientVisitsPage';
 import { DocumentTemplatesPage } from '../components/documents';
 import { DocumentsPage } from '../pages/documents/DocumentsPage';
 import { ReportsPage } from '../pages/reports';
+import {
+  UsersPage,
+  NewUserPage,
+  EditUserPage,
+  UserDetailPage,
+} from '../pages/users';
+import { SettingsPage } from '../pages/settings';
+import { AuditLogsPage } from '../pages/audit';
+import { SystemHealthPage } from '../pages/system';
 
 /**
  * Application router configuration
@@ -144,17 +153,78 @@ export const router = createBrowserRouter([
             path: '/documents',
             element: <DocumentsPage />,
           },
+          // Document templates (Admin only)
           {
             path: '/document-templates',
-            element: <DocumentTemplatesPage />,
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <DocumentTemplatesPage />
+              </ProtectedRoute>
+            ),
           },
           {
             path: '/reports',
             element: <ReportsPage />,
           },
+          // User management routes (Admin only)
+          {
+            path: '/users',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <UsersPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/users/new',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <NewUserPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/users/:id',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <UserDetailPage />
+              </ProtectedRoute>
+            ),
+          },
+          {
+            path: '/users/:id/edit',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <EditUserPage />
+              </ProtectedRoute>
+            ),
+          },
+          // Settings (Admin only)
           {
             path: '/settings',
-            element: <div>Settings page - Coming soon</div>,
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <SettingsPage />
+              </ProtectedRoute>
+            ),
+          },
+          // Audit Logs (Admin only)
+          {
+            path: '/audit-logs',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <AuditLogsPage />
+              </ProtectedRoute>
+            ),
+          },
+          // System Health (Admin only)
+          {
+            path: '/system-health',
+            element: (
+              <ProtectedRoute requiredRole="ADMIN">
+                <SystemHealthPage />
+              </ProtectedRoute>
+            ),
           },
           {
             path: '/profile',

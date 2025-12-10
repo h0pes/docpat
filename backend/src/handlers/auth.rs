@@ -9,10 +9,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     middleware::session_timeout::SessionManager,
-    services::{AuthService, EmailService, LoginRequest, LoginResponse, TokenPair},
+    services::{AuthService, EmailService, LoginRequest, LoginResponse, SettingsService, TokenPair},
     utils::{EncryptionKey, Result},
 };
 use sqlx::PgPool;
+use std::sync::Arc;
 
 #[cfg(feature = "rbac")]
 use crate::middleware::authorization::CasbinEnforcer;
@@ -26,6 +27,12 @@ pub struct AppState {
     pub encryption_key: Option<EncryptionKey>,
     /// Email service for document delivery (optional - None if not configured)
     pub email_service: Option<EmailService>,
+    /// Settings service with in-memory cache (shared across requests)
+    pub settings_service: Arc<SettingsService>,
+    /// Server start time for uptime calculation
+    pub start_time: std::time::SystemTime,
+    /// Current environment (development/production)
+    pub environment: String,
     #[cfg(feature = "rbac")]
     pub enforcer: CasbinEnforcer,
 }
@@ -209,6 +216,7 @@ mod tests {
     #[tokio::test]
     async fn test_logout_handler() {
         use crate::middleware::session_timeout::SessionManager;
+        use crate::services::SettingsService;
         use sqlx::PgPool;
 
         // Create minimal AppState for test
@@ -225,11 +233,14 @@ mod tests {
         };
 
         let app_state = AppState {
-            pool,
+            pool: pool.clone(),
             auth_service: test_auth_service(),
             session_manager: SessionManager::new(1800),
             encryption_key: None, // Not needed for auth test
             email_service: None,  // Not needed for auth test
+            settings_service: Arc::new(SettingsService::new(pool)),
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         };

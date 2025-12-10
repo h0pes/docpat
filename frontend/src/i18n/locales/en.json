@@ -22,6 +22,7 @@
     "filter": "Filter",
     "reset": "Reset",
     "submit": "Submit",
+    "refresh": "Refresh",
     "loading": "Loading...",
     "noResults": "No results found",
     "comingSoon": "Coming soon",
@@ -53,7 +54,21 @@
     "print": "Print",
     "errors": {
       "generic": "An error occurred. Please try again."
-    }
+    },
+    "not_provided": "Not provided",
+    "day": "Day",
+    "days": "days",
+    "hour": "hour",
+    "hours": "hours",
+    "minute": "minute",
+    "minutes": "minutes",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
   },
   "auth": {
     "login": "Login",
@@ -170,9 +185,14 @@
     "documents": "Documents",
     "document_templates": "Document Templates",
     "reports": "Reports",
+    "users": "Users",
     "settings": "Settings",
+    "audit_logs": "Audit Logs",
+    "system_health": "System Health",
     "profile": "Profile",
-    "help": "Help"
+    "help": "Help",
+    "admin_section": "Administration",
+    "personal_section": "Personal"
   },
   "theme": {
     "light": "Light",
@@ -482,7 +502,10 @@
       "future_date_required": "Appointment must be in the future",
       "reason_max": "Reason cannot exceed 2000 characters",
       "notes_max": "Notes cannot exceed 5000 characters",
-      "cancellation_reason_required": "Cancellation reason is required"
+      "cancellation_reason_required": "Cancellation reason is required",
+      "holiday_selected": "Cannot schedule appointment on holiday: {{name}}",
+      "non_working_day": "Cannot schedule appointment on a non-working day",
+      "slot_unavailable": "Selected time slot is not available. Please choose a different time."
     },
     "actions": {
       "new": "New Appointment",
@@ -1586,6 +1609,545 @@
       "providerDetails": "Provider Details",
       "providerDetailsDesc": "Detailed productivity metrics for each provider",
       "noProviders": "No provider data available"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Manage user accounts",
+    "list": {
+      "title": "User Management",
+      "subtitle": "View and manage all user accounts"
+    },
+    "new": {
+      "title": "Create User",
+      "subtitle": "Create a new user account"
+    },
+    "edit": {
+      "title": "Edit User",
+      "subtitle": "Editing {{name}}"
+    },
+    "detail": {
+      "title": "User Details",
+      "contact_info": "Contact Information",
+      "activity_info": "Activity Information",
+      "created_at": "Account Created",
+      "actions": "User Actions",
+      "actions_description": "Manage user account status and security"
+    },
+    "total_count": "{{count}} users",
+    "search_placeholder": "Search by name, username, or email...",
+    "filters": "Filters",
+    "clear_filters": "Clear Filters",
+    "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
+    "page_of": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "no_results": "No Users Found",
+    "no_results_description": "Try adjusting your search or filters",
+    "no_users": "No Users Yet",
+    "no_users_description": "Get started by adding your first user",
+    "error_title": "Error Loading Users",
+    "error_loading": "Failed to load users. Please try again.",
+    "retry": "Retry",
+    "last_login": "Last Login",
+    "never_logged_in": "Never logged in",
+    "mfa_enabled": "Two-factor authentication is enabled",
+    "roles": {
+      "admin": "Administrator",
+      "doctor": "Doctor"
+    },
+    "status": {
+      "label": "Status",
+      "all": "All Statuses",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "role": {
+      "label": "Role",
+      "all": "All Roles"
+    },
+    "form": {
+      "account_info": "Account Information",
+      "account_info_description": "Login credentials and role assignment",
+      "personal_info": "Personal Information",
+      "username": "Username",
+      "username_placeholder": "Enter username",
+      "username_hint": "Username can only contain letters, numbers, and underscores",
+      "email": "Email",
+      "email_placeholder": "Enter email address",
+      "password": "Password",
+      "password_placeholder": "Enter a strong password",
+      "role": "Role",
+      "role_placeholder": "Select a role",
+      "role_description": "Administrators have full system access. Doctors have clinical access only.",
+      "first_name": "First Name",
+      "first_name_placeholder": "Enter first name",
+      "last_name": "Last Name",
+      "last_name_placeholder": "Enter last name",
+      "phone": "Phone Number",
+      "phone_placeholder": "Enter phone number",
+      "phone_hint": "Optional contact number"
+    },
+    "validation": {
+      "username_min": "Username must be at least 3 characters",
+      "username_max": "Username must be at most 50 characters",
+      "username_format": "Username can only contain letters, numbers, and underscores",
+      "email_invalid": "Please enter a valid email address",
+      "first_name_required": "First name is required",
+      "last_name_required": "Last name is required",
+      "password_min": "Password must be at least 8 characters",
+      "password_uppercase": "Password must contain at least one uppercase letter",
+      "password_lowercase": "Password must contain at least one lowercase letter",
+      "password_number": "Password must contain at least one number",
+      "password_special": "Password must contain at least one special character"
+    },
+    "actions": {
+      "new": "New User",
+      "view": "View Details",
+      "edit": "Edit User",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "reset_password": "Reset Password",
+      "reset_mfa": "Reset MFA"
+    },
+    "dialogs": {
+      "deactivate": {
+        "title": "Deactivate User",
+        "description": "Are you sure you want to deactivate {{name}}?",
+        "warning_title": "This action will:",
+        "effect_1": "Prevent the user from logging in",
+        "effect_2": "Revoke all active sessions",
+        "effect_3": "Disable MFA if enabled"
+      },
+      "activate": {
+        "title": "Activate User",
+        "description": "Are you sure you want to activate {{name}}? They will be able to log in again."
+      },
+      "reset_password": {
+        "title": "Reset Password",
+        "description": "Set a new password for {{name}}",
+        "new_password": "New Password",
+        "placeholder": "Enter new password",
+        "confirm": "Reset Password"
+      },
+      "reset_mfa": {
+        "title": "Reset MFA",
+        "description": "Are you sure you want to reset MFA for {{name}}?",
+        "warning_title": "This action will:",
+        "effect_1": "Disable two-factor authentication",
+        "effect_2": "Invalidate backup codes",
+        "effect_3": "User will need to set up MFA again",
+        "confirm": "Reset MFA"
+      }
+    },
+    "messages": {
+      "createSuccess": "User Created",
+      "createSuccessDescription": "User account has been successfully created",
+      "createError": "Failed to Create User",
+      "updateSuccess": "User Updated",
+      "updateSuccessDescription": "User account has been successfully updated",
+      "updateError": "Failed to Update User",
+      "loadError": "Failed to Load User",
+      "activateSuccess": "User Activated",
+      "activateSuccessDescription": "User account has been activated",
+      "activateError": "Failed to Activate User",
+      "deactivateSuccess": "User Deactivated",
+      "deactivateSuccessDescription": "User account has been deactivated",
+      "deactivateError": "Failed to Deactivate User",
+      "resetPasswordSuccess": "Password Reset",
+      "resetPasswordSuccessDescription": "Password has been reset successfully",
+      "resetPasswordError": "Failed to Reset Password",
+      "resetMfaSuccess": "MFA Reset",
+      "resetMfaSuccessDescription": "Two-factor authentication has been reset",
+      "resetMfaError": "Failed to Reset MFA"
+    },
+    "errors": {
+      "admin_only": "This page is only accessible to administrators",
+      "cannot_deactivate_self": "You cannot deactivate your own account"
+    },
+    "sort": {
+      "nameAsc": "Name (A-Z)",
+      "nameDesc": "Name (Z-A)",
+      "usernameAsc": "Username (A-Z)",
+      "usernameDesc": "Username (Z-A)",
+      "createdAsc": "Oldest First",
+      "createdDesc": "Newest First"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure your practice settings and preferences",
+    "saved": "Settings Saved",
+    "save_error": "Failed to save settings. Please try again.",
+    "tabs": {
+      "practice": "Practice",
+      "appointments": "Appointments",
+      "localization": "Localization",
+      "security": "Security",
+      "working_hours": "Working Hours",
+      "holidays": "Holidays"
+    },
+    "errors": {
+      "admin_only": "Settings are only accessible to administrators"
+    },
+    "practice": {
+      "title": "Practice Information",
+      "description": "Configure your clinic's basic information",
+      "saved_description": "Practice settings have been updated",
+      "name": "Practice Name",
+      "name_placeholder": "Enter your practice name",
+      "name_hint": "The name displayed throughout the application",
+      "address": "Address",
+      "address_placeholder": "Enter your practice address",
+      "city": "City",
+      "city_placeholder": "Enter city",
+      "phone": "Phone",
+      "phone_placeholder": "Enter phone number",
+      "email": "Email",
+      "email_placeholder": "Enter email address",
+      "website": "Website",
+      "website_placeholder": "https://www.example.com",
+      "tax_id": "Tax ID / VAT Number",
+      "tax_id_placeholder": "Enter tax identification number",
+      "logo": "Logo",
+      "logo_hint": "Upload your practice logo (PNG, JPG, max 2MB)",
+      "upload_logo": "Upload Logo",
+      "remove_logo": "Remove Logo",
+      "contact_details": "Contact Details"
+    },
+    "appointment": {
+      "title": "Appointment Settings",
+      "description": "Configure default appointment behavior",
+      "saved_description": "Appointment settings have been updated",
+      "default_duration": "Default Duration",
+      "default_duration_hint": "Default length for new appointments",
+      "buffer_minutes": "Buffer Time",
+      "buffer_hint": "Time between consecutive appointments",
+      "no_buffer": "No buffer",
+      "booking_rules": "Booking Rules",
+      "advance_booking_days": "Advance Booking Days",
+      "advance_booking_hint": "How far in advance patients can book",
+      "cancellation_notice": "Cancellation Notice (hours)",
+      "cancellation_notice_hint": "Required notice for cancellations",
+      "max_per_day": "Max Appointments Per Day",
+      "max_per_day_hint": "Maximum appointments that can be scheduled per day",
+      "allow_same_day": "Allow Same-Day Booking",
+      "allow_same_day_hint": "Allow patients to book appointments for the same day"
+    },
+    "localization": {
+      "title": "Localization",
+      "description": "Configure language, date, and time formats",
+      "saved_description": "Localization settings have been updated",
+      "language": "Default Language",
+      "language_hint": "The default interface language",
+      "timezone": "Timezone",
+      "timezone_hint": "Your practice's timezone",
+      "date_format": "Date Format",
+      "date_format_hint": "How dates are displayed",
+      "time_format": "Time Format",
+      "time_format_hint": "12-hour or 24-hour clock",
+      "first_day_of_week": "First Day of Week",
+      "first_day_hint": "Starting day for calendar views"
+    },
+    "security": {
+      "title": "Security Settings",
+      "description": "Configure authentication and access control",
+      "saved_description": "Security settings have been updated",
+      "warning_title": "Caution",
+      "warning_description": "Changes to security settings take effect immediately and may impact all users.",
+      "session_settings": "Session Settings",
+      "session_timeout": "Session Timeout",
+      "session_timeout_hint": "Time until inactive sessions expire",
+      "login_protection": "Login Protection",
+      "max_login_attempts": "Max Login Attempts",
+      "max_login_attempts_hint": "Failed attempts before account lockout",
+      "lockout_duration": "Lockout Duration",
+      "lockout_duration_hint": "How long accounts remain locked",
+      "mfa_settings": "Multi-Factor Authentication",
+      "require_mfa": "Require MFA for All Users",
+      "require_mfa_hint": "Enforce two-factor authentication for all accounts",
+      "mfa_warning_title": "Important",
+      "mfa_warning_description": "Enabling this will require all users to set up MFA on their next login.",
+      "password_policy": "Password Policy",
+      "password_policy_info": "All passwords must meet the following requirements:",
+      "password_min_length": "Minimum 8 characters",
+      "password_uppercase": "At least one uppercase letter",
+      "password_lowercase": "At least one lowercase letter",
+      "password_number": "At least one number",
+      "password_special": "At least one special character"
+    },
+    "working_hours": {
+      "title": "Working Hours",
+      "description": "Configure your practice's weekly schedule",
+      "saved_description": "Working hours have been updated",
+      "open": "Open",
+      "hours": "Hours",
+      "break": "Break",
+      "closed": "Closed",
+      "hint": "Configure the regular weekly schedule. Use the Holidays tab for closures and special days."
+    },
+    "holidays": {
+      "title": "Holidays & Closures",
+      "description": "Manage holidays, closures, and special schedules",
+      "year_label": "Year",
+      "add_holiday": "Add Holiday",
+      "import_national": "Import National Holidays",
+      "import_italian": "Import Italian Holidays",
+      "import_success": "Holidays Imported",
+      "import_success_description": "{{count}} national holidays have been imported",
+      "import_error": "Failed to import holidays",
+      "no_holidays": "No Holidays",
+      "no_holidays_description": "No holidays have been configured for this year",
+      "form": {
+        "title_create": "Add Holiday",
+        "title_edit": "Edit Holiday",
+        "name": "Holiday Name",
+        "name_placeholder": "e.g., Christmas Day",
+        "date": "Date",
+        "type": "Type",
+        "description": "Description",
+        "description_placeholder": "Additional details about this holiday...",
+        "is_recurring": "Recurring Annual",
+        "is_recurring_hint": "Automatically repeat this holiday every year"
+      },
+      "types": {
+        "national": "National Holiday",
+        "practice_closed": "Practice Closed",
+        "vacation": "Vacation"
+      },
+      "delete": {
+        "title": "Delete Holiday",
+        "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+      },
+      "messages": {
+        "create_success": "Holiday Added",
+        "create_success_description": "The holiday has been added successfully",
+        "create_error": "Failed to add holiday",
+        "update_success": "Holiday Updated",
+        "update_success_description": "The holiday has been updated successfully",
+        "update_error": "Failed to update holiday",
+        "delete_success": "Holiday Deleted",
+        "delete_success_description": "The holiday has been deleted successfully",
+        "delete_error": "Failed to delete holiday"
+      }
+    }
+  },
+  "audit": {
+    "page": {
+      "title": "Audit Logs",
+      "description": "View and export system activity logs for compliance and security monitoring"
+    },
+    "tabs": {
+      "logs": "Logs",
+      "statistics": "Statistics"
+    },
+    "filters": {
+      "title": "Filters",
+      "date_range": "Date Range",
+      "presets": {
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "last_7_days": "Last 7 days",
+        "last_30_days": "Last 30 days",
+        "this_month": "This month",
+        "custom": "Custom"
+      },
+      "from_date": "From",
+      "to_date": "To",
+      "user": "User",
+      "all_users": "All Users",
+      "action": "Action",
+      "all_actions": "All Actions",
+      "entity_type": "Entity Type",
+      "all_entities": "All Entity Types",
+      "entity_id": "Entity ID",
+      "entity_id_placeholder": "Enter entity UUID...",
+      "ip_address": "IP Address",
+      "ip_placeholder": "e.g., 192.168.1.1",
+      "apply": "Apply Filters",
+      "reset": "Reset"
+    },
+    "table": {
+      "timestamp": "Timestamp",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "ip_address": "IP Address",
+      "details": "Details",
+      "view_details": "View Details",
+      "no_logs": "No Audit Logs Found",
+      "no_logs_description": "No audit logs match your current filters",
+      "loading": "Loading audit logs...",
+      "error": "Failed to load audit logs",
+      "showing": "Showing {{from}} to {{to}} of {{total}} logs",
+      "page_of": "Page {{current}} of {{total}}"
+    },
+    "detail": {
+      "title": "Audit Log Details",
+      "basic_info": "Basic Information",
+      "timestamp": "Timestamp",
+      "user": "User",
+      "entity_id": "Entity ID",
+      "request_info": "Request Information",
+      "ip_address": "IP Address",
+      "user_agent": "User Agent",
+      "request_id": "Request ID",
+      "changes": "Changes",
+      "not_applicable": "N/A",
+      "not_recorded": "Not recorded",
+      "system_action": "System Action"
+    },
+    "export": {
+      "title": "Export Audit Logs",
+      "description": "Export audit logs to a file for external analysis or archival",
+      "active_filters": "Active Filters",
+      "no_filters": "No filters applied (all logs)",
+      "filter_date_range": "Date: {{from}} to {{to}}",
+      "filter_from": "From: {{from}}",
+      "filter_to": "To: {{to}}",
+      "filter_user": "Filtered by user",
+      "filter_action": "Action: {{action}}",
+      "filter_entity": "Entity: {{entity}}",
+      "format": "Export Format",
+      "csv_description": "Spreadsheet format",
+      "json_description": "Machine readable",
+      "max_records": "Maximum Records",
+      "max_records_hint": "Maximum 50,000 records per export",
+      "export_button": "Export",
+      "exporting": "Exporting...",
+      "success_title": "Export Successful",
+      "success_description": "Audit logs have been exported and downloaded",
+      "error_title": "Export Failed",
+      "error_description": "Failed to export audit logs. Please try again."
+    },
+    "stats": {
+      "total_logs": "Total Logs",
+      "all_time": "All time",
+      "today": "Today",
+      "this_week": "This Week",
+      "this_month": "This Month",
+      "logs_count": "audit entries",
+      "actions_breakdown": "Actions Breakdown",
+      "entity_breakdown": "Entity Types",
+      "top_users": "Most Active Users",
+      "top_users_period": "Based on last 30 days",
+      "unknown_user": "Unknown User",
+      "no_data": "No data available"
+    },
+    "actions": {
+      "create": "Create",
+      "read": "Read",
+      "update": "Update",
+      "delete": "Delete",
+      "login": "Login",
+      "logout": "Logout",
+      "search": "Search",
+      "export": "Export",
+      "sign": "Sign",
+      "lock": "Lock",
+      "password_reset": "Password Reset",
+      "mfa_setup": "MFA Setup",
+      "mfa_disable": "MFA Disable"
+    },
+    "entities": {
+      "patient": "Patient",
+      "visit": "Visit",
+      "appointment": "Appointment",
+      "user": "User",
+      "prescription": "Prescription",
+      "document": "Document",
+      "template": "Template",
+      "report": "Report",
+      "setting": "Setting",
+      "session": "Session",
+      "audit_log": "Audit Log"
+    }
+  },
+  "system": {
+    "page": {
+      "title": "System Health",
+      "description": "Monitor system status, performance, and operational metrics",
+      "auto_refresh": "Auto-refresh",
+      "last_updated": "Last updated"
+    },
+    "status": {
+      "healthy": "Healthy",
+      "degraded": "Degraded",
+      "unhealthy": "Unhealthy"
+    },
+    "database": {
+      "title": "Database Status",
+      "status": "Status",
+      "latency": "Latency",
+      "pool_usage": "Pool Usage",
+      "pool_size": "Pool Size",
+      "available": "Available"
+    },
+    "storage": {
+      "title": "Storage Usage",
+      "disk_usage": "Disk Usage",
+      "available": "available",
+      "total": "total",
+      "database": "Database",
+      "db_total": "Total Size",
+      "tables": "Tables",
+      "indexes": "Indexes",
+      "rows": "Est. Rows",
+      "files": "File Storage",
+      "documents": "Documents",
+      "uploads": "Uploads",
+      "logs": "Logs"
+    },
+    "backup": {
+      "title": "Backup Status",
+      "status": "Status",
+      "disabled": "Disabled",
+      "no_backup": "No Backup",
+      "success": "Successful",
+      "failed": "Failed",
+      "last_backup": "Last Backup",
+      "backup_time": "Backup Time",
+      "size": "Size",
+      "duration": "Duration",
+      "next_scheduled": "Next Scheduled",
+      "retention": "Retention",
+      "days": "days"
+    },
+    "info": {
+      "title": "System Information",
+      "application": "Application",
+      "version": "Version",
+      "rust_version": "Rust Version",
+      "git_commit": "Git Commit",
+      "server": "Server",
+      "hostname": "Hostname",
+      "os": "OS",
+      "uptime": "Uptime",
+      "database": "Database",
+      "db_version": "Version",
+      "db_name": "Database",
+      "tables": "Tables",
+      "pool_size": "Pool Size",
+      "environment": "Environment",
+      "env_name": "Environment",
+      "log_level": "Log Level",
+      "debug_mode": "Debug Mode",
+      "timezone": "Timezone"
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "users": "User Management",
+      "users_desc": "Manage users and roles",
+      "settings": "System Settings",
+      "settings_desc": "Configure application settings",
+      "audit_logs": "Audit Logs",
+      "audit_logs_desc": "View system activity logs",
+      "working_hours": "Working Hours",
+      "working_hours_desc": "Configure practice hours",
+      "holidays": "Holidays",
+      "holidays_desc": "Manage holiday schedule",
+      "documents": "Documents",
+      "documents_desc": "Manage document templates"
     }
   }
 }

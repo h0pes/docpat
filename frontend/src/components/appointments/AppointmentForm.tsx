@@ -4,15 +4,21 @@
  * A comprehensive form for creating and editing appointments.
  * Includes patient selection, date/time picking, type selection with auto-duration,
  * and optional recurring appointment configuration.
+ *
+ * Integrates with working hours and holidays settings to:
+ * - Disable non-working days and holidays in the calendar
+ * - Only show available time slots based on working hours
+ * - Prevent submission when slot is unavailable
  */
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { format, addMinutes, parseISO, setHours, setMinutes } from 'date-fns';
-import { Calendar as CalendarIcon, Clock, Loader2 } from 'lucide-react';
+import { format, addMinutes, parseISO, setHours, setMinutes, startOfDay } from 'date-fns';
+import { Calendar as CalendarIcon, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 import type {
   CreateAppointmentRequest,
@@ -26,6 +32,9 @@ import {
 } from '../../types/appointment';
 import { PatientSearchCombobox } from './PatientSearchCombobox';
 import { AvailabilityIndicator } from './AvailabilityIndicator';
+import { useSchedulingConstraints, getDisabledReason } from '../../hooks/useSchedulingConstraints';
+import { appointmentsApi } from '../../services/api/appointments';
+import { Alert, AlertDescription } from '../ui/alert';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -155,6 +164,63 @@ export function AppointmentForm({
   const isRecurring = watch('is_recurring');
   const selectedDate = watch('date');
   const selectedTime = watch('time');
+  const selectedDuration = watch('duration_minutes');
+
+  // Get scheduling constraints (working hours, holidays)
+  const {
+    isDateDisabled,
+    getTimeSlots,
+    isLoading: isLoadingConstraints,
+    weeklySchedule,
+    holidays,
+  } = useSchedulingConstraints({
+    currentMonth: selectedDate,
+    enabled: true,
+  });
+
+  // Get available time slots for the selected date
+  const availableTimeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return getTimeSlots(selectedDate);
+  }, [selectedDate, getTimeSlots]);
+
+  // Check availability for the selected slot
+  const dateString = selectedDate
+    ? format(startOfDay(selectedDate), "yyyy-MM-dd'T'HH:mm:ss'Z'")
+    : '';
+
+  const { data: availability, isLoading: isCheckingAvailability } = useQuery({
+    queryKey: ['availability', providerId, dateString, selectedDuration],
+    queryFn: () =>
+      appointmentsApi.checkAvailability(providerId, dateString, selectedDuration),
+    enabled: !!providerId && !!selectedDate && !!selectedTime && selectedDuration > 0,
+    staleTime: 60 * 1000,
+  });
+
+  // Check if current time slot is available
+  const isSlotAvailable = useMemo(() => {
+    if (!availability?.slots || !selectedTime || !selectedDate) return true; // Assume available while loading
+
+    const [hours, minutes] = selectedTime.split(':').map(Number);
+    const selectedStart = setMinutes(setHours(selectedDate, hours), minutes);
+    const selectedEnd = addMinutes(selectedStart, selectedDuration);
+
+    return availability.slots.some((slot) => {
+      const slotStart = new Date(slot.start);
+      const slotEnd = new Date(slot.end);
+      return selectedStart >= slotStart && selectedEnd <= slotEnd;
+    });
+  }, [availability, selectedTime, selectedDate, selectedDuration]);
+
+  // Track if submission should be blocked
+  const [submissionBlocked, setSubmissionBlocked] = useState(false);
+
+  // Update submission blocked state
+  useEffect(() => {
+    if (selectedDate && selectedTime && !isCheckingAvailability) {
+      setSubmissionBlocked(!isSlotAvailable);
+    }
+  }, [selectedDate, selectedTime, isCheckingAvailability, isSlotAvailable]);
 
   // Auto-update duration when type changes
   useEffect(() => {
@@ -163,6 +229,16 @@ export function AppointmentForm({
       setValue('duration_minutes', defaultDuration);
     }
   }, [selectedType, setValue, isEditing]);
+
+  // Auto-select first available time slot when date changes
+  useEffect(() => {
+    if (selectedDate && availableTimeSlots.length > 0 && !isEditing) {
+      // Only auto-select if the current time is not in available slots
+      if (!availableTimeSlots.includes(selectedTime)) {
+        setValue('time', availableTimeSlots[0]);
+      }
+    }
+  }, [selectedDate, availableTimeSlots, selectedTime, setValue, isEditing]);
 
   // Handle form submission
   const onFormSubmit = (data: AppointmentFormData) => {
@@ -207,14 +283,27 @@ export function AppointmentForm({
     label: t(`appointments.recurring.${freq.toLowerCase()}`),
   }));
 
-  // Generate time slot options (8 AM to 8 PM, 15-minute intervals)
-  const timeSlots = [];
-  for (let hour = 8; hour < 20; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
-      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      timeSlots.push(time);
+  // Use dynamic time slots based on working hours, with fallback to default
+  const timeSlots = useMemo(() => {
+    if (availableTimeSlots.length > 0) {
+      return availableTimeSlots;
     }
-  }
+    // Fallback: Generate default time slot options (8 AM to 8 PM, 15-minute intervals)
+    const fallbackSlots = [];
+    for (let hour = 8; hour < 20; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        fallbackSlots.push(time);
+      }
+    }
+    return fallbackSlots;
+  }, [availableTimeSlots]);
+
+  // Get disabled reason for current date (for display purposes)
+  const currentDateDisabledReason = useMemo(() => {
+    if (!selectedDate) return null;
+    return getDisabledReason(selectedDate, holidays, weeklySchedule);
+  }, [selectedDate, holidays, weeklySchedule]);
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
@@ -278,8 +367,14 @@ export function AppointmentForm({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date()}
+                        disabled={(date) => isDateDisabled(date)}
                         initialFocus
+                        modifiers={{
+                          holiday: holidays.map((h) => new Date(h.holiday_date)),
+                        }}
+                        modifiersClassNames={{
+                          holiday: 'text-red-500 line-through',
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -608,10 +703,31 @@ export function AppointmentForm({
         </Card>
       )}
 
+      {/* Unavailable Slot Warning */}
+      {submissionBlocked && selectedDate && selectedTime && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {currentDateDisabledReason?.startsWith('holiday:')
+              ? t('appointments.validation.holiday_selected', {
+                  name: currentDateDisabledReason.split(':')[1],
+                })
+              : currentDateDisabledReason === 'non_working_day'
+                ? t('appointments.validation.non_working_day')
+                : t('appointments.validation.slot_unavailable')}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Submit Button */}
       <div className="flex justify-end gap-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button
+          type="submit"
+          disabled={isSubmitting || submissionBlocked || isCheckingAvailability}
+        >
+          {(isSubmitting || isCheckingAvailability) && (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          )}
           {isEditing ? t('common.update') : t('common.create')}
         </Button>
       </div>

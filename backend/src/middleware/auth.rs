@@ -87,7 +87,7 @@ pub async fn jwt_auth_middleware(
 mod tests {
     use super::*;
     use crate::config::{JwtConfig, SecurityConfig};
-    use crate::services::AuthService;
+    use crate::services::{AuthService, SettingsService};
     use axum::{
         body::Body,
         http::{Request, StatusCode},
@@ -96,6 +96,7 @@ mod tests {
         routing::get,
         Extension, Router,
     };
+    use std::sync::Arc;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -149,11 +150,14 @@ mod tests {
         };
 
         let app_state = AppState {
-            pool,
+            pool: pool.clone(),
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
             email_service: None,  // Not needed for auth middleware test
+            settings_service: Arc::new(SettingsService::new(pool)),
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -196,11 +200,14 @@ mod tests {
         };
 
         let app_state = AppState {
-            pool,
+            pool: pool.clone(),
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
             email_service: None,  // Not needed for auth middleware test
+            settings_service: Arc::new(SettingsService::new(pool)),
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -241,11 +248,14 @@ mod tests {
         };
 
         let app_state = AppState {
-            pool,
+            pool: pool.clone(),
             auth_service,
             session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
             encryption_key: None, // Not needed for auth middleware test
             email_service: None,  // Not needed for auth middleware test
+            settings_service: Arc::new(SettingsService::new(pool)),
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         };

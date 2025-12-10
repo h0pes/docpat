@@ -97,6 +97,8 @@ impl TestApp {
             session_manager,
             encryption_key: Some(encryption_key),
             email_service: None, // Email service not needed for tests
+            start_time: std::time::SystemTime::now(),
+            environment: "test".to_string(),
             #[cfg(feature = "rbac")]
             enforcer,
         };
@@ -159,6 +161,11 @@ pub async fn teardown_test_db(pool: &PgPool) {
 
     // Clean up all tables in reverse order of dependencies
     sqlx::query("DELETE FROM audit_logs")
+        .execute(&mut *tx)
+        .await
+        .ok();
+
+    sqlx::query("DELETE FROM uploaded_files")
         .execute(&mut *tx)
         .await
         .ok();

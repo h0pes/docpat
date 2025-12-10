@@ -7,7 +7,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { Calendar, dateFnsLocalizer, View, SlotInfo } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addMinutes } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addMinutes, startOfDay } from 'date-fns';
 import { enUS, it } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import type { Appointment, CalendarEvent } from '../../types/appointment';
+import { useSchedulingConstraints } from '../../hooks/useSchedulingConstraints';
 import {
   appointmentToCalendarEvent,
   getTypeColor,
@@ -80,10 +81,72 @@ export function AppointmentCalendar({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
 
+  // Fetch scheduling constraints (working hours and holidays)
+  const {
+    isDateDisabled,
+    weeklySchedule,
+    holidays,
+    isLoading: constraintsLoading,
+  } = useSchedulingConstraints({
+    currentMonth: currentDate,
+    monthsToPreload: 2,
+  });
+
   // Convert appointments to calendar events
   const events = useMemo(() => {
     return appointments.map(appointmentToCalendarEvent);
   }, [appointments]);
+
+  // Calculate min/max times from working hours
+  const { minTime, maxTime } = useMemo(() => {
+    if (!weeklySchedule?.days) {
+      // Default fallback if no schedule
+      return {
+        minTime: new Date(0, 0, 0, 8, 0, 0),
+        maxTime: new Date(0, 0, 0, 20, 0, 0),
+      };
+    }
+
+    // Find earliest start time and latest end time across all working days
+    let earliestStart = '09:00';
+    let latestEnd = '18:00';
+
+    for (const day of weeklySchedule.days) {
+      if (day.is_working_day && day.start_time && day.end_time) {
+        if (day.start_time < earliestStart) {
+          earliestStart = day.start_time;
+        }
+        if (day.end_time > latestEnd) {
+          latestEnd = day.end_time;
+        }
+      }
+    }
+
+    const [startHour, startMin] = earliestStart.split(':').map(Number);
+    const [endHour, endMin] = latestEnd.split(':').map(Number);
+
+    return {
+      minTime: new Date(0, 0, 0, startHour, startMin, 0),
+      maxTime: new Date(0, 0, 0, endHour, endMin, 0),
+    };
+  }, [weeklySchedule]);
+
+  // Create holiday events for display
+  const holidayEvents = useMemo((): CalendarEvent[] => {
+    return holidays.map((holiday) => ({
+      id: `holiday-${holiday.id}`,
+      title: holiday.name,
+      start: startOfDay(new Date(holiday.holiday_date)),
+      end: startOfDay(new Date(holiday.holiday_date)),
+      allDay: true,
+      resource: undefined,
+    }));
+  }, [holidays]);
+
+  // Combine appointment events with holiday events
+  const allEvents = useMemo(() => {
+    return [...events, ...holidayEvents];
+  }, [events, holidayEvents]);
 
   // Handle event selection
   const handleSelectEvent = useCallback(
@@ -101,6 +164,11 @@ export function AppointmentCalendar({
   // Handle slot selection (for creating new appointments)
   const handleSelectSlot = useCallback(
     (slotInfo: SlotInfo) => {
+      // Block selection on holidays or non-working days
+      if (isDateDisabled(slotInfo.start)) {
+        return;
+      }
+
       if (onSelectSlot) {
         onSelectSlot(slotInfo.start, slotInfo.end);
       } else {
@@ -109,7 +177,7 @@ export function AppointmentCalendar({
         navigate(`/appointments/new?start=${startTime}`);
       }
     },
-    [onSelectSlot, navigate]
+    [onSelectSlot, navigate, isDateDisabled]
   );
 
   // Handle navigation
@@ -134,8 +202,23 @@ export function AppointmentCalendar({
     [onViewChange]
   );
 
-  // Custom event styling based on appointment type
+  // Custom event styling based on appointment type or holiday
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
+    // Check if this is a holiday event
+    if (event.id.toString().startsWith('holiday-')) {
+      return {
+        style: {
+          backgroundColor: 'hsl(var(--muted))',
+          opacity: 0.8,
+          borderRadius: '4px',
+          border: '2px dashed hsl(var(--muted-foreground))',
+          color: 'hsl(var(--muted-foreground))',
+          fontSize: '0.875rem',
+          fontStyle: 'italic',
+        },
+      };
+    }
+
     const appointment = event.resource;
     if (!appointment) {
       return {};
@@ -278,7 +361,7 @@ export function AppointmentCalendar({
         <CardContent className="p-4">
           <Calendar
             localizer={localizer}
-            events={events}
+            events={allEvents}
             startAccessor="start"
             endAccessor="end"
             style={{ height: 600 }}
@@ -295,8 +378,8 @@ export function AppointmentCalendar({
             }}
             messages={messages}
             culture={i18n.language}
-            min={new Date(0, 0, 0, 8, 0, 0)} // Day starts at 8 AM
-            max={new Date(0, 0, 0, 20, 0, 0)} // Day ends at 8 PM
+            min={minTime}
+            max={maxTime}
             step={15} // 15-minute time slots
             timeslots={4} // 4 slots per hour (every 15 minutes)
           />

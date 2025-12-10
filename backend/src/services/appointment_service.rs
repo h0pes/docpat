@@ -14,16 +14,17 @@ use crate::models::{
     AppointmentStatus, AppointmentType, AuditAction, AuditLog, CreateAuditLog,
     CreateAppointmentRequest, EntityType, RecurringPattern, TimeSlot, UpdateAppointmentRequest,
 };
+use crate::services::{HolidayService, WorkingHoursService};
 use anyhow::{anyhow, Context, Result};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, NaiveTime, Utc};
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use uuid::Uuid;
 use validator::Validate;
 
-/// Business hours configuration
-const BUSINESS_START_HOUR: u32 = 8; // 8:00 AM
-const BUSINESS_END_HOUR: u32 = 18; // 6:00 PM
+/// Fallback business hours when working hours are not configured
+const FALLBACK_START_HOUR: u32 = 8; // 8:00 AM
+const FALLBACK_END_HOUR: u32 = 18; // 6:00 PM
 const DEFAULT_SLOT_DURATION: i64 = 30; // 30 minutes
 
 /// Appointment service
@@ -93,6 +94,10 @@ impl AppointmentService {
         // Calculate end time
         let scheduled_end = data.scheduled_start
             + Duration::minutes(data.duration_minutes as i64);
+
+        // Validate against working hours and holidays BEFORE starting transaction
+        self.validate_working_hours_and_holidays(data.scheduled_start, scheduled_end)
+            .await?;
 
         // Start transaction for conflict check + insert
         let mut tx = self.pool.begin().await?;
@@ -264,10 +269,14 @@ impl AppointmentService {
             }
         }
 
-        // If rescheduling, check for conflicts
+        // If rescheduling, validate working hours/holidays and check for conflicts
         if let Some(new_start) = data.scheduled_start {
             let duration = data.duration_minutes.unwrap_or(existing.duration_minutes);
             let new_end = new_start + Duration::minutes(duration as i64);
+
+            // Validate against working hours and holidays
+            self.validate_working_hours_and_holidays(new_start, new_end)
+                .await?;
 
             self.check_conflicts(
                 &mut tx,
@@ -277,6 +286,11 @@ impl AppointmentService {
                 Some(id), // Exclude current appointment from conflict check
             )
             .await?;
+        } else if let Some(new_duration) = data.duration_minutes {
+            // If only duration is changing, need to validate the new end time
+            let new_end = existing.scheduled_start + Duration::minutes(new_duration as i64);
+            self.validate_working_hours_and_holidays(existing.scheduled_start, new_end)
+                .await?;
         }
 
         // Build update query dynamically
@@ -754,6 +768,111 @@ impl AppointmentService {
         })
     }
 
+    /// Validate appointment time against working hours and holidays
+    ///
+    /// Checks that:
+    /// 1. The date is not a holiday
+    /// 2. The date is a working day
+    /// 3. The time falls within working hours
+    /// 4. The time does not overlap with break times
+    async fn validate_working_hours_and_holidays(
+        &self,
+        scheduled_start: DateTime<Utc>,
+        scheduled_end: DateTime<Utc>,
+    ) -> Result<()> {
+        let date_naive = scheduled_start.date_naive();
+
+        // Check if this date is a holiday
+        let holiday_service = HolidayService::new(self.pool.clone());
+        let is_holiday = holiday_service
+            .is_holiday(date_naive)
+            .await
+            .map_err(|e| anyhow!("Failed to check holiday: {}", e))?;
+
+        if is_holiday {
+            return Err(anyhow!(
+                "Cannot schedule appointment on a holiday ({})",
+                date_naive.format("%Y-%m-%d")
+            ));
+        }
+
+        // Get effective working hours for this date
+        let working_hours_service = WorkingHoursService::new(self.pool.clone());
+        let effective_hours = working_hours_service
+            .get_effective_hours_for_date(date_naive)
+            .await
+            .map_err(|e| anyhow!("Failed to get working hours: {}", e))?;
+
+        // Check if it's a working day
+        if !effective_hours.is_working_day {
+            return Err(anyhow!(
+                "Cannot schedule appointment on a non-working day ({})",
+                date_naive.format("%Y-%m-%d")
+            ));
+        }
+
+        // Parse working hours
+        let start_time = effective_hours
+            .start_time
+            .as_ref()
+            .and_then(|t| parse_time_str(t))
+            .unwrap_or((FALLBACK_START_HOUR, 0));
+
+        let end_time = effective_hours
+            .end_time
+            .as_ref()
+            .and_then(|t| parse_time_str(t))
+            .unwrap_or((FALLBACK_END_HOUR, 0));
+
+        // Get appointment times
+        let appt_start_time = scheduled_start.time();
+        let appt_end_time = scheduled_end.time();
+
+        let working_start = NaiveTime::from_hms_opt(start_time.0, start_time.1, 0)
+            .unwrap_or(NaiveTime::from_hms_opt(8, 0, 0).unwrap());
+        let working_end = NaiveTime::from_hms_opt(end_time.0, end_time.1, 0)
+            .unwrap_or(NaiveTime::from_hms_opt(18, 0, 0).unwrap());
+
+        // Check if appointment is within working hours
+        if appt_start_time < working_start || appt_end_time > working_end {
+            return Err(anyhow!(
+                "Appointment time ({} - {}) is outside working hours ({} - {})",
+                appt_start_time.format("%H:%M"),
+                appt_end_time.format("%H:%M"),
+                working_start.format("%H:%M"),
+                working_end.format("%H:%M")
+            ));
+        }
+
+        // Check if appointment overlaps with break time
+        if let (Some(break_start_str), Some(break_end_str)) =
+            (&effective_hours.break_start, &effective_hours.break_end)
+        {
+            if let (Some((break_start_h, break_start_m)), Some((break_end_h, break_end_m))) =
+                (parse_time_str(break_start_str), parse_time_str(break_end_str))
+            {
+                let break_start = NaiveTime::from_hms_opt(break_start_h, break_start_m, 0)
+                    .unwrap_or(NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+                let break_end = NaiveTime::from_hms_opt(break_end_h, break_end_m, 0)
+                    .unwrap_or(NaiveTime::from_hms_opt(13, 0, 0).unwrap());
+
+                // Check if appointment overlaps with break
+                // Overlap occurs if: appt_start < break_end AND appt_end > break_start
+                if appt_start_time < break_end && appt_end_time > break_start {
+                    return Err(anyhow!(
+                        "Appointment time ({} - {}) overlaps with break time ({} - {})",
+                        appt_start_time.format("%H:%M"),
+                        appt_end_time.format("%H:%M"),
+                        break_start.format("%H:%M"),
+                        break_end.format("%H:%M")
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Check for scheduling conflicts
     ///
     /// Returns an error if there's an overlapping appointment for the same provider
@@ -860,6 +979,8 @@ impl AppointmentService {
     }
 
     /// Create recurring appointment series
+    ///
+    /// Automatically skips holidays, non-working days, and conflicting time slots.
     async fn create_recurring_series(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -869,9 +990,11 @@ impl AppointmentService {
     ) -> Result<()> {
         let mut current_date = parent.scheduled_start;
         let mut count = 0;
+        let mut skipped = 0;
         let max_count = pattern.max_occurrences.unwrap_or(52); // Default to 1 year
+        let max_attempts = max_count * 3; // Allow up to 3x attempts to find valid slots
 
-        while count < max_count {
+        while count < max_count && skipped < max_attempts {
             // Calculate next occurrence
             current_date = self.calculate_next_occurrence(current_date, pattern);
 
@@ -882,8 +1005,23 @@ impl AppointmentService {
                 }
             }
 
-            // Check for conflicts
             let scheduled_end = current_date + Duration::minutes(parent.duration_minutes as i64);
+
+            // Skip holidays and non-working days
+            if self
+                .validate_working_hours_and_holidays(current_date, scheduled_end)
+                .await
+                .is_err()
+            {
+                tracing::debug!(
+                    date = %current_date.date_naive(),
+                    "Skipping recurring appointment - holiday or non-working day"
+                );
+                skipped += 1;
+                continue;
+            }
+
+            // Check for conflicts with other appointments
             if self.check_conflicts(
                 tx,
                 parent.provider_id,
@@ -895,7 +1033,11 @@ impl AppointmentService {
             .is_err()
             {
                 // Skip conflicting appointments
-                count += 1;
+                tracing::debug!(
+                    date = %current_date.date_naive(),
+                    "Skipping recurring appointment - conflict with existing appointment"
+                );
+                skipped += 1;
                 continue;
             }
 
@@ -958,17 +1100,59 @@ impl AppointmentService {
 
     /// Check appointment availability for a provider on a given date
     ///
-    /// Returns time slots showing which are available and which are booked
+    /// Returns time slots showing which are available and which are booked.
+    /// Respects working hours configuration, overrides, and holidays.
     pub async fn check_availability(
         &self,
         provider_id: Uuid,
         date: DateTime<Utc>,
         duration_minutes: i32,
     ) -> Result<Vec<TimeSlot>> {
-        // Get start and end of the day
-        let day_start = date.date_naive().and_hms_opt(BUSINESS_START_HOUR, 0, 0)
+        let date_naive = date.date_naive();
+
+        // Check if this date is a holiday (block all appointments on holidays)
+        let holiday_service = HolidayService::new(self.pool.clone());
+        let is_holiday = holiday_service
+            .is_holiday(date_naive)
+            .await
+            .map_err(|e| anyhow!("Failed to check holiday: {}", e))?;
+
+        // If this is a holiday, return empty slots (no appointments on holidays)
+        if is_holiday {
+            tracing::debug!(date = %date_naive, "Date is a holiday, no availability");
+            return Ok(Vec::new());
+        }
+
+        // Get effective working hours for this date
+        let working_hours_service = WorkingHoursService::new(self.pool.clone());
+        let effective_hours = working_hours_service
+            .get_effective_hours_for_date(date_naive)
+            .await
+            .map_err(|e| anyhow!("Failed to get working hours: {}", e))?;
+
+        // If not a working day, return empty slots
+        if !effective_hours.is_working_day {
+            return Ok(Vec::new());
+        }
+
+        // Parse working hours (with fallback to defaults)
+        let (start_hour, start_min) = match &effective_hours.start_time {
+            Some(time) => parse_time_str(time).unwrap_or((FALLBACK_START_HOUR, 0)),
+            None => (FALLBACK_START_HOUR, 0),
+        };
+
+        let (end_hour, end_min) = match &effective_hours.end_time {
+            Some(time) => parse_time_str(time).unwrap_or((FALLBACK_END_HOUR, 0)),
+            None => (FALLBACK_END_HOUR, 0),
+        };
+
+        // Parse break times if configured
+        let break_start = effective_hours.break_start.as_ref().and_then(|t| parse_time_str(t));
+        let break_end = effective_hours.break_end.as_ref().and_then(|t| parse_time_str(t));
+
+        let day_start = date_naive.and_hms_opt(start_hour, start_min, 0)
             .ok_or_else(|| anyhow!("Invalid start time"))?;
-        let day_end = date.date_naive().and_hms_opt(BUSINESS_END_HOUR, 0, 0)
+        let day_end = date_naive.and_hms_opt(end_hour, end_min, 0)
             .ok_or_else(|| anyhow!("Invalid end time"))?;
 
         let day_start_utc = DateTime::<Utc>::from_naive_utc_and_offset(day_start, Utc);
@@ -999,13 +1183,28 @@ impl AppointmentService {
         while current_time < day_end_utc {
             let slot_end = current_time + slot_duration;
 
+            // Check if this slot is during a break
+            let is_during_break = if let (Some((break_start_h, break_start_m)), Some((break_end_h, break_end_m))) = (break_start, break_end) {
+                let slot_time = current_time.time();
+                let break_start_time = NaiveTime::from_hms_opt(break_start_h, break_start_m, 0)
+                    .unwrap_or(NaiveTime::from_hms_opt(12, 0, 0).unwrap());
+                let break_end_time = NaiveTime::from_hms_opt(break_end_h, break_end_m, 0)
+                    .unwrap_or(NaiveTime::from_hms_opt(13, 0, 0).unwrap());
+
+                slot_time >= break_start_time && slot_time < break_end_time
+            } else {
+                false
+            };
+
             // Check if this slot conflicts with any booked appointment
-            let is_available = !booked_appointments.iter().any(|appt| {
+            let is_conflicted = booked_appointments.iter().any(|appt| {
                 // Check if slot overlaps with appointment
                 (current_time >= appt.scheduled_start && current_time < appt.scheduled_end)
                     || (slot_end > appt.scheduled_start && slot_end <= appt.scheduled_end)
                     || (current_time <= appt.scheduled_start && slot_end >= appt.scheduled_end)
             });
+
+            let is_available = !is_during_break && !is_conflicted;
 
             slots.push(TimeSlot {
                 start: current_time,
@@ -1145,4 +1344,17 @@ impl AppointmentService {
 
         Ok(appointments.into_iter().map(|a| a.into()).collect())
     }
+}
+
+/// Helper to parse time string "HH:MM" into (hour, minute)
+fn parse_time_str(time: &str) -> Option<(u32, u32)> {
+    let parts: Vec<&str> = time.split(':').collect();
+    if parts.len() >= 2 {
+        let hour = parts[0].parse::<u32>().ok()?;
+        let minute = parts[1].parse::<u32>().ok()?;
+        if hour < 24 && minute < 60 {
+            return Some((hour, minute));
+        }
+    }
+    None
 }

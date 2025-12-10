@@ -35,7 +35,8 @@ use handlers::auth::AppState;
 use middleware::cors::cors_from_env;
 use middleware::session_timeout::SessionManager;
 use routes::create_api_v1_routes;
-use services::{AuthService, EmailService};
+use services::{AuthService, EmailService, SettingsService};
+use std::sync::Arc;
 use utils::EncryptionKey;
 
 #[cfg(feature = "rbac")]
@@ -150,6 +151,12 @@ async fn main() -> anyhow::Result<()> {
         }
     };
 
+    // Record server start time
+    let start_time = std::time::SystemTime::now();
+
+    // Create settings service (shared singleton with cache)
+    let settings_service = Arc::new(SettingsService::new(pool.clone()));
+
     // Create application state
     let app_state = AppState {
         pool: pool.clone(),
@@ -157,12 +164,15 @@ async fn main() -> anyhow::Result<()> {
         session_manager,
         encryption_key,
         email_service,
+        settings_service,
+        start_time,
+        environment: config.server.environment.clone(),
         #[cfg(feature = "rbac")]
         enforcer,
     };
 
     // Build application router
-    let app = create_app(app_state, std::time::SystemTime::now());
+    let app = create_app(app_state, start_time);
 
     // Start the server
     let addr = format!("{}:{}", config.server.host, config.server.port);
