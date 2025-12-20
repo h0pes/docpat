@@ -37,14 +37,16 @@ import { useSettingsByGroup, useBulkUpdateSettings } from '@/hooks/useSettings';
 
 /**
  * Form validation schema
+ * Note: Using nested structure because React Hook Form interprets dots as nesting
  */
 const appointmentSettingsSchema = z.object({
-  'appointment.default_duration': z.number().min(5).max(240),
-  'appointment.buffer_minutes': z.number().min(0).max(60),
-  'appointment.advance_booking_days': z.number().min(1).max(365),
-  'appointment.cancellation_notice_hours': z.number().min(0).max(168),
-  'appointment.max_per_day': z.number().min(1).max(100),
-  'appointment.allow_same_day': z.boolean(),
+  appointment: z.object({
+    default_duration: z.number().min(5).max(240),
+    buffer_minutes: z.number().min(0).max(60),
+    booking_advance_days: z.number().min(1).max(365),
+    cancellation_hours: z.number().min(0).max(168),
+    max_per_day: z.number().min(1).max(100),
+  }),
 });
 
 type AppointmentSettingsFormData = z.infer<typeof appointmentSettingsSchema>;
@@ -68,33 +70,41 @@ export function AppointmentSettingsSection() {
   const form = useForm<AppointmentSettingsFormData>({
     resolver: zodResolver(appointmentSettingsSchema),
     defaultValues: {
-      'appointment.default_duration': 30,
-      'appointment.buffer_minutes': 0,
-      'appointment.advance_booking_days': 30,
-      'appointment.cancellation_notice_hours': 24,
-      'appointment.max_per_day': 20,
-      'appointment.allow_same_day': true,
+      appointment: {
+        default_duration: 30,
+        buffer_minutes: 0,
+        booking_advance_days: 30,
+        cancellation_hours: 24,
+        max_per_day: 20,
+      },
     },
   });
 
   // Populate form with current settings
   useEffect(() => {
-    if (settingsData?.settings) {
-      const values: Partial<AppointmentSettingsFormData> = {};
-      for (const setting of settingsData.settings) {
-        const key = setting.setting_key as keyof AppointmentSettingsFormData;
-        if (key in form.getValues()) {
-          const value = setting.setting_value;
-          if (typeof value === 'number' || typeof value === 'boolean') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            values[key] = value as any;
-          }
+    if (!settingsData?.settings) return;
+
+    // Build nested form values from flat setting keys
+    const appointmentValues: AppointmentSettingsFormData['appointment'] = {
+      default_duration: 30,
+      buffer_minutes: 0,
+      booking_advance_days: 30,
+      cancellation_hours: 24,
+      max_per_day: 20,
+    };
+
+    for (const setting of settingsData.settings) {
+      // Extract field name from setting key (e.g., "appointment.default_duration" -> "default_duration")
+      const fieldName = setting.setting_key.replace('appointment.', '') as keyof typeof appointmentValues;
+      if (fieldName in appointmentValues) {
+        const value = setting.setting_value;
+        if (typeof value === 'number') {
+          appointmentValues[fieldName] = value;
         }
       }
-      if (Object.keys(values).length > 0) {
-        form.reset({ ...form.getValues(), ...values });
-      }
     }
+
+    form.reset({ appointment: appointmentValues });
   }, [settingsData, form]);
 
   /**
@@ -102,8 +112,9 @@ export function AppointmentSettingsSection() {
    */
   const onSubmit = async (data: AppointmentSettingsFormData) => {
     try {
-      const settings = Object.entries(data).map(([key, value]) => ({
-        key,
+      // Convert nested form data to flat setting keys for the API
+      const settings = Object.entries(data.appointment).map(([key, value]) => ({
+        key: `appointment.${key}`,
         value,
       }));
 
@@ -235,7 +246,7 @@ export function AppointmentSettingsSection() {
           {/* Booking Rules */}
           <FormField
             control={form.control}
-            name="appointment.advance_booking_days"
+            name="appointment.booking_advance_days"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
@@ -270,7 +281,7 @@ export function AppointmentSettingsSection() {
           <SettingsRow>
             <FormField
               control={form.control}
-              name="appointment.cancellation_notice_hours"
+              name="appointment.cancellation_hours"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>

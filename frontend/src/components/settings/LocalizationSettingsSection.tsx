@@ -34,13 +34,16 @@ import { useSettingsByGroup, useBulkUpdateSettings } from '@/hooks/useSettings';
 
 /**
  * Form validation schema
+ * Note: Using nested structure because React Hook Form interprets dots as nesting
  */
 const localizationSettingsSchema = z.object({
-  'localization.default_language': z.enum(['en', 'it']),
-  'localization.date_format': z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']),
-  'localization.time_format': z.enum(['12h', '24h']),
-  'localization.timezone': z.string().min(1),
-  'localization.first_day_of_week': z.enum(['monday', 'sunday']),
+  localization: z.object({
+    default_language: z.enum(['en', 'it']),
+    date_format: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD']),
+    time_format: z.enum(['12h', '24h']),
+    timezone: z.string().min(1),
+    first_day_of_week: z.enum(['monday', 'sunday']),
+  }),
 });
 
 type LocalizationSettingsFormData = z.infer<typeof localizationSettingsSchema>;
@@ -64,29 +67,39 @@ export function LocalizationSettingsSection() {
   const form = useForm<LocalizationSettingsFormData>({
     resolver: zodResolver(localizationSettingsSchema),
     defaultValues: {
-      'localization.default_language': 'en',
-      'localization.date_format': 'DD/MM/YYYY',
-      'localization.time_format': '24h',
-      'localization.timezone': 'Europe/Rome',
-      'localization.first_day_of_week': 'monday',
+      localization: {
+        default_language: 'en',
+        date_format: 'DD/MM/YYYY',
+        time_format: '24h',
+        timezone: 'Europe/Rome',
+        first_day_of_week: 'monday',
+      },
     },
   });
 
   // Populate form with current settings
   useEffect(() => {
-    if (settingsData?.settings) {
-      const values: Partial<LocalizationSettingsFormData> = {};
-      for (const setting of settingsData.settings) {
-        const key = setting.setting_key as keyof LocalizationSettingsFormData;
-        if (key in form.getValues() && typeof setting.setting_value === 'string') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          values[key] = setting.setting_value as any;
-        }
-      }
-      if (Object.keys(values).length > 0) {
-        form.reset({ ...form.getValues(), ...values });
+    if (!settingsData?.settings) return;
+
+    // Build nested form values from flat setting keys
+    const localizationValues: LocalizationSettingsFormData['localization'] = {
+      default_language: 'en',
+      date_format: 'DD/MM/YYYY',
+      time_format: '24h',
+      timezone: 'Europe/Rome',
+      first_day_of_week: 'monday',
+    };
+
+    for (const setting of settingsData.settings) {
+      // Extract field name from setting key (e.g., "localization.timezone" -> "timezone")
+      const fieldName = setting.setting_key.replace('localization.', '') as keyof typeof localizationValues;
+      if (fieldName in localizationValues && typeof setting.setting_value === 'string') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        localizationValues[fieldName] = setting.setting_value as any;
       }
     }
+
+    form.reset({ localization: localizationValues });
   }, [settingsData, form]);
 
   /**
@@ -94,16 +107,17 @@ export function LocalizationSettingsSection() {
    */
   const onSubmit = async (data: LocalizationSettingsFormData) => {
     try {
-      const settings = Object.entries(data).map(([key, value]) => ({
-        key,
+      // Convert nested form data to flat setting keys for the API
+      const settings = Object.entries(data.localization).map(([key, value]) => ({
+        key: `localization.${key}`,
         value,
       }));
 
       await bulkUpdateMutation.mutateAsync({ settings });
 
       // Update the app language if default language changed
-      if (data['localization.default_language'] !== i18n.language) {
-        i18n.changeLanguage(data['localization.default_language']);
+      if (data.localization.default_language !== i18n.language) {
+        i18n.changeLanguage(data.localization.default_language);
       }
 
       toast({

@@ -16,7 +16,10 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    models::{AuthUser, CreateVisitDiagnosisRequest, UpdateVisitDiagnosisRequest, UserRole},
+    models::{
+        AuditAction, AuditLog, AuthUser, CreateAuditLog, CreateVisitDiagnosisRequest,
+        EntityType, RequestContext, UpdateVisitDiagnosisRequest, UserRole,
+    },
     services::{ICD10SearchResult, VisitDiagnosisService},
     utils::{AppError, Result},
 };
@@ -101,6 +104,7 @@ pub struct PatientDiagnosesQuery {
 pub async fn create_diagnosis(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreateVisitDiagnosisRequest>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -118,12 +122,32 @@ pub async fn create_diagnosis(
 
     let diagnosis_service = VisitDiagnosisService::new(state.pool.clone(), encryption_key.clone());
     let diagnosis = diagnosis_service
-        .create_diagnosis(req, auth_user.user_id)
+        .create_diagnosis(req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create diagnosis: {}", e);
             AppError::Internal(format!("Failed to create diagnosis: {}", e))
         })?;
+
+    // Create audit log for diagnosis creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Diagnosis,
+            entity_id: Some(diagnosis.id.to_string()),
+            changes: Some(serde_json::json!({
+                "visit_id": req.visit_id,
+                "icd10_code": req.icd10_code,
+                "diagnosis_type": format!("{:?}", req.diagnosis_type),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(diagnosis)))
 }
@@ -235,6 +259,7 @@ pub async fn get_patient_diagnoses(
 pub async fn update_diagnosis(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateVisitDiagnosisRequest>,
 ) -> Result<impl IntoResponse> {
@@ -253,12 +278,28 @@ pub async fn update_diagnosis(
 
     let diagnosis_service = VisitDiagnosisService::new(state.pool.clone(), encryption_key.clone());
     let diagnosis = diagnosis_service
-        .update_diagnosis(id, req, auth_user.user_id)
+        .update_diagnosis(id, req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update diagnosis {}: {}", id, e);
             AppError::Internal(format!("Failed to update diagnosis: {}", e))
         })?;
+
+    // Create audit log for diagnosis update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Diagnosis,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::to_value(&req).unwrap_or_default()),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(diagnosis))
 }
@@ -272,6 +313,7 @@ pub async fn update_diagnosis(
 pub async fn delete_diagnosis(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions (ADMIN only)
@@ -291,6 +333,22 @@ pub async fn delete_diagnosis(
             tracing::error!("Failed to delete diagnosis {}: {}", id, e);
             AppError::Internal(format!("Failed to delete diagnosis: {}", e))
         })?;
+
+    // Create audit log for diagnosis deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Diagnosis,
+            entity_id: Some(id.to_string()),
+            changes: None,
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

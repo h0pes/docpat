@@ -21,7 +21,7 @@ use crate::models::uploaded_file::{
     FilePurpose, FilesFilter, ListFilesResponse, LogoResponse, UpdateFileRequest,
     UploadedFileResponse, MAX_FILE_SIZE,
 };
-use crate::models::UserRole;
+use crate::models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext, UserRole};
 use crate::services::FileUploadService;
 
 #[cfg(feature = "rbac")]
@@ -65,6 +65,7 @@ pub async fn upload_file(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     mut multipart: Multipart,
 ) -> Result<Json<UploadedFileResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can upload files
@@ -163,9 +164,9 @@ pub async fn upload_file(
         &state.pool,
         &content,
         &filename,
-        purpose,
-        alt_text,
-        description,
+        purpose.clone(),
+        alt_text.clone(),
+        description.clone(),
         user_id,
     )
     .await
@@ -190,6 +191,27 @@ pub async fn upload_file(
             )
         }
     })?;
+
+    // Create audit log for file upload
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::File,
+            entity_id: Some(file.id.to_string()),
+            changes: Some(serde_json::json!({
+                "original_filename": file.original_filename,
+                "mime_type": file.mime_type,
+                "purpose": format!("{:?}", purpose),
+                "size_bytes": file.file_size_bytes,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(UploadedFileResponse::from(file)))
 }
@@ -404,6 +426,7 @@ pub async fn update_file(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(file_id): Path<Uuid>,
     Json(request): Json<UpdateFileRequest>,
 ) -> Result<Json<UploadedFileResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -414,8 +437,8 @@ pub async fn update_file(
     let file = FileUploadService::update_file(
         &state.pool,
         file_id,
-        request.alt_text,
-        request.description,
+        request.alt_text.clone(),
+        request.description.clone(),
         user_id,
     )
     .await
@@ -435,6 +458,25 @@ pub async fn update_file(
         }
     })?;
 
+    // Create audit log for file update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::File,
+            entity_id: Some(file_id.to_string()),
+            changes: Some(serde_json::json!({
+                "alt_text": request.alt_text,
+                "description": request.description,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(UploadedFileResponse::from(file)))
 }
 
@@ -446,6 +488,8 @@ pub async fn update_file(
 pub async fn delete_file(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(file_id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can delete files
@@ -470,6 +514,22 @@ pub async fn delete_file(
             }
         })?;
 
+    // Create audit log for file deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::File,
+            entity_id: Some(file_id.to_string()),
+            changes: None,
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -488,6 +548,7 @@ pub async fn upload_logo(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     mut multipart: Multipart,
 ) -> Result<Json<LogoResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can upload logo
@@ -562,6 +623,27 @@ pub async fn upload_logo(
                 )
             }
         })?;
+
+    // Create audit log for logo upload
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::File,
+            entity_id: Some(logo.id.to_string()),
+            changes: Some(serde_json::json!({
+                "original_filename": logo.original_filename,
+                "mime_type": logo.mime_type,
+                "purpose": "LOGO",
+                "size_bytes": logo.file_size_bytes,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(LogoResponse::from(logo)))
 }
@@ -671,6 +753,8 @@ pub async fn serve_logo(
 pub async fn delete_logo(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can delete logo
     #[cfg(feature = "rbac")]
@@ -692,7 +776,8 @@ pub async fn delete_logo(
             )
         })?;
 
-    FileUploadService::delete_file_record(&state.pool, logo.id)
+    let logo_id = logo.id;
+    FileUploadService::delete_file_record(&state.pool, logo_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to delete logo: {}", e);
@@ -701,6 +786,24 @@ pub async fn delete_logo(
                 error_response("INTERNAL_ERROR", "Failed to delete logo"),
             )
         })?;
+
+    // Create audit log for logo deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::File,
+            entity_id: Some(logo_id.to_string()),
+            changes: Some(serde_json::json!({
+                "purpose": "LOGO",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

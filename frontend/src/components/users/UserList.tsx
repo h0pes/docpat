@@ -231,12 +231,12 @@ export function UserList({
     if (onViewUser) {
       onViewUser(user);
     } else {
-      navigate(`/admin/users/${user.id}`);
+      navigate(`/users/${user.id}`);
     }
   };
 
   const handleNewUser = () => {
-    navigate('/admin/users/new');
+    navigate('/users/new');
   };
 
   const handleSortChange = (value: string) => {
@@ -311,11 +311,11 @@ export function UserList({
                       {t('users.role_label')}
                     </label>
                     <Select
-                      value={filters.role || ''}
+                      value={filters.role || 'all'}
                       onValueChange={(value) =>
                         handleFilterChange(
                           'role',
-                          value ? (value as UserRole) : undefined
+                          value === 'all' ? undefined : (value as UserRole)
                         )
                       }
                     >
@@ -323,7 +323,7 @@ export function UserList({
                         <SelectValue placeholder={t('users.role_all')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">{t('users.role_all')}</SelectItem>
+                        <SelectItem value="all">{t('users.role_all')}</SelectItem>
                         <SelectItem value="ADMIN">
                           {t('users.roles.admin')}
                         </SelectItem>
@@ -342,7 +342,7 @@ export function UserList({
                     <Select
                       value={
                         filters.is_active === undefined
-                          ? ''
+                          ? 'all'
                           : filters.is_active
                             ? 'active'
                             : 'inactive'
@@ -350,7 +350,7 @@ export function UserList({
                       onValueChange={(value) =>
                         handleFilterChange(
                           'is_active',
-                          value === '' ? undefined : value === 'active'
+                          value === 'all' ? undefined : value === 'active'
                         )
                       }
                     >
@@ -358,7 +358,7 @@ export function UserList({
                         <SelectValue placeholder={t('users.status_all')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">{t('users.status_all')}</SelectItem>
+                        <SelectItem value="all">{t('users.status_all')}</SelectItem>
                         <SelectItem value="active">
                           {t('users.status.active')}
                         </SelectItem>

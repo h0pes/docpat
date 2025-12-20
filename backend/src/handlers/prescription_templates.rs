@@ -16,7 +16,10 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    models::{AuthUser, CreatePrescriptionTemplateRequest, UpdatePrescriptionTemplateRequest, UserRole},
+    models::{
+        AuditAction, AuditLog, AuthUser, CreateAuditLog, CreatePrescriptionTemplateRequest,
+        EntityType, RequestContext, UpdatePrescriptionTemplateRequest, UserRole,
+    },
     services::PrescriptionTemplateService,
     utils::{AppError, Result},
 };
@@ -92,6 +95,7 @@ pub struct ListTemplatesQuery {
 pub async fn create_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreatePrescriptionTemplateRequest>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -104,12 +108,32 @@ pub async fn create_template(
     // Create template service
     let template_service = PrescriptionTemplateService::new(state.pool.clone());
     let template = template_service
-        .create_template(req, auth_user.user_id)
+        .create_template(req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create prescription template: {}", e);
             AppError::Internal(format!("Failed to create prescription template: {}", e))
         })?;
+
+    // Create audit log for template creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Template,
+            entity_id: Some(template.id.to_string()),
+            changes: Some(serde_json::json!({
+                "template_type": "prescription",
+                "name": req.template_name,
+                "medication_count": req.medications.len(),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(template)))
 }
@@ -178,6 +202,7 @@ pub async fn list_templates(
 pub async fn update_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdatePrescriptionTemplateRequest>,
 ) -> Result<impl IntoResponse> {
@@ -191,7 +216,7 @@ pub async fn update_template(
     // Update template service
     let template_service = PrescriptionTemplateService::new(state.pool.clone());
     let template = template_service
-        .update_template(id, req, auth_user.user_id)
+        .update_template(id, req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update prescription template {}: {}", id, e);
@@ -201,6 +226,25 @@ pub async fn update_template(
                 AppError::Internal(format!("Failed to update prescription template: {}", e))
             }
         })?;
+
+    // Create audit log for template update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Template,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "template_type": "prescription",
+                "changes": serde_json::to_value(&req).unwrap_or_default(),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(template))
 }
@@ -214,6 +258,7 @@ pub async fn update_template(
 pub async fn delete_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions (ADMIN only)
@@ -232,6 +277,24 @@ pub async fn delete_template(
                 AppError::Internal(format!("Failed to delete prescription template: {}", e))
             }
         })?;
+
+    // Create audit log for template deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Template,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "template_type": "prescription",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

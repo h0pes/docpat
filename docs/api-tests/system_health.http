@@ -1,0 +1,310 @@
+# System Health API Tests
+# Kulala HTTP Client file for testing Section M from TEST_CASES_MILESTONE13.md
+#
+# Prerequisites:
+# - Backend server running on http://localhost:8000
+# Command: cd backend && RUST_LOG=info cargo run --bin docpat-backend --features "rbac,pdf-export"
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+#
+# Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+#
+# Note: Request variables (e.g., {{REQUEST_NAME.response.body.$.path}}) require
+# the named request to be executed first before referencing its response.
+#
+# ==============================================================================
+# API REFERENCE
+# ==============================================================================
+#
+# Endpoints:
+# GET  /api/v1/system/health/detailed  - Detailed health check with components
+# GET  /api/v1/system/info             - System information (app, server, db, env)
+# GET  /api/v1/system/storage          - Storage statistics (database, files, disk)
+# GET  /api/v1/system/backup-status    - Backup status and schedule
+#
+# Authorization: All endpoints require ADMIN role
+#
+# ==============================================================================
+# AUTHENTICATION
+# ==============================================================================
+
+### login_admin
+# @name login_admin
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "{{ADMIN_USERNAME}}",
+  "password": "{{ADMIN_PASSWORD}}"
+}
+
+###
+
+### login_doctor
+# @name login_doctor
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "{{DOCTOR_USERNAME}}",
+  "password": "{{DOCTOR_PASSWORD}}"
+}
+
+###
+
+# ==============================================================================
+# TEST CASE M1: SYSTEM HEALTH API - DETAILED HEALTH
+# ==============================================================================
+# Goal: Verify detailed health API works
+#
+# Expected Response: 200 OK
+# {
+#   "status": "healthy|degraded|unhealthy",
+#   "timestamp": "ISO8601",
+#   "uptime_seconds": <number>,
+#   "version": "string",
+#   "components": [
+#     {
+#       "name": "database",
+#       "status": "healthy|degraded|unhealthy",
+#       "message": null | "string",
+#       "latency_ms": <number>,
+#       "details": null | {...}
+#     }
+#   ],
+#   "database_pool": {
+#     "size": <number>,
+#     "available": <number>,
+#     "in_use": <number>,
+#     "max_connections": <number>
+#   },
+#   "system_resources": {
+#     "memory_used_mb": <number>,
+#     "memory_total_mb": <number>,
+#     "memory_percent": <number>,
+#     "cpu_usage_percent": <number>,
+#     "disk_used_gb": <number>,
+#     "disk_total_gb": <number>,
+#     "disk_percent": <number>
+#   }
+# }
+
+### get_detailed_health
+# @name get_detailed_health
+GET {{BASE_URL}}/api/v1/system/health/detailed HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE M2: SYSTEM HEALTH API - SYSTEM INFO
+# ==============================================================================
+# Goal: Verify system info API works
+#
+# Expected Response: 200 OK
+# {
+#   "application": {
+#     "name": "DocPat Backend",
+#     "version": "string",
+#     "rust_version": "string",
+#     "build_timestamp": "ISO8601" | null,
+#     "git_commit": "string" | null
+#   },
+#   "server": {
+#     "hostname": "string",
+#     "os": "linux|macos|windows",
+#     "arch": "x86_64|aarch64|...",
+#     "uptime_seconds": <number>,
+#     "started_at": "ISO8601"
+#   },
+#   "database": {
+#     "version": "PostgreSQL X.Y",
+#     "database_name": "string",
+#     "connection_pool_size": <number>,
+#     "last_migration": "string" | null,
+#     "total_tables": <number>
+#   },
+#   "environment": {
+#     "environment": "development|production",
+#     "debug_mode": true|false,
+#     "log_level": "string",
+#     "timezone": "UTC"
+#   }
+# }
+
+### get_system_info
+# @name get_system_info
+GET {{BASE_URL}}/api/v1/system/info HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE M3: SYSTEM HEALTH API - STORAGE STATS
+# ==============================================================================
+# Goal: Verify storage stats API works
+#
+# Expected Response: 200 OK
+# {
+#   "database": {
+#     "total_size_mb": <number>,
+#     "tables_size_mb": <number>,
+#     "indexes_size_mb": <number>,
+#     "estimated_rows": <number>
+#   },
+#   "file_system": {
+#     "documents_size_mb": <number>,
+#     "uploads_size_mb": <number>,
+#     "logs_size_mb": <number>,
+#     "available_disk_gb": <number>,
+#     "total_disk_gb": <number>,
+#     "disk_usage_percent": <number>
+#   },
+#   "breakdown": {
+#     "tables": [
+#       {
+#         "table_name": "string",
+#         "size_mb": <number>,
+#         "row_count": <number>
+#       }
+#     ]
+#   }
+# }
+
+### get_storage_stats
+# @name get_storage_stats
+GET {{BASE_URL}}/api/v1/system/storage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE M4: SYSTEM HEALTH API - BACKUP STATUS
+# ==============================================================================
+# Goal: Verify backup status API works
+#
+# Expected Response: 200 OK
+# {
+#   "enabled": true|false,
+#   "last_backup": {
+#     "timestamp": "ISO8601",
+#     "size_mb": <number>,
+#     "duration_seconds": <number>,
+#     "status": "success|failed",
+#     "filename": "string"
+#   } | null,
+#   "next_scheduled": "ISO8601" | null,
+#   "backup_location": "string",
+#   "retention_days": <number>
+# }
+#
+# Note: If backup directory doesn't exist, returns enabled=false
+
+### get_backup_status
+# @name get_backup_status
+GET {{BASE_URL}}/api/v1/system/backup-status HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE M5: SYSTEM HEALTH API - AUTHORIZATION
+# ==============================================================================
+# Goal: Verify non-admin cannot access system health APIs
+#
+# Expected Response: 403 Forbidden
+# {
+#   "error": "Access denied",
+#   "message": "Insufficient permissions for this operation"
+# }
+
+# Doctor attempts to access detailed health - should fail
+### doctor_get_detailed_health_forbidden
+GET {{BASE_URL}}/api/v1/system/health/detailed HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# Doctor attempts to access system info - should fail
+### doctor_get_system_info_forbidden
+GET {{BASE_URL}}/api/v1/system/info HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# Doctor attempts to access storage stats - should fail
+### doctor_get_storage_stats_forbidden
+GET {{BASE_URL}}/api/v1/system/storage HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# Doctor attempts to access backup status - should fail
+### doctor_get_backup_status_forbidden
+GET {{BASE_URL}}/api/v1/system/backup-status HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# ADDITIONAL TESTS: NO AUTHENTICATION
+# ==============================================================================
+# Goal: Verify endpoints require authentication
+#
+# Expected Response: 401 Unauthorized
+
+# No token - detailed health
+### no_auth_detailed_health
+GET {{BASE_URL}}/api/v1/system/health/detailed HTTP/1.1
+Content-Type: application/json
+
+###
+
+# No token - system info
+### no_auth_system_info
+GET {{BASE_URL}}/api/v1/system/info HTTP/1.1
+Content-Type: application/json
+
+###
+
+# No token - storage stats
+### no_auth_storage_stats
+GET {{BASE_URL}}/api/v1/system/storage HTTP/1.1
+Content-Type: application/json
+
+###
+
+# No token - backup status
+### no_auth_backup_status
+GET {{BASE_URL}}/api/v1/system/backup-status HTTP/1.1
+Content-Type: application/json
+
+###
+
+# ==============================================================================
+# ADDITIONAL TESTS: INVALID TOKEN
+# ==============================================================================
+# Goal: Verify endpoints reject invalid tokens
+#
+# Expected Response: 401 Unauthorized
+
+### invalid_token_detailed_health
+GET {{BASE_URL}}/api/v1/system/health/detailed HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+###
+
+# ==============================================================================
+# END OF TESTS
+# ==============================================================================

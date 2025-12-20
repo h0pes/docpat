@@ -237,6 +237,8 @@ Authenticate user and receive access tokens.
 
 **Response** `200 OK`
 
+When MFA is not enabled or MFA code is provided:
+
 ```json
 {
   "user": {
@@ -255,7 +257,18 @@ Authenticate user and receive access tokens.
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
     "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
     "expires_in": 1800
-  }
+  },
+  "requiresMfa": false
+}
+```
+
+When MFA is enabled but code is not provided (partial login):
+
+```json
+{
+  "user": null,
+  "tokens": null,
+  "requiresMfa": true
 }
 ```
 
@@ -641,6 +654,33 @@ Reset user password (admin action).
 **Error Responses**
 
 - `400 Bad Request`: Invalid password complexity
+
+---
+
+### POST /api/v1/users/:id/reset-mfa
+
+Reset user MFA (admin action). Disables MFA for the user, requiring them to re-enroll if needed.
+
+**Authentication**: Required
+**Authorization**: ADMIN only
+
+**Path Parameters**
+
+- `id` (UUID): User ID
+
+**Response** `200 OK`
+
+```json
+{
+  "message": "MFA reset successfully",
+  "mfa_enabled": false
+}
+```
+
+**Error Responses**
+
+- `403 Forbidden`: Insufficient permissions (non-admin)
+- `404 Not Found`: User not found
 
 ---
 
@@ -2592,24 +2632,39 @@ List all setting groups.
 {
   "groups": [
     {
-      "name": "clinic",
-      "label": "Clinic Settings",
-      "count": 12
+      "key": "clinic",
+      "name": "Clinic Settings",
+      "setting_count": 12
     },
     {
-      "name": "security",
-      "label": "Security Settings",
-      "count": 8
+      "key": "appointment",
+      "name": "Appointment Settings",
+      "setting_count": 5
     },
     {
-      "name": "notifications",
-      "label": "Notification Settings",
-      "count": 6
+      "key": "security",
+      "name": "Security Settings",
+      "setting_count": 8
     },
     {
-      "name": "system",
-      "label": "System Settings",
-      "count": 10
+      "key": "localization",
+      "name": "Localization Settings",
+      "setting_count": 5
+    },
+    {
+      "key": "notification",
+      "name": "Notification Settings",
+      "setting_count": 6
+    },
+    {
+      "key": "backup",
+      "name": "Backup Settings",
+      "setting_count": 4
+    },
+    {
+      "key": "system",
+      "name": "System Settings",
+      "setting_count": 10
     }
   ]
 }
@@ -2680,10 +2735,15 @@ Update a setting value.
 
 ```json
 {
-  "value": "New Practice Name",
-  "description": "Optional updated description"
+  "value": "New Practice Name"
 }
 ```
+
+Note: The `value` field must match the setting's `value_type`. For example:
+- `STRING`: `"value": "text value"`
+- `INTEGER`: `"value": 30`
+- `BOOLEAN`: `"value": true`
+- `JSON`: `"value": {"key": "value"}`
 
 **Response** `200 OK`
 
@@ -2692,7 +2752,7 @@ Returns updated setting object.
 **Error Responses**
 
 - `400 Bad Request`: Invalid value type or validation failed
-- `403 Forbidden`: Setting is readonly
+- `400 Bad Request`: Setting is readonly (READONLY_SETTING)
 - `404 Not Found`: Setting not found
 
 ---
@@ -2723,15 +2783,45 @@ Bulk update multiple settings.
 
 **Response** `200 OK`
 
+Returns array of updated setting objects:
+
 ```json
-{
-  "updated": [
-    { "key": "clinic.name", "success": true },
-    { "key": "clinic.phone", "success": true }
-  ],
-  "errors": []
-}
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "setting_key": "clinic.name",
+    "setting_group": "clinic",
+    "setting_name": "Practice Name",
+    "setting_value": "Updated Practice Name",
+    "value_type": "STRING",
+    "description": "Name of the medical practice",
+    "default_value": "",
+    "is_public": true,
+    "is_readonly": false,
+    "created_at": "2024-11-15T10:00:00Z",
+    "updated_at": "2024-11-15T11:00:00Z"
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "setting_key": "clinic.phone",
+    "setting_group": "clinic",
+    "setting_name": "Practice Phone",
+    "setting_value": "+1-555-123-4567",
+    "value_type": "STRING",
+    "description": "Primary phone number",
+    "default_value": "",
+    "is_public": true,
+    "is_readonly": false,
+    "created_at": "2024-11-15T10:00:00Z",
+    "updated_at": "2024-11-15T11:00:00Z"
+  }
+]
 ```
+
+**Error Responses**
+
+- `400 Bad Request`: At least one setting is required
+- `400 Bad Request`: Bulk update failed (one or more settings failed)
 
 ---
 
@@ -2769,36 +2859,54 @@ Get the weekly working hours schedule.
 {
   "days": [
     {
-      "day_of_week": 1,
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "day_of_week": "MONDAY",
       "day_name": "Monday",
       "is_working_day": true,
-      "start_time": "09:00:00",
-      "end_time": "18:00:00"
+      "start_time": "09:00",
+      "end_time": "18:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "updated_at": "2024-11-15T10:00:00Z"
     },
     {
-      "day_of_week": 2,
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "day_of_week": "TUESDAY",
       "day_name": "Tuesday",
       "is_working_day": true,
-      "start_time": "09:00:00",
-      "end_time": "18:00:00"
+      "start_time": "09:00",
+      "end_time": "18:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "updated_at": "2024-11-15T10:00:00Z"
     },
     {
-      "day_of_week": 6,
+      "id": "550e8400-e29b-41d4-a716-446655440006",
+      "day_of_week": "SATURDAY",
       "day_name": "Saturday",
       "is_working_day": false,
       "start_time": null,
-      "end_time": null
+      "end_time": null,
+      "break_start": null,
+      "break_end": null,
+      "updated_at": "2024-11-15T10:00:00Z"
     },
     {
-      "day_of_week": 7,
+      "id": "550e8400-e29b-41d4-a716-446655440007",
+      "day_of_week": "SUNDAY",
       "day_name": "Sunday",
       "is_working_day": false,
       "start_time": null,
-      "end_time": null
+      "end_time": null,
+      "break_start": null,
+      "break_end": null,
+      "updated_at": "2024-11-15T10:00:00Z"
     }
   ]
 }
 ```
+
+Note: Time format is HH:MM (24-hour). Day of week uses ISO 8601: Monday=1, Sunday=7.
 
 ---
 
@@ -2817,18 +2925,24 @@ Update the entire weekly working hours schedule.
     {
       "day_of_week": 1,
       "is_working_day": true,
-      "start_time": "08:00:00",
-      "end_time": "17:00:00"
+      "start_time": "08:00",
+      "end_time": "17:00",
+      "break_start": "12:30",
+      "break_end": "13:30"
     },
     {
       "day_of_week": 6,
       "is_working_day": false,
       "start_time": null,
-      "end_time": null
+      "end_time": null,
+      "break_start": null,
+      "break_end": null
     }
   ]
 }
 ```
+
+Note: Include all 7 days for a complete bulk update, or only the days you want to change.
 
 **Response** `200 OK`
 
@@ -2851,15 +2965,39 @@ Update working hours for a specific day.
 
 ```json
 {
+  "day_of_week": 1,
   "is_working_day": true,
-  "start_time": "08:00:00",
-  "end_time": "18:00:00"
+  "start_time": "08:00",
+  "end_time": "18:00",
+  "break_start": "13:00",
+  "break_end": "14:00"
 }
 ```
 
+Note: `day_of_week` in request body must match path parameter.
+
 **Response** `200 OK`
 
-Returns updated day schedule.
+Returns updated day schedule object:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "day_of_week": "MONDAY",
+  "day_name": "Monday",
+  "is_working_day": true,
+  "start_time": "08:00",
+  "end_time": "18:00",
+  "break_start": "13:00",
+  "break_end": "14:00",
+  "updated_at": "2024-11-15T11:00:00Z"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Invalid day (INVALID_DAY) - Day must be between 1 and 7
+- `400 Bad Request`: Invalid time format or range (INVALID_TIME)
 
 ---
 
@@ -2884,19 +3022,27 @@ Get effective working hours for a date range (combines default schedule with ove
   "days": [
     {
       "date": "2024-12-25",
+      "day_of_week": 3,
+      "day_name": "Wednesday",
       "is_working_day": false,
       "start_time": null,
       "end_time": null,
-      "override_reason": "Christmas Day",
-      "override_type": "CLOSED"
+      "break_start": null,
+      "break_end": null,
+      "is_override": true,
+      "source": "OVERRIDE"
     },
     {
       "date": "2024-12-26",
+      "day_of_week": 4,
+      "day_name": "Thursday",
       "is_working_day": true,
-      "start_time": "09:00:00",
-      "end_time": "18:00:00",
-      "override_reason": null,
-      "override_type": null
+      "start_time": "09:00",
+      "end_time": "18:00",
+      "break_start": "13:00",
+      "break_end": "14:00",
+      "is_override": false,
+      "source": "DEFAULT"
     }
   ]
 }
@@ -2947,13 +3093,27 @@ List working hours overrides.
   "overrides": [
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
-      "date": "2024-12-25",
+      "override_date": "2024-12-25",
       "override_type": "CLOSED",
       "start_time": null,
       "end_time": null,
+      "break_start": null,
+      "break_end": null,
       "reason": "Christmas Day",
-      "is_recurring": true,
-      "created_at": "2024-01-15T10:00:00Z"
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "override_date": "2024-12-31",
+      "override_type": "CUSTOM_HOURS",
+      "start_time": "09:00",
+      "end_time": "13:00",
+      "break_start": null,
+      "break_end": null,
+      "reason": "New Year's Eve - Half day",
+      "created_at": "2024-01-15T10:00:00Z",
+      "updated_at": "2024-01-15T10:00:00Z"
     }
   ],
   "total": 12
@@ -2973,23 +3133,47 @@ Create a working hours override.
 
 ```json
 {
-  "date": "2024-12-31",
+  "override_date": "2024-12-31",
   "override_type": "CUSTOM_HOURS",
-  "start_time": "09:00:00",
-  "end_time": "13:00:00",
-  "reason": "New Year's Eve - Half day",
-  "is_recurring": false
+  "start_time": "09:00",
+  "end_time": "13:00",
+  "break_start": null,
+  "break_end": null,
+  "reason": "New Year's Eve - Half day"
 }
 ```
 
 **Override Types**
-- `CLOSED` - Practice closed (no start_time/end_time)
-- `CUSTOM_HOURS` - Custom working hours
-- `EXTENDED_HOURS` - Extended working hours
+- `CLOSED` - Practice closed (no start_time/end_time required)
+- `CUSTOM_HOURS` - Custom working hours (start_time and end_time required)
+- `EXTENDED_HOURS` - Extended working hours (start_time and end_time required)
+
+Note: `override_date` must be today or in the future. For `CLOSED` type, times are optional (can be null).
 
 **Response** `201 Created`
 
-Returns created override object.
+Returns created override object:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "override_date": "2024-12-31",
+  "override_type": "CUSTOM_HOURS",
+  "start_time": "09:00",
+  "end_time": "13:00",
+  "break_start": null,
+  "break_end": null,
+  "reason": "New Year's Eve - Half day",
+  "created_at": "2024-11-15T10:00:00Z",
+  "updated_at": "2024-11-15T10:00:00Z"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Date must be today or in the future
+- `400 Bad Request`: Invalid time format or range
+- `409 Conflict`: Override already exists for this date (DUPLICATE_DATE)
 
 ---
 
@@ -3023,10 +3207,15 @@ Update a working hours override.
 
 **Request Body**
 
+All fields are optional:
+
 ```json
 {
-  "start_time": "09:00:00",
-  "end_time": "14:00:00",
+  "override_type": "CUSTOM_HOURS",
+  "start_time": "09:00",
+  "end_time": "14:00",
+  "break_start": null,
+  "break_end": null,
   "reason": "Updated reason"
 }
 ```
@@ -3034,6 +3223,12 @@ Update a working hours override.
 **Response** `200 OK`
 
 Returns updated override object.
+
+**Error Responses**
+
+- `400 Bad Request`: Cannot modify past date overrides
+- `400 Bad Request`: Invalid time format or range
+- `404 Not Found`: Override not found
 
 ---
 
@@ -3079,12 +3274,24 @@ List holidays.
     {
       "id": "550e8400-e29b-41d4-a716-446655440001",
       "holiday_date": "2024-12-25",
-      "name": "Christmas Day",
+      "name": "Natale",
       "holiday_type": "NATIONAL",
-      "description": "National holiday",
+      "holiday_type_display": "National Holiday",
       "is_recurring": true,
-      "recurring_pattern": "YEARLY",
-      "created_at": "2024-01-01T00:00:00Z"
+      "notes": "National holiday - Christmas Day",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "holiday_date": "2024-08-15",
+      "name": "Ferragosto",
+      "holiday_type": "NATIONAL",
+      "holiday_type_display": "National Holiday",
+      "is_recurring": true,
+      "notes": "Assumption of Mary",
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
     }
   ],
   "total": 15
@@ -3107,25 +3314,40 @@ Create a holiday.
   "holiday_date": "2024-08-15",
   "name": "Ferragosto",
   "holiday_type": "NATIONAL",
-  "description": "Italian national holiday",
   "is_recurring": true,
-  "recurring_pattern": "YEARLY"
+  "notes": "Italian national holiday - Assumption of Mary"
 }
 ```
 
 **Holiday Types**
 - `NATIONAL` - National/public holiday
-- `PRACTICE_CLOSED` - Practice closure
-- `VACATION` - Vacation day
+- `PRACTICE_CLOSED` - Practice closure (e.g., staff training day)
+- `VACATION` - Doctor's vacation day
 
-**Recurring Patterns**
-- `YEARLY` - Same date every year
-- `MONTHLY` - Same date every month
-- `WEEKLY` - Same day every week
+Note: `is_recurring` indicates if the holiday repeats annually on the same month/day (e.g., Christmas on Dec 25).
 
 **Response** `201 Created`
 
-Returns created holiday object.
+Returns created holiday object:
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "holiday_date": "2024-08-15",
+  "name": "Ferragosto",
+  "holiday_type": "NATIONAL",
+  "holiday_type_display": "National Holiday",
+  "is_recurring": true,
+  "notes": "Italian national holiday - Assumption of Mary",
+  "created_at": "2024-11-15T10:00:00Z",
+  "updated_at": "2024-11-15T10:00:00Z"
+}
+```
+
+**Error Responses**
+
+- `400 Bad Request`: Validation error (name required, max 200 chars; notes max 1000 chars)
+- `409 Conflict`: Holiday already exists for this date (DUPLICATE_DATE)
 
 ---
 
@@ -3159,16 +3381,27 @@ Update a holiday.
 
 **Request Body**
 
+All fields are optional:
+
 ```json
 {
+  "holiday_date": "2024-08-16",
   "name": "Updated Holiday Name",
-  "description": "Updated description"
+  "holiday_type": "PRACTICE_CLOSED",
+  "is_recurring": false,
+  "notes": "Updated notes"
 }
 ```
 
 **Response** `200 OK`
 
 Returns updated holiday object.
+
+**Error Responses**
+
+- `400 Bad Request`: Validation error
+- `404 Not Found`: Holiday not found
+- `409 Conflict`: Another holiday already exists for the new date (DUPLICATE_DATE)
 
 ---
 
@@ -3206,10 +3439,25 @@ Check if a date is a holiday.
   "is_holiday": true,
   "holiday": {
     "id": "550e8400-e29b-41d4-a716-446655440001",
-    "name": "Christmas Day",
+    "holiday_date": "2024-12-25",
+    "name": "Natale",
     "holiday_type": "NATIONAL",
-    "description": "National holiday"
+    "holiday_type_display": "National Holiday",
+    "is_recurring": true,
+    "notes": "Christmas Day",
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
   }
+}
+```
+
+If not a holiday:
+
+```json
+{
+  "date": "2024-12-24",
+  "is_holiday": false,
+  "holiday": null
 }
 ```
 
@@ -3235,7 +3483,7 @@ Returns array of holiday objects within the specified range.
 
 ### POST /api/v1/holidays/import-national
 
-Import national holidays for a country/year.
+Import Italian national holidays for a specific year. Includes both fixed-date holidays and calculated Easter-dependent holidays.
 
 **Authentication**: Required
 **Authorization**: ADMIN
@@ -3244,27 +3492,66 @@ Import national holidays for a country/year.
 
 ```json
 {
-  "country": "IT",
   "year": 2025,
-  "replace_existing": false
+  "override_existing": false
 }
 ```
 
-**Supported Countries**
-- `IT` - Italy
+Parameters:
+- `year` (integer, required): Year to import holidays for (2020-2100)
+- `override_existing` (boolean, optional): If true, replaces existing national holidays for the year. Default: false
 
-**Response** `200 OK`
+**Imported Italian National Holidays**
+- Capodanno (New Year's Day) - January 1
+- Epifania (Epiphany) - January 6
+- Pasqua (Easter Sunday) - variable
+- Lunedì dell'Angelo (Easter Monday) - variable
+- Festa della Liberazione (Liberation Day) - April 25
+- Festa del Lavoro (Labour Day) - May 1
+- Festa della Repubblica (Republic Day) - June 2
+- Ferragosto (Assumption of Mary) - August 15
+- Ognissanti (All Saints' Day) - November 1
+- Immacolata Concezione (Immaculate Conception) - December 8
+- Natale (Christmas Day) - December 25
+- Santo Stefano (St. Stephen's Day) - December 26
+
+**Response** `201 Created`
 
 ```json
 {
-  "imported": 12,
-  "skipped": 3,
+  "year": 2025,
+  "imported_count": 12,
+  "skipped_count": 0,
   "holidays": [
-    { "name": "Capodanno", "date": "2025-01-01" },
-    { "name": "Epifania", "date": "2025-01-06" }
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "holiday_date": "2025-01-01",
+      "name": "Capodanno",
+      "holiday_type": "NATIONAL",
+      "holiday_type_display": "National Holiday",
+      "is_recurring": true,
+      "notes": "New Year's Day",
+      "created_at": "2024-11-15T10:00:00Z",
+      "updated_at": "2024-11-15T10:00:00Z"
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "holiday_date": "2025-01-06",
+      "name": "Epifania",
+      "holiday_type": "NATIONAL",
+      "holiday_type_display": "National Holiday",
+      "is_recurring": true,
+      "notes": "Epiphany",
+      "created_at": "2024-11-15T10:00:00Z",
+      "updated_at": "2024-11-15T10:00:00Z"
+    }
   ]
 }
 ```
+
+**Error Responses**
+
+- `400 Bad Request`: Year must be between 2020 and 2100 (INVALID_YEAR)
 
 ---
 
@@ -3274,7 +3561,7 @@ View audit trail of system activities. All audit endpoints require ADMIN role.
 
 ### GET /api/v1/audit-logs
 
-List audit logs with filtering.
+List audit logs with filtering and pagination.
 
 **Authentication**: Required
 **Authorization**: ADMIN
@@ -3282,14 +3569,16 @@ List audit logs with filtering.
 **Query Parameters**
 
 - `user_id` (UUID, optional): Filter by user
-- `action` (string, optional): Filter by action (CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, SEARCH, EXPORT)
-- `entity_type` (string, optional): Filter by entity type (PATIENT, VISIT, PRESCRIPTION, APPOINTMENT, USER, SETTING, etc.)
-- `entity_id` (UUID, optional): Filter by specific entity
-- `date_from` (string, optional): Start date filter
-- `date_to` (string, optional): End date filter
-- `ip_address` (string, optional): Filter by IP address
+- `action` (string, optional): Filter by action type
+- `entity_type` (string, optional): Filter by entity type
+- `entity_id` (string, optional): Filter by specific entity ID
+- `date_from` (date, optional): Start date filter (YYYY-MM-DD, inclusive)
+- `date_to` (date, optional): End date filter (YYYY-MM-DD, inclusive)
+- `ip_address` (string, optional): Filter by IP address (partial match)
 - `page` (integer, optional): Page number (default: 1)
 - `page_size` (integer, optional): Items per page (default: 50, max: 100)
+- `sort_by` (string, optional): Sort field - `created_at`, `action`, `entity_type`, `user_email` (default: `created_at`)
+- `sort_order` (string, optional): Sort direction - `asc`, `desc` (default: `desc`)
 
 **Response** `200 OK`
 
@@ -3299,16 +3588,19 @@ List audit logs with filtering.
     {
       "id": 12345,
       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-      "user_name": "Dr. Smith",
+      "user_email": "admin@docpat.local",
       "action": "UPDATE",
       "entity_type": "PATIENT",
       "entity_id": "550e8400-e29b-41d4-a716-446655440001",
-      "description": "Updated patient demographics",
-      "ip_address": "192.168.1.100",
-      "user_agent": "Mozilla/5.0...",
-      "created_at": "2024-11-15T10:30:00Z",
-      "old_values": { "phone": "+1-555-111-1111" },
-      "new_values": { "phone": "+1-555-222-2222" }
+      "changes": {
+        "first_name": "John",
+        "last_name": "Doe",
+        "phone_primary": "+1-555-222-2222"
+      },
+      "ip_address": "127.0.0.1/32",
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) ...",
+      "request_id": "3ec655bd-f948-4c8a-b8b7-f54959c91827",
+      "created_at": "2025-12-20T10:30:00Z"
     }
   ],
   "total": 5420,
@@ -3333,7 +3625,30 @@ Get a specific audit log entry.
 
 **Response** `200 OK`
 
-Returns detailed audit log object including old/new values.
+```json
+{
+  "id": 12345,
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "user_email": "admin@docpat.local",
+  "action": "UPDATE",
+  "entity_type": "PATIENT",
+  "entity_id": "550e8400-e29b-41d4-a716-446655440001",
+  "changes": { "phone_primary": "+1-555-222-2222" },
+  "ip_address": "127.0.0.1/32",
+  "user_agent": "Mozilla/5.0...",
+  "request_id": "3ec655bd-f948-4c8a-b8b7-f54959c91827",
+  "created_at": "2025-12-20T10:30:00Z"
+}
+```
+
+**Response** `404 Not Found`
+
+```json
+{
+  "error": "Not found",
+  "message": "Audit log with id 12345 not found"
+}
+```
 
 ---
 
@@ -3352,24 +3667,24 @@ Get audit log statistics.
   "logs_today": 125,
   "logs_this_week": 890,
   "logs_this_month": 3450,
-  "by_action": {
-    "CREATE": 12500,
-    "UPDATE": 28000,
-    "DELETE": 1200,
-    "READ": 10000,
-    "LOGIN": 2580
-  },
-  "by_entity_type": {
-    "PATIENT": 18000,
-    "VISIT": 15000,
-    "APPOINTMENT": 12000,
-    "USER": 5000
-  },
+  "actions_breakdown": [
+    { "action": "CREATE", "count": 12500 },
+    { "action": "UPDATE", "count": 28000 },
+    { "action": "DELETE", "count": 1200 },
+    { "action": "READ", "count": 10000 },
+    { "action": "LOGIN", "count": 2580 }
+  ],
+  "entity_types_breakdown": [
+    { "entity_type": "PATIENT", "count": 18000 },
+    { "entity_type": "VISIT", "count": 15000 },
+    { "entity_type": "APPOINTMENT", "count": 12000 },
+    { "entity_type": "USER", "count": 5000 }
+  ],
   "top_users": [
     {
       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-      "user_name": "Dr. Smith",
-      "action_count": 25000
+      "user_email": "admin@docpat.local",
+      "count": 25000
     }
   ]
 }
@@ -3393,24 +3708,39 @@ Get activity summary for a specific user.
 ```json
 {
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "user_name": "Dr. Smith",
+  "user_email": "admin@docpat.local",
   "total_actions": 25000,
-  "last_activity": "2024-11-15T10:30:00Z",
-  "first_activity": "2024-01-15T08:00:00Z",
-  "by_action": {
-    "CREATE": 5000,
-    "UPDATE": 12000,
-    "READ": 8000
-  },
-  "recent_activity": [
+  "first_activity": "2025-01-15T08:00:00Z",
+  "last_activity": "2025-12-20T10:30:00Z",
+  "actions_breakdown": [
+    { "action": "CREATE", "count": 5000 },
+    { "action": "UPDATE", "count": 12000 },
+    { "action": "READ", "count": 8000 }
+  ],
+  "recent_logs": [
     {
       "id": 12345,
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "user_email": "admin@docpat.local",
       "action": "UPDATE",
       "entity_type": "PATIENT",
-      "description": "Updated patient record",
-      "created_at": "2024-11-15T10:30:00Z"
+      "entity_id": "550e8400-e29b-41d4-a716-446655440001",
+      "changes": { "phone_primary": "+1-555-222-2222" },
+      "ip_address": "127.0.0.1/32",
+      "user_agent": "Mozilla/5.0...",
+      "request_id": "3ec655bd-f948-4c8a-b8b7-f54959c91827",
+      "created_at": "2025-12-20T10:30:00Z"
     }
   ]
+}
+```
+
+**Response** `404 Not Found`
+
+```json
+{
+  "error": "Not found",
+  "message": "No activity found for user 550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -3418,20 +3748,23 @@ Get activity summary for a specific user.
 
 ### GET /api/v1/audit-logs/export
 
-Export audit logs.
+Export audit logs to CSV or JSON file.
 
 **Authentication**: Required
 **Authorization**: ADMIN
 
 **Query Parameters**
 
-- All filter parameters from list endpoint
-- `format` (string, optional): Export format (csv, json) - default: csv
-- `limit` (integer, optional): Maximum records (max: 50000)
+- All filter parameters from list endpoint (user_id, action, entity_type, entity_id, date_from, date_to, ip_address)
+- `format` (string, optional): Export format - `csv`, `json` (default: `csv`)
+- `limit` (integer, optional): Maximum records to export (default: 10000, max: 50000)
 
 **Response** `200 OK`
 
-Returns file download with appropriate Content-Type header.
+Returns file download with appropriate headers:
+- **CSV**: `Content-Type: text/csv; charset=utf-8`
+- **JSON**: `Content-Type: application/json; charset=utf-8`
+- `Content-Disposition: attachment; filename="audit_logs_export_YYYYMMDD_HHMMSS.csv"`
 
 ---
 
@@ -3447,7 +3780,7 @@ Get available filter options for audit logs.
 ```json
 {
   "actions": ["CREATE", "READ", "UPDATE", "DELETE", "LOGIN", "LOGOUT", "SEARCH", "EXPORT"],
-  "entity_types": ["PATIENT", "VISIT", "PRESCRIPTION", "DIAGNOSIS", "APPOINTMENT", "USER", "SETTING", "TEMPLATE", "DOCUMENT"]
+  "entity_types": ["PATIENT", "PATIENT_INSURANCE", "VISIT", "PRESCRIPTION", "DIAGNOSIS", "APPOINTMENT", "USER", "DOCUMENT", "HOLIDAY", "WORKING_HOURS", "SYSTEM_SETTING", "FILE", "TEMPLATE"]
 }
 ```
 
@@ -3459,7 +3792,7 @@ Monitor system health, resources, and status. All endpoints require ADMIN role.
 
 ### GET /api/v1/system/health/detailed
 
-Get detailed system health status.
+Get detailed system health status with component-level details.
 
 **Authentication**: Required
 **Authorization**: ADMIN
@@ -3471,44 +3804,80 @@ Get detailed system health status.
   "status": "healthy",
   "timestamp": "2024-11-15T10:30:00Z",
   "uptime_seconds": 864000,
-  "database": {
-    "status": "healthy",
-    "latency_ms": 2,
-    "connections": {
-      "active": 5,
-      "idle": 15,
-      "max": 100
+  "version": "0.1.0",
+  "components": [
+    {
+      "name": "database",
+      "status": "healthy",
+      "message": null,
+      "latency_ms": 2,
+      "details": null
+    },
+    {
+      "name": "disk",
+      "status": "healthy",
+      "message": null,
+      "latency_ms": null,
+      "details": {
+        "available_gb": 93.1,
+        "total_gb": 146.3,
+        "usage_percent": 36.4
+      }
+    },
+    {
+      "name": "memory",
+      "status": "healthy",
+      "message": null,
+      "latency_ms": null,
+      "details": {
+        "used_mb": 8192,
+        "total_mb": 32768,
+        "usage_percent": 25.0
+      }
     }
+  ],
+  "database_pool": {
+    "size": 10,
+    "available": 8,
+    "in_use": 2,
+    "max_connections": 100
   },
-  "memory": {
-    "used_mb": 256,
-    "total_mb": 8192,
-    "percentage": 3.1
-  },
-  "cpu": {
-    "usage_percentage": 12.5,
-    "load_average": [0.85, 0.72, 0.68]
-  },
-  "disk": {
-    "used_gb": 45.2,
-    "total_gb": 500,
-    "percentage": 9.0
-  },
-  "version": "1.1.0",
-  "environment": "production"
+  "system_resources": {
+    "memory_used_mb": 8192,
+    "memory_total_mb": 32768,
+    "memory_percent": 25.0,
+    "cpu_usage_percent": 12.5,
+    "disk_used_gb": 53.2,
+    "disk_total_gb": 146.3,
+    "disk_percent": 36.4
+  }
 }
 ```
 
 **Status Values**
 - `healthy` - All systems operational
-- `degraded` - Some issues detected
-- `unhealthy` - Critical issues
+- `degraded` - Some issues detected (e.g., high memory usage)
+- `unhealthy` - Critical issues (e.g., database unreachable, disk full)
+
+**Component Status Triggers**
+- Database: `unhealthy` if connection fails
+- Disk: `unhealthy` if usage > 95%, `degraded` if > 85%
+- Memory: `degraded` if usage > 90%
+
+**Error Response** `403 Forbidden`
+
+```json
+{
+  "error": "Access denied",
+  "message": "Insufficient permissions for this operation"
+}
+```
 
 ---
 
 ### GET /api/v1/system/info
 
-Get system information.
+Get comprehensive system information.
 
 **Authentication**: Required
 **Authorization**: ADMIN
@@ -3517,16 +3886,48 @@ Get system information.
 
 ```json
 {
-  "version": "1.1.0",
-  "environment": "production",
-  "rust_version": "1.90.0",
-  "database_version": "PostgreSQL 17.0",
-  "started_at": "2024-11-01T00:00:00Z",
-  "features": {
-    "rbac": true,
-    "pdf_export": true,
-    "report_export": true
+  "application": {
+    "name": "DocPat Backend",
+    "version": "0.1.0",
+    "rust_version": "1.83.0",
+    "build_timestamp": "2024-12-20T10:30:00Z",
+    "git_commit": "54f0801"
+  },
+  "server": {
+    "hostname": "docpat-server",
+    "os": "linux",
+    "arch": "x86_64",
+    "uptime_seconds": 864000,
+    "started_at": "2024-11-05T10:30:00Z"
+  },
+  "database": {
+    "version": "PostgreSQL 17.0",
+    "database_name": "mpms_dev",
+    "connection_pool_size": 10,
+    "last_migration": "20251214000002_add_localization_settings",
+    "total_tables": 25
+  },
+  "environment": {
+    "environment": "development",
+    "debug_mode": true,
+    "log_level": "info,tower_http=debug,docpat_backend=debug",
+    "timezone": "UTC"
   }
+}
+```
+
+**Field Notes**
+- `build_timestamp`: Set at compile time via build.rs, null if not available
+- `git_commit`: Short SHA from git, null if not available
+- `last_migration`: Most recent applied migration name
+- `total_tables`: Count of tables in public schema
+
+**Error Response** `500 Internal Server Error`
+
+```json
+{
+  "error": "Failed to get system info",
+  "message": "Database connection error"
 }
 ```
 
@@ -3534,7 +3935,7 @@ Get system information.
 
 ### GET /api/v1/system/storage
 
-Get storage statistics.
+Get storage statistics for database and file system.
 
 **Authentication**: Required
 **Authorization**: ADMIN
@@ -3544,27 +3945,55 @@ Get storage statistics.
 ```json
 {
   "database": {
-    "total_size_mb": 1250,
-    "tables_size_mb": 980,
-    "indexes_size_mb": 270,
-    "top_tables": [
-      { "name": "audit_logs", "size_mb": 450 },
-      { "name": "visits", "size_mb": 320 },
-      { "name": "patients", "size_mb": 150 }
+    "total_size_mb": 16.89,
+    "tables_size_mb": 12.45,
+    "indexes_size_mb": 4.44,
+    "estimated_rows": 1250
+  },
+  "file_system": {
+    "documents_size_mb": 0.0,
+    "uploads_size_mb": 0.0,
+    "logs_size_mb": 0.0,
+    "available_disk_gb": 93.1,
+    "total_disk_gb": 146.3,
+    "disk_usage_percent": 36.4
+  },
+  "breakdown": {
+    "tables": [
+      {
+        "table_name": "audit_logs",
+        "size_mb": 4.5,
+        "row_count": 850
+      },
+      {
+        "table_name": "visits",
+        "size_mb": 3.2,
+        "row_count": 125
+      },
+      {
+        "table_name": "patients",
+        "size_mb": 1.5,
+        "row_count": 13
+      }
     ]
-  },
-  "files": {
-    "documents_count": 1250,
-    "documents_size_mb": 580,
-    "uploads_count": 320,
-    "uploads_size_mb": 125,
-    "total_size_mb": 705
-  },
-  "disk": {
-    "total_gb": 500,
-    "available_gb": 454.8,
-    "used_percentage": 9.0
   }
+}
+```
+
+**Field Notes**
+- `database.total_size_mb`: Total database size from pg_database_size()
+- `database.tables_size_mb`: Sum of table sizes (heap)
+- `database.indexes_size_mb`: Sum of index sizes
+- `database.estimated_rows`: Estimated total rows via pg_stat_user_tables
+- `file_system.disk_*`: Root filesystem stats via statvfs (system-wide, not app-specific)
+- `breakdown.tables`: Top 20 tables by size, ordered descending
+
+**Error Response** `500 Internal Server Error`
+
+```json
+{
+  "error": "Failed to get storage stats",
+  "message": "Permission denied reading directory"
 }
 ```
 
@@ -3572,34 +4001,58 @@ Get storage statistics.
 
 ### GET /api/v1/system/backup-status
 
-Get backup status.
+Get backup status and configuration.
 
 **Authentication**: Required
 **Authorization**: ADMIN
 
-**Response** `200 OK`
+**Response** `200 OK` (backups disabled - directory doesn't exist)
 
 ```json
 {
+  "enabled": false,
+  "last_backup": null,
+  "next_scheduled": null,
+  "backup_location": "/var/backups/docpat",
+  "retention_days": 30
+}
+```
+
+**Response** `200 OK` (backups enabled with history)
+
+```json
+{
+  "enabled": true,
   "last_backup": {
     "timestamp": "2024-11-15T02:00:00Z",
-    "type": "full",
-    "size_mb": 850,
+    "size_mb": 850.5,
     "duration_seconds": 120,
-    "status": "success"
+    "status": "success",
+    "filename": "backup_20241115_020000.sql.gz"
   },
   "next_scheduled": "2024-11-16T02:00:00Z",
-  "backup_location": "/backups/mpms",
-  "retention": {
-    "daily": 30,
-    "weekly": 12,
-    "monthly": 12
-  },
-  "backups_count": {
-    "daily": 30,
-    "weekly": 12,
-    "monthly": 8
-  }
+  "backup_location": "/var/backups/docpat",
+  "retention_days": 30
+}
+```
+
+**Field Notes**
+- `enabled`: true if backup directory exists
+- `last_backup`: Read from status.json in backup directory, null if not found
+- `next_scheduled`: Calculated from status.json, null if not scheduled
+- `backup_location`: From BACKUP_DIR env var, default `/var/backups/docpat`
+- `retention_days`: Hardcoded to 30 (configurable backup system not yet implemented)
+
+**Expected status.json Format** (written by backup script)
+
+```json
+{
+  "last_backup_timestamp": "2024-11-15T02:00:00Z",
+  "last_backup_size_bytes": 891289600,
+  "last_backup_duration_seconds": 120,
+  "last_backup_status": "success",
+  "last_backup_filename": "backup_20241115_020000.sql.gz",
+  "next_scheduled": "2024-11-16T02:00:00Z"
 }
 ```
 
@@ -4373,7 +4826,7 @@ Record document delivery.
 
 #### Audit Log Actions
 - `CREATE` - Resource creation
-- `READ` - Resource read
+- `READ` - Resource read/view
 - `UPDATE` - Resource update
 - `DELETE` - Resource deletion
 - `LOGIN` - User login
@@ -4383,19 +4836,23 @@ Record document delivery.
 
 #### Audit Log Entity Types
 - `PATIENT` - Patient records
+- `PATIENT_INSURANCE` - Patient insurance records
 - `VISIT` - Visit records
 - `PRESCRIPTION` - Prescriptions
 - `DIAGNOSIS` - Diagnoses
 - `APPOINTMENT` - Appointments
 - `USER` - User accounts
-- `SETTING` - System settings
-- `TEMPLATE` - Document templates
 - `DOCUMENT` - Generated documents
+- `HOLIDAY` - Holiday records
+- `WORKING_HOURS` - Working hours schedules
+- `SYSTEM_SETTING` - System settings
+- `FILE` - Uploaded files
+- `TEMPLATE` - Document/visit/prescription templates
 
 #### System Health Status
 - `healthy` - All systems operational
-- `degraded` - Some issues detected
-- `unhealthy` - Critical issues
+- `degraded` - Some issues detected (e.g., memory usage > 90%, disk usage > 85%)
+- `unhealthy` - Critical issues (e.g., database unreachable, disk usage > 95%)
 
 #### Report Types
 - `appointment_utilization` - Appointment utilization report

@@ -279,7 +279,7 @@ pub struct CreateOverrideRequest {
 }
 
 /// Request to update a working hours override
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UpdateOverrideRequest {
     /// Type of override
     pub override_type: Option<OverrideType>,

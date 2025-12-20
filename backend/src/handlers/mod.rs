@@ -41,7 +41,7 @@ pub use diagnoses::{
 pub use mfa::{mfa_enroll_handler, mfa_setup_handler};
 pub use patients::{
     create_patient, delete_patient, get_patient, get_statistics as get_patient_statistics,
-    list_patients, search_patients, update_patient,
+    list_patients, reactivate_patient, search_patients, update_patient,
 };
 pub use prescriptions::{
     create_prescription, delete_prescription, discontinue_prescription, get_patient_prescriptions,

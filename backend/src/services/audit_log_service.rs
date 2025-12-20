@@ -159,10 +159,9 @@ impl AuditLogService {
         &self,
         filter: &AuditLogsFilter,
     ) -> Result<Vec<AuditLogResponse>, sqlx::Error> {
-        // Use a single query with optional parameter checks
-        // This is more efficient than building dynamic SQL
-        let logs = sqlx::query_as!(
-            AuditLogWithEmail,
+        // Build query with dynamic ORDER BY (sort params are validated in filter.validate())
+        let order_by = filter.order_by_clause();
+        let query = format!(
             r#"
             SELECT
                 al.id,
@@ -186,21 +185,24 @@ impl AuditLogService {
                 AND ($5::date IS NULL OR al.created_at >= $5::date)
                 AND ($6::date IS NULL OR al.created_at < ($6::date + interval '1 day'))
                 AND ($7::text IS NULL OR al.ip_address::text LIKE '%' || $7 || '%')
-            ORDER BY al.created_at DESC
+            ORDER BY {}
             LIMIT $8 OFFSET $9
             "#,
-            filter.user_id,
-            filter.action.as_deref(),
-            filter.entity_type.as_deref(),
-            filter.entity_id.as_deref(),
-            filter.date_from,
-            filter.date_to,
-            filter.ip_address.as_deref(),
-            filter.page_size,
-            filter.offset()
-        )
-        .fetch_all(&self.pool)
-        .await?;
+            order_by
+        );
+
+        let logs: Vec<AuditLogWithEmail> = sqlx::query_as(&query)
+            .bind(filter.user_id)
+            .bind(filter.action.as_deref())
+            .bind(filter.entity_type.as_deref())
+            .bind(filter.entity_id.as_deref())
+            .bind(filter.date_from)
+            .bind(filter.date_to)
+            .bind(filter.ip_address.as_deref())
+            .bind(filter.page_size)
+            .bind(filter.offset())
+            .fetch_all(&self.pool)
+            .await?;
 
         Ok(logs.into_iter().map(|l| l.into()).collect())
     }
@@ -504,7 +506,7 @@ impl AuditLogService {
 // ============================================================================
 
 /// Internal struct for fetching audit logs with user email
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 struct AuditLogWithEmail {
     id: i64,
     user_id: Option<Uuid>,

@@ -146,10 +146,10 @@ export function NewPatientPage() {
       {/* Duplicate warning dialog */}
       <DuplicatePatientWarning
         isOpen={showDuplicateWarning}
-        duplicates={duplicates}
+        potentialDuplicates={duplicates}
         onClose={handleCancelDuplicate}
         onProceed={handleProceedWithDuplicate}
-        onViewPatient={handleViewDuplicate}
+        onReview={handleViewDuplicate}
       />
     </div>
   );

@@ -133,6 +133,10 @@ hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
 tower = "0.5"
 
+[build-dependencies]
+# Build script dependencies
+chrono = "0.4"
+
 [profile.dev]
 # Development profile - fast compile times
 opt-level = 0

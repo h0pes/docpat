@@ -50,6 +50,8 @@ export interface LoginResponse {
   tokens: TokenPair;
   user: User;
   requiresMfa?: boolean;
+  /** Indicates if MFA setup is required (global mfa_required setting is ON but user hasn't set up MFA) */
+  requiresMfaSetup?: boolean;
 }
 
 /**

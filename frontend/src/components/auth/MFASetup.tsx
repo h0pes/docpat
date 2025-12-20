@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { Check, Copy, Download, Shield } from 'lucide-react';
-import QRCode from 'qrcode';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +22,8 @@ import { authApi } from '@/services/api/auth';
 import { MFAVerificationInput } from './MFAVerificationInput';
 
 interface MFASetupProps {
+  /** User ID to setup MFA for */
+  userId: string;
   /** Callback when MFA is successfully enabled */
   onSuccess?: () => void;
   /** Callback when user cancels setup */
@@ -32,7 +33,7 @@ interface MFASetupProps {
 /**
  * MFA setup wizard component
  */
-export function MFASetup({ onSuccess, onCancel }: MFASetupProps) {
+export function MFASetup({ userId, onSuccess, onCancel }: MFASetupProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -48,24 +49,16 @@ export function MFASetup({ onSuccess, onCancel }: MFASetupProps) {
    * Setup MFA - get QR code and secret
    */
   const setupMutation = useMutation({
-    mutationFn: authApi.setupMfa,
+    mutationFn: () => authApi.setupMfa(userId),
     onSuccess: async (data) => {
       setSecret(data.secret);
-      setBackupCodes(data.backupCodes || []);
+      setBackupCodes(data.backup_codes || []);
 
-      // Generate QR code
-      try {
-        const qrCode = await QRCode.toDataURL(data.qrCodeUrl);
-        setQrCodeUrl(qrCode);
-        setStep('verify');
-      } catch (error) {
-        console.error('Failed to generate QR code:', error);
-        toast({
-          variant: 'destructive',
-          title: t('app.error'),
-          description: t('auth.mfa.qrCodeError'),
-        });
+      // The backend returns the QR code as base64-encoded PNG
+      if (data.qr_code) {
+        setQrCodeUrl(data.qr_code);
       }
+      setStep('verify');
     },
     onError: (error: AxiosError<{ message?: string }>) => {
       toast({
@@ -80,7 +73,7 @@ export function MFASetup({ onSuccess, onCancel }: MFASetupProps) {
    * Verify and enable MFA
    */
   const verifyMutation = useMutation({
-    mutationFn: (code: string) => authApi.enrollMfa(code),
+    mutationFn: (code: string) => authApi.enrollMfa(userId, secret, code, backupCodes),
     onSuccess: () => {
       setStep('backup');
       toast({
@@ -226,7 +219,7 @@ export function MFASetup({ onSuccess, onCancel }: MFASetupProps) {
               <div className="w-full space-y-2">
                 <p className="text-sm font-medium text-center">{t('auth.mfa.manualEntry')}</p>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 px-3 py-2 bg-muted rounded text-sm font-mono text-center">
+                  <code className="flex-1 px-3 py-2 bg-muted rounded text-sm font-mono text-center break-all">
                     {secret}
                   </code>
                   <Button size="icon" variant="outline" onClick={handleCopySecret}>

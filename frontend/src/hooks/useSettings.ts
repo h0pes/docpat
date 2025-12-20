@@ -153,17 +153,26 @@ export function useBulkUpdateSettings() {
     mutationFn: (data: BulkUpdateSettingsRequest) =>
       settingsApi.bulkUpdate(data),
     onSuccess: (updatedSettings) => {
+      // Track affected groups to invalidate their specific queries
+      const affectedGroups = new Set<string>();
+
       // Update each setting in cache
       for (const setting of updatedSettings) {
         queryClient.setQueryData(
           settingsKeys.detail(setting.setting_key),
           setting
         );
+        affectedGroups.add(setting.setting_group);
       }
 
-      // Invalidate all lists and groups
+      // Invalidate all lists and groups summary
       queryClient.invalidateQueries({ queryKey: settingsKeys.lists() });
       queryClient.invalidateQueries({ queryKey: settingsKeys.groups() });
+
+      // Invalidate each affected group's specific query
+      for (const group of affectedGroups) {
+        queryClient.invalidateQueries({ queryKey: settingsKeys.group(group) });
+      }
     },
   });
 }

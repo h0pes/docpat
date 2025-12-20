@@ -10,8 +10,8 @@
  */
 
 use crate::models::{
-    AuditAction, AuditLog, CreateAuditLog, CreateVisitRequest, EntityType, UpdateVisitRequest,
-    Visit, VisitResponse, VisitStatus, VisitType, VitalSigns,
+    AuditAction, AuditLog, CreateAuditLog, CreateVisitRequest, EntityType, RequestContext,
+    UpdateVisitRequest, Visit, VisitResponse, VisitStatus, VisitType, VitalSigns,
 };
 use crate::utils::encryption::EncryptionKey;
 use anyhow::{Context, Result};
@@ -127,6 +127,7 @@ impl VisitService {
         &self,
         data: CreateVisitRequest,
         created_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<VisitResponse> {
         // Validate input
         data.validate()
@@ -273,9 +274,9 @@ impl VisitService {
                 entity_type: EntityType::Visit,
                 entity_id: Some(visit.id.to_string()),
                 changes: None,
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -288,7 +289,12 @@ impl VisitService {
     }
 
     /// Get visit by ID (decrypted)
-    pub async fn get_visit(&self, id: Uuid, user_id: Uuid) -> Result<Option<VisitResponse>> {
+    pub async fn get_visit(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<Option<VisitResponse>> {
         // Start transaction for RLS context
         let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
 
@@ -316,9 +322,9 @@ impl VisitService {
                     entity_type: EntityType::Visit,
                     entity_id: Some(v.id.to_string()),
                     changes: None,
-                    ip_address: None,
-                    user_agent: None,
-                    request_id: None,
+                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                    request_id: request_ctx.map(|c| c.request_id),
                 },
             )
             .await;
@@ -339,6 +345,7 @@ impl VisitService {
         id: Uuid,
         data: UpdateVisitRequest,
         updated_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<VisitResponse> {
         // Validate input
         data.validate()
@@ -495,9 +502,9 @@ impl VisitService {
                 entity_type: EntityType::Visit,
                 entity_id: Some(visit.id.to_string()),
                 changes: None,
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -509,7 +516,12 @@ impl VisitService {
     }
 
     /// Delete visit (only DRAFT visits can be deleted)
-    pub async fn delete_visit(&self, id: Uuid, user_id: Uuid) -> Result<()> {
+    pub async fn delete_visit(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<()> {
         // Start transaction for RLS context and delete
         let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
 
@@ -537,9 +549,9 @@ impl VisitService {
                 entity_type: EntityType::Visit,
                 entity_id: Some(id.to_string()),
                 changes: None,
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -748,6 +760,7 @@ impl VisitService {
         &self,
         id: Uuid,
         signed_by: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<VisitResponse> {
         // Start transaction for RLS context and sign operation
         let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
@@ -813,9 +826,9 @@ impl VisitService {
                     "action": "signed",
                     "status_change": "DRAFT -> SIGNED"
                 })),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -828,6 +841,7 @@ impl VisitService {
         &self,
         id: Uuid,
         locked_by: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<VisitResponse> {
         // Start transaction for RLS context and lock operation
         let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
@@ -886,9 +900,9 @@ impl VisitService {
                     "action": "locked",
                     "status_change": "SIGNED -> LOCKED"
                 })),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;

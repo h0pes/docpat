@@ -76,7 +76,7 @@ export function LoginPage() {
         rememberMe: data.rememberMe,
       });
 
-      // Check if MFA is required
+      // Check if MFA verification is required (user has MFA enabled)
       if (response.requiresMfa) {
         setRequiresMfa(true);
         setPendingCredentials({
@@ -90,8 +90,19 @@ export function LoginPage() {
         return;
       }
 
-      // Successful login without MFA
+      // Successful login - authenticate the user
       login(response.user, response.tokens.access_token, response.tokens.refresh_token);
+
+      // Check if MFA setup is required (global setting is ON but user hasn't set up MFA)
+      if (response.requiresMfaSetup) {
+        toast({
+          title: t('auth.mfa.setupRequired'),
+          description: t('auth.mfa.setupRequiredDescription'),
+        });
+        // Redirect to profile page with MFA setup flag
+        navigate('/profile?mfaSetupRequired=true', { replace: true });
+        return;
+      }
 
       toast({
         title: t('auth.loginSuccess'),
@@ -239,9 +250,11 @@ export function LoginPage() {
                     if (!pendingCredentials) return;
 
                     try {
-                      const response = await authApi.verifyMfa({
+                      // Call login endpoint again with MFA code
+                      const response = await authApi.login({
                         username: pendingCredentials.username,
-                        code,
+                        password: pendingCredentials.password,
+                        mfaCode: code,
                       });
 
                       login(response.user, response.tokens.access_token, response.tokens.refresh_token);

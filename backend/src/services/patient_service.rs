@@ -3,7 +3,7 @@
 
 use crate::models::{
     AuditAction, AuditLog, CreateAuditLog, CreatePatientRequest, EntityType, Patient, PatientDto,
-    PatientSearchFilter, PatientStatus, UpdatePatientRequest,
+    PatientSearchFilter, PatientStatus, RequestContext, UpdatePatientRequest,
 };
 use crate::utils::encryption::EncryptionKey;
 use anyhow::{Context, Result};
@@ -58,7 +58,12 @@ impl PatientService {
     }
 
     /// Find patient by ID (decrypted)
-    pub async fn get_patient(&self, id: Uuid, user_id: Option<Uuid>) -> Result<Option<PatientDto>> {
+    pub async fn get_patient(
+        &self,
+        id: Uuid,
+        user_id: Option<Uuid>,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<Option<PatientDto>> {
         let patient = Patient::find_by_id(&self.pool, id).await?;
 
         if let Some(ref p) = patient {
@@ -71,9 +76,9 @@ impl PatientService {
                     entity_type: EntityType::Patient,
                     entity_id: Some(p.id.to_string()),
                     changes: None,
-                    ip_address: None,
-                    user_agent: None,
-                    request_id: None,
+                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                    request_id: request_ctx.map(|c| c.request_id),
                 },
             )
             .await;
@@ -101,6 +106,7 @@ impl PatientService {
         id: Uuid,
         data: UpdatePatientRequest,
         updated_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<PatientDto> {
         // Validate input
         data.validate()
@@ -125,9 +131,9 @@ impl PatientService {
                 entity_type: EntityType::Patient,
                 entity_id: Some(patient.id.to_string()),
                 changes: None, // Could store before/after values in future
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -138,7 +144,12 @@ impl PatientService {
     }
 
     /// Delete patient (soft delete)
-    pub async fn delete_patient(&self, id: Uuid, user_id: Uuid) -> Result<()> {
+    pub async fn delete_patient(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<()> {
         Patient::soft_delete(&self.pool, id)
             .await
             .context("Failed to delete patient")?;
@@ -152,9 +163,9 @@ impl PatientService {
                 entity_type: EntityType::Patient,
                 entity_id: Some(id.to_string()),
                 changes: None,
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -187,6 +198,7 @@ impl PatientService {
         executor: E,
         filter: PatientSearchFilter,
         user_id: Option<Uuid>,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<Vec<PatientDto>>
     where
         E: sqlx::Executor<'e, Database = sqlx::Postgres>,
@@ -243,13 +255,26 @@ impl PatientService {
             format!("WHERE {}", conditions.join(" AND "))
         };
 
-        let limit = filter.limit.unwrap_or(50);
+        // When there's a text query, we need to fetch ALL records first because
+        // the text search happens in-memory (names are encrypted).
+        // We'll apply limit AFTER the in-memory filtering.
+        let has_text_query = filter.query.is_some();
+        let requested_limit = filter.limit.unwrap_or(50);
         let offset = filter.offset.unwrap_or(0);
 
-        let query_str = format!(
-            "SELECT * FROM patients {} ORDER BY created_at DESC LIMIT {} OFFSET {}",
-            where_clause, limit, offset
-        );
+        let query_str = if has_text_query {
+            // Fetch all matching records for in-memory text search
+            format!(
+                "SELECT * FROM patients {} ORDER BY last_name ASC, first_name ASC",
+                where_clause
+            )
+        } else {
+            // No text search - apply limit at DB level
+            format!(
+                "SELECT * FROM patients {} ORDER BY last_name ASC, first_name ASC LIMIT {} OFFSET {}",
+                where_clause, requested_limit, offset
+            )
+        };
 
         // Execute query with parameters
         let mut query = sqlx::query_as::<_, Patient>(&query_str);
@@ -282,9 +307,9 @@ impl PatientService {
                             "results_count": patients.len()
                         })
                     }),
-                    ip_address: None,
-                    user_agent: None,
-                    request_id: None,
+                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                    request_id: request_ctx.map(|c| c.request_id),
                 },
             )
             .await;
@@ -315,6 +340,11 @@ impl PatientService {
         if let Some(max_age) = filter.max_age {
             let min_dob = Utc::now().date_naive() - chrono::Duration::days((max_age as i64 + 1) * 365);
             decrypted.retain(|p| p.date_of_birth >= min_dob);
+        }
+
+        // Apply limit AFTER in-memory filtering (for text search queries)
+        if has_text_query && decrypted.len() > requested_limit as usize {
+            decrypted.truncate(requested_limit as usize);
         }
 
         Ok(decrypted)

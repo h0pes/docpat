@@ -256,7 +256,7 @@ pub struct CreatePatientRequest {
 }
 
 /// Update patient request
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UpdatePatientRequest {
     #[validate(length(min = 1, max = 100))]
     pub first_name: Option<String>,
@@ -677,6 +677,20 @@ impl Patient {
             .execute(executor)
             .await
             .context("Failed to soft delete patient")?;
+
+        Ok(())
+    }
+
+    /// Reactivate patient (set status back to ACTIVE)
+    pub async fn reactivate<'e, E>(executor: E, id: Uuid) -> Result<()>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        sqlx::query("UPDATE patients SET status = 'ACTIVE', updated_at = NOW() WHERE id = $1")
+            .bind(id)
+            .execute(executor)
+            .await
+            .context("Failed to reactivate patient")?;
 
         Ok(())
     }

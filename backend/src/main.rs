@@ -25,6 +25,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -179,7 +180,11 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Server listening on {}", addr);
 
     let listener = TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

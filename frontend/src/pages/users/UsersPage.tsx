@@ -10,9 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserList } from '@/components/users/UserList';
-import { useUsers } from '@/hooks/useUsers';
+import { useUsers, useActivateUser, useDeactivateUser } from '@/hooks/useUsers';
 import { useAuthStore } from '@/store/authStore';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+import type { User } from '@/types/user';
 
 /**
  * UsersPage Component
@@ -23,16 +25,66 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function UsersPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { toast } = useToast();
   const { user } = useAuthStore();
 
   // Fetch user count for the subtitle
   const { data: usersData } = useUsers({ limit: 1, offset: 0 });
 
+  // Mutations for user actions
+  const activateMutation = useActivateUser();
+  const deactivateMutation = useDeactivateUser();
+
   /**
-   * Handle user card click - navigate to user detail page
+   * Handle view user - navigate to user detail page
    */
-  const handleUserClick = (userId: string) => {
-    navigate(`/users/${userId}`);
+  const handleViewUser = (targetUser: User) => {
+    navigate(`/users/${targetUser.id}`);
+  };
+
+  /**
+   * Handle edit user - navigate to user edit page
+   */
+  const handleEditUser = (targetUser: User) => {
+    navigate(`/users/${targetUser.id}/edit`);
+  };
+
+  /**
+   * Handle activate user
+   */
+  const handleActivateUser = async (targetUser: User) => {
+    try {
+      await activateMutation.mutateAsync(targetUser.id);
+      toast({
+        title: t('users.activated'),
+        description: t('users.activated_description', { name: `${targetUser.first_name} ${targetUser.last_name}` }),
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('users.activate_error'),
+      });
+    }
+  };
+
+  /**
+   * Handle deactivate user
+   */
+  const handleDeactivateUser = async (targetUser: User) => {
+    try {
+      await deactivateMutation.mutateAsync(targetUser.id);
+      toast({
+        title: t('users.deactivated'),
+        description: t('users.deactivated_description', { name: `${targetUser.first_name} ${targetUser.last_name}` }),
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('users.deactivate_error'),
+      });
+    }
   };
 
   /**
@@ -82,7 +134,12 @@ export function UsersPage() {
       </div>
 
       {/* User list with search, filters, and pagination */}
-      <UserList onUserClick={handleUserClick} />
+      <UserList
+        onViewUser={handleViewUser}
+        onEditUser={handleEditUser}
+        onActivateUser={handleActivateUser}
+        onDeactivateUser={handleDeactivateUser}
+      />
     </div>
   );
 }

@@ -16,7 +16,10 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    models::{AuthUser, CreatePrescriptionRequest, UpdatePrescriptionRequest, UserRole},
+    models::{
+        AuditAction, AuditLog, AuthUser, CreateAuditLog, CreatePrescriptionRequest,
+        EntityType, RequestContext, UpdatePrescriptionRequest, UserRole,
+    },
     services::{MedicationSearchResult, PrescriptionService},
     utils::{AppError, Result},
 };
@@ -108,6 +111,7 @@ pub struct DiscontinuePrescriptionRequest {
 pub async fn create_prescription(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreatePrescriptionRequest>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -125,12 +129,32 @@ pub async fn create_prescription(
 
     let prescription_service = PrescriptionService::new(state.pool.clone(), encryption_key.clone());
     let prescription = prescription_service
-        .create_prescription(req, auth_user.user_id)
+        .create_prescription(req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create prescription: {}", e);
             AppError::Internal(format!("Failed to create prescription: {}", e))
         })?;
+
+    // Create audit log for prescription creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Prescription,
+            entity_id: Some(prescription.id.to_string()),
+            changes: Some(serde_json::json!({
+                "patient_id": req.patient_id,
+                "medication_name": req.medication_name,
+                "dosage": req.dosage,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(prescription)))
 }
@@ -242,6 +266,7 @@ pub async fn get_visit_prescriptions(
 pub async fn update_prescription(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdatePrescriptionRequest>,
 ) -> Result<impl IntoResponse> {
@@ -260,12 +285,28 @@ pub async fn update_prescription(
 
     let prescription_service = PrescriptionService::new(state.pool.clone(), encryption_key.clone());
     let prescription = prescription_service
-        .update_prescription(id, req, auth_user.user_id)
+        .update_prescription(id, req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update prescription {}: {}", id, e);
             AppError::Internal(format!("Failed to update prescription: {}", e))
         })?;
+
+    // Create audit log for prescription update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Prescription,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::to_value(&req).unwrap_or_default()),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(prescription))
 }
@@ -279,6 +320,7 @@ pub async fn update_prescription(
 pub async fn discontinue_prescription(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<DiscontinuePrescriptionRequest>,
 ) -> Result<impl IntoResponse> {
@@ -297,7 +339,7 @@ pub async fn discontinue_prescription(
 
     let prescription_service = PrescriptionService::new(state.pool.clone(), encryption_key.clone());
     let prescription = prescription_service
-        .discontinue_prescription(id, req.reason, auth_user.user_id)
+        .discontinue_prescription(id, req.reason.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to discontinue prescription {}: {}", id, e);
@@ -307,6 +349,25 @@ pub async fn discontinue_prescription(
                 AppError::Internal(format!("Failed to discontinue prescription: {}", e))
             }
         })?;
+
+    // Create audit log for prescription discontinuation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Prescription,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "discontinue",
+                "reason": req.reason,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(prescription))
 }
@@ -320,6 +381,7 @@ pub async fn discontinue_prescription(
 pub async fn delete_prescription(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions (ADMIN only)
@@ -339,6 +401,22 @@ pub async fn delete_prescription(
             tracing::error!("Failed to delete prescription {}: {}", id, e);
             AppError::Internal(format!("Failed to delete prescription: {}", e))
         })?;
+
+    // Create audit log for prescription deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Prescription,
+            entity_id: Some(id.to_string()),
+            changes: None,
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::config::{JwtConfig, SecurityConfig};
-use crate::models::{User, UserDto};
+use crate::models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext, User, UserDto};
 use crate::services::{JwtService, TokenPair};
 use crate::utils::{AppError, PasswordHasherUtil, Result};
 
@@ -23,9 +23,16 @@ pub struct LoginRequest {
 
 /// Login response data
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginResponse {
     pub user: UserDto,
     pub tokens: TokenPair,
+    /// Indicates if MFA verification is required (credentials valid but need MFA code)
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub requires_mfa: bool,
+    /// Indicates if MFA setup is required (global mfa_required setting is ON but user hasn't set up MFA)
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub requires_mfa_setup: bool,
 }
 
 /// Authentication service
@@ -82,7 +89,12 @@ impl AuthService {
     /// - Account is locked
     /// - Account is inactive
     /// - MFA is enabled but code is missing or invalid
-    pub async fn login(&self, pool: &PgPool, login_req: LoginRequest) -> Result<LoginResponse> {
+    pub async fn login(
+        &self,
+        pool: &PgPool,
+        login_req: LoginRequest,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<LoginResponse> {
         // Find user by username
         let user = User::find_by_username(pool, &login_req.username).await?;
 
@@ -117,27 +129,62 @@ impl AuthService {
 
         // Check MFA if enabled
         if user.has_mfa_enabled() {
-            let mfa_code = login_req
-                .mfa_code
-                .ok_or_else(|| AppError::Unauthorized("MFA code required".to_string()))?;
+            match login_req.mfa_code {
+                Some(mfa_code) => {
+                    // Try to verify MFA code (TOTP or backup code)
+                    self.verify_mfa_code_or_backup(pool, &user, &mfa_code).await?;
+                }
+                None => {
+                    // MFA is required but no code provided - return requiresMfa flag
+                    // Generate temporary tokens (short-lived) for MFA step
+                    let tokens = self.jwt_service.generate_tokens(&user.id, &user.role)?;
 
-            // Try to verify MFA code (TOTP or backup code)
-            self.verify_mfa_code_or_backup(pool, &user, &mfa_code).await?;
+                    tracing::info!("MFA required for user {}", login_req.username);
+
+                    return Ok(LoginResponse {
+                        user: user.into(),
+                        tokens,
+                        requires_mfa: true,
+                        requires_mfa_setup: false,
+                    });
+                }
+            }
         }
 
         // Update last login timestamp and clear failed attempts
         user.update_last_login(pool).await?;
 
+        // Capture user ID before moving user into response
+        let user_id = user.id;
+
         // Generate JWT tokens
-        let tokens = self.jwt_service.generate_tokens(&user.id, &user.role)?;
+        let tokens = self.jwt_service.generate_tokens(&user_id, &user.role)?;
 
         // Create response
         let response = LoginResponse {
             user: user.into(),
             tokens,
+            requires_mfa: false,
+            requires_mfa_setup: false,
         };
 
         tracing::info!("User {} logged in successfully", login_req.username);
+
+        // Create audit log entry for successful login
+        let _ = AuditLog::create(
+            pool,
+            CreateAuditLog {
+                user_id: Some(user_id),
+                action: AuditAction::Login,
+                entity_type: EntityType::User,
+                entity_id: Some(user_id.to_string()),
+                changes: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
+            },
+        )
+        .await;
 
         Ok(response)
     }

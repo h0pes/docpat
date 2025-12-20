@@ -441,7 +441,7 @@ export function AppointmentDetailPage() {
           {!isCancelled && !isPast && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t('common.actions')}</CardTitle>
+                <CardTitle className="text-base">{t('common.actionsTitle')}</CardTitle>
                 <CardDescription>
                   {t('appointments.status_management')}
                 </CardDescription>

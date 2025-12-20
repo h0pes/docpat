@@ -64,6 +64,16 @@ export interface AuditLog {
 }
 
 /**
+ * Sortable columns for audit logs
+ */
+export type AuditLogSortColumn = 'created_at' | 'action' | 'entity_type' | 'user_email';
+
+/**
+ * Sort order
+ */
+export type SortOrder = 'asc' | 'desc';
+
+/**
  * Filter parameters for querying audit logs
  */
 export interface AuditLogsFilter {
@@ -85,6 +95,10 @@ export interface AuditLogsFilter {
   page?: number;
   /** Items per page (max 100) */
   page_size?: number;
+  /** Column to sort by */
+  sort_by?: AuditLogSortColumn;
+  /** Sort order (asc or desc) */
+  sort_order?: SortOrder;
 }
 
 /**

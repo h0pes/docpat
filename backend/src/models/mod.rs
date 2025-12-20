@@ -6,6 +6,7 @@
 
 pub mod appointment;
 pub mod audit_log;
+pub mod request_context;
 pub mod document_template;
 pub mod generated_document;
 pub mod holiday;
@@ -31,6 +32,7 @@ pub use appointment::{
     TimeSlot, UpdateAppointmentRequest,
 };
 pub use audit_log::{AuditAction, AuditLog, CreateAuditLog, EntityType};
+pub use request_context::RequestContext;
 pub use patient::{
     Address, CreatePatientRequest, EmergencyContact, Gender, Medication, Patient,
     PatientDto, PatientSearchFilter, PatientStatus, UpdatePatientRequest,

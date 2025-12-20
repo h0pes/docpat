@@ -44,6 +44,7 @@ import {
 import { SettingsPage } from '../pages/settings';
 import { AuditLogsPage } from '../pages/audit';
 import { SystemHealthPage } from '../pages/system';
+import { ProfilePage } from '../pages/ProfilePage';
 
 /**
  * Application router configuration
@@ -228,7 +229,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/profile',
-            element: <div>Profile page - Coming soon</div>,
+            element: <ProfilePage />,
           },
           {
             path: '/help',

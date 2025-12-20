@@ -7,11 +7,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User, AuthState } from '../types/auth';
+import { authApi } from '../services/api/auth';
 
 interface AuthContextType extends AuthState {
   login: (user: User, accessToken: string, refreshToken: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  updateUser: (user: User) => void;
   setLoading: (loading: boolean) => void;
 }
 
@@ -106,7 +108,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveAuthToStorage(user, accessToken, refreshToken);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Call backend to log the logout action for audit purposes
+    if (state.accessToken) {
+      try {
+        await authApi.logout(state.accessToken);
+      } catch (error) {
+        // Log error but don't block logout - user should still be logged out locally
+        console.error('Failed to notify backend of logout:', error);
+      }
+    }
+
     setState({
       user: null,
       accessToken: null,
@@ -132,6 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, isLoading }));
   };
 
+  const updateUser = (user: User) => {
+    setState((prev) => ({ ...prev, user }));
+    if (state.accessToken && state.refreshToken) {
+      saveAuthToStorage(user, state.accessToken, state.refreshToken);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         updateTokens,
+        updateUser,
         setLoading,
       }}
     >

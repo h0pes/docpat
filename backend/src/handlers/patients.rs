@@ -17,8 +17,8 @@ use validator::Validate;
 use crate::{
     handlers::auth::AppState,
     models::{
-        CreatePatientRequest, Patient, PatientDto, PatientSearchFilter,
-        UpdatePatientRequest, UserRole,
+        AuditAction, AuditLog, CreateAuditLog, CreatePatientRequest, EntityType,
+        Patient, PatientDto, PatientSearchFilter, RequestContext, UpdatePatientRequest, UserRole,
     },
     services::PatientService,
     utils::{AppError, Result},
@@ -147,6 +147,7 @@ pub async fn create_patient(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(data): Json<CreatePatientRequest>,
 ) -> Result<impl IntoResponse> {
     tracing::info!("Creating patient by user: {} (role: {:?})", user_id, user_role);
@@ -221,6 +222,26 @@ pub async fn create_patient(
         tracing::error!("Failed to decrypt patient: {}", e);
         AppError::Internal("Failed to retrieve patient data".to_string())
     })?;
+
+    // Create audit log for patient creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Patient,
+            entity_id: Some(patient.id.to_string()),
+            changes: Some(serde_json::json!({
+                "medical_record_number": patient.medical_record_number,
+                "first_name": patient.first_name,
+                "last_name": patient.last_name,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     tracing::info!("Patient created: {} (MRN: {})", patient.id, patient.medical_record_number);
 
@@ -299,6 +320,7 @@ pub async fn update_patient(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(patient_id): Path<Uuid>,
     Json(data): Json<UpdatePatientRequest>,
 ) -> Result<impl IntoResponse> {
@@ -339,7 +361,7 @@ pub async fn update_patient(
         .ok_or_else(|| AppError::NotFound(format!("Patient {} not found", patient_id)))?;
 
     // Update patient within transaction (passing existing patient)
-    let patient_result = Patient::update_with_existing(&mut *tx, patient_id, existing, data, user_id, encryption_key)
+    let patient_result = Patient::update_with_existing(&mut *tx, patient_id, existing, data.clone(), user_id, encryption_key)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update patient: {}", e);
@@ -356,6 +378,22 @@ pub async fn update_patient(
         tracing::error!("Failed to decrypt patient: {}", e);
         AppError::Internal("Failed to retrieve patient data".to_string())
     })?;
+
+    // Create audit log for patient update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Patient,
+            entity_id: Some(patient_id.to_string()),
+            changes: Some(serde_json::to_value(&data).unwrap_or_default()),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     tracing::info!("Patient {} updated successfully", patient_id);
 
@@ -374,6 +412,7 @@ pub async fn delete_patient(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(patient_id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     tracing::info!(
@@ -420,9 +459,117 @@ pub async fn delete_patient(
         AppError::Internal("Database transaction failed".to_string())
     })?;
 
+    // Create audit log for patient deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Patient,
+            entity_id: Some(patient_id.to_string()),
+            changes: None,
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     tracing::info!("Patient {} deleted successfully", patient_id);
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Reactivate patient handler (ADMIN only)
+///
+/// POST /api/v1/patients/:id/reactivate
+///
+/// Reactivates a previously soft-deleted (INACTIVE) patient by setting
+/// their status back to ACTIVE.
+///
+/// # Authorization
+/// Requires ADMIN role
+pub async fn reactivate_patient(
+    State(state): State<AppState>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
+    Path(patient_id): Path<Uuid>,
+) -> Result<impl IntoResponse> {
+    tracing::info!(
+        "Reactivating patient {} by user: {} (role: {:?})",
+        patient_id,
+        user_id,
+        user_role
+    );
+
+    // Check RBAC permission (reactivate is essentially an update action, restricted to ADMIN)
+    check_permission(&state, &user_role, "delete").await?;
+
+    let encryption_key = state
+        .encryption_key
+        .as_ref()
+        .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
+
+    // Start transaction and set RLS context
+    let mut tx = state.pool.begin().await.map_err(|e| {
+        tracing::error!("Failed to begin transaction: {}", e);
+        AppError::Internal("Database transaction failed".to_string())
+    })?;
+
+    set_rls_in_transaction(&mut tx, &user_id, &user_role).await?;
+
+    // Check if patient exists
+    let patient_result = Patient::find_by_id(&mut *tx, patient_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to check patient existence: {}", e);
+            AppError::Internal("Failed to check patient existence".to_string())
+        })?
+        .ok_or_else(|| AppError::NotFound(format!("Patient {} not found", patient_id)))?;
+
+    // Reactivate patient within transaction
+    Patient::reactivate(&mut *tx, patient_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to reactivate patient: {}", e);
+            AppError::Internal(format!("Failed to reactivate patient: {}", e))
+        })?;
+
+    tx.commit().await.map_err(|e| {
+        tracing::error!("Failed to commit transaction: {}", e);
+        AppError::Internal("Database transaction failed".to_string())
+    })?;
+
+    // Decrypt patient for response
+    let patient = patient_result.decrypt(encryption_key).map_err(|e| {
+        tracing::error!("Failed to decrypt patient: {}", e);
+        AppError::Internal("Failed to retrieve patient data".to_string())
+    })?;
+
+    // Create audit log for patient reactivation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Patient,
+            entity_id: Some(patient_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "reactivate",
+                "status": "ACTIVE",
+                "patient_name": format!("{} {}", patient.first_name, patient.last_name),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
+    tracing::info!("Patient {} reactivated successfully", patient_id);
+
+    Ok(StatusCode::OK)
 }
 
 /// Pagination query parameters
@@ -544,6 +691,7 @@ pub async fn search_patients(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Query(filter): Query<PatientSearchFilter>,
 ) -> Result<impl IntoResponse> {
     tracing::info!(
@@ -572,7 +720,7 @@ pub async fn search_patients(
     // Search patients within transaction
     let patient_service = PatientService::new(state.pool.clone(), encryption_key.clone());
     let patients = patient_service
-        .search_patients(&mut *tx, filter, Some(user_id))
+        .search_patients(&mut *tx, filter, Some(user_id), Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to search patients: {}", e);

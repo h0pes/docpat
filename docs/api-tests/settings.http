@@ -1,0 +1,1793 @@
+### 
+
+# Settings, Working Hours & Holidays API Tests
+# Kulala HTTP Client file for testing Section D from TEST_CASES_MILESTONE13.md
+# # Prerequisites:
+# - Backend server running on http://localhost:8000
+# Command: cd backend && RUST_LOG=info cargo run --bin docpat-backend --features "rbac,pdf-export"
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+# # Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+# # Note: Request variables (e.g., {{REQUEST_NAME.response.body.$.path}}) require
+# the named request to be executed first before referencing its response.
+# # ==============================================================================
+# ARCHITECTURE OVERVIEW
+# ==============================================================================
+# # The /settings page has 6 tabs using 3 different APIs:
+# # SETTINGS API (/api/v1/settings) - Tabs 1-4:
+# Tab: Practice -> GET /api/v1/settings/group/clinic
+# Tab: Appointments -> GET /api/v1/settings/group/appointment
+# Tab: Localization -> GET /api/v1/settings/group/localization
+# Tab: Security -> GET /api/v1/settings/group/security
+# # WORKING HOURS API (/api/v1/working-hours) - Tab 5:
+# Separate API for weekly schedule + date-specific overrides
+# # HOLIDAYS API (/api/v1/holidays) - Tab 6:
+# Separate API for holidays, vacations, practice closures
+# # Backend also has these setting groups (no frontend UI yet):
+# - notification (4 settings)
+# - backup (3 settings)
+# - system (2 settings)
+# # ==============================================================================
+# SETTINGS REFERENCE - ALL 35 SETTING KEYS
+# ==============================================================================
+# # CLINIC GROUP (9 settings) - Practice tab:
+# clinic.name STRING Practice name
+# clinic.address STRING Full address
+# clinic.phone STRING Phone number
+# clinic.email STRING Email address
+# clinic.website STRING Website URL
+# clinic.vat_number STRING VAT/Tax ID
+# clinic.timezone STRING Timezone (Europe/Rome)
+# clinic.fax STRING Fax number
+# clinic.logo STRING Logo file ID/URL
+# # APPOINTMENT GROUP (6 settings) - Appointments tab:
+# appointment.default_duration INTEGER Default duration (minutes)
+# appointment.buffer_minutes INTEGER Buffer between appointments
+# appointment.booking_advance_days INTEGER Max days to book ahead
+# appointment.cancellation_hours INTEGER Min hours for cancellation
+# appointment.max_per_day INTEGER Max appointments per day
+# appointment.allow_double_booking BOOLEAN Allow overlapping appointments
+# # LOCALIZATION GROUP (6 settings) - Localization tab:
+# localization.default_language STRING Default language (en, it)
+# localization.supported_languages ARRAY [READONLY] Available languages
+# localization.date_format STRING Date format (DD/MM/YYYY)
+# localization.time_format STRING Time format (24h, 12h)
+# localization.timezone STRING Default timezone
+# localization.first_day_of_week STRING First day of week (monday, sunday, etc.)
+# # SECURITY GROUP (5 settings) - Security tab:
+# security.session_timeout_minutes INTEGER Session timeout
+# security.max_login_attempts INTEGER Max failed login attempts
+# security.lockout_duration_minutes INTEGER Account lockout duration
+# security.mfa_required BOOLEAN Require MFA for all users
+# security.password_expiry_days INTEGER Password expiration days
+# # NOTIFICATION GROUP (4 settings) - No UI:
+# notification.email_enabled BOOLEAN Enable email notifications
+# notification.sms_enabled BOOLEAN Enable SMS notifications
+# notification.whatsapp_enabled BOOLEAN Enable WhatsApp notifications
+# notification.reminder_hours_before INTEGER Hours before reminder
+# # BACKUP GROUP (3 settings) - No UI:
+# backup.enabled BOOLEAN Enable automatic backups
+# backup.retention_days INTEGER Backup retention period
+# backup.schedule STRING Backup schedule (cron)
+# # SYSTEM GROUP (2 settings) - No UI:
+# system.maintenance_mode BOOLEAN Enable maintenance mode
+# system.maintenance_message STRING Maintenance message
+# # ==============================================================================
+# WORKING HOURS REFERENCE
+# ==============================================================================
+# # Weekly Schedule (7 days, ISO 8601: Monday=1, Sunday=7):
+# - day_of_week: 1-7
+# - start_time: HH:MM or null
+# - end_time: HH:MM or null
+# - break_start: HH:MM or null
+# - break_end: HH:MM or null
+# - is_working_day: boolean
+# # Override Types:
+# - CLOSED: Practice closed (times can be null)
+# - CUSTOM_HOURS: Different hours (times required)
+# - EXTENDED_HOURS: Longer hours (times required)
+# # ==============================================================================
+# HOLIDAYS REFERENCE
+# ==============================================================================
+# # Holiday Types:
+# - NATIONAL: Public holidays (Natale, Pasqua, etc.)
+# - PRACTICE_CLOSED: Practice-specific closures
+# - VACATION: Doctor's vacation days
+# # Italian National Holidays (import-national):
+# - Capodanno (Jan 1), Epifania (Jan 6)
+# - Pasqua, Lunedi dell'Angelo (variable)
+# - Festa della Liberazione (Apr 25), Festa del Lavoro (May 1)
+# - Festa della Repubblica (Jun 2), Ferragosto (Aug 15)
+# - Ognissanti (Nov 1), Immacolata Concezione (Dec 8)
+# - Natale (Dec 25), Santo Stefano (Dec 26)
+# # ==============================================================================
+# ==============================================================================
+# AUTHENTICATION
+# ==============================================================================
+
+
+### login_admin
+
+# @name login_admin
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{ADMIN_PASSWORD}}",
+  "username": "{{ADMIN_USERNAME}}"
+}
+
+
+### 
+
+# ==============================================================================
+# SECTION D1: SETTINGS API - LIST SETTINGS
+# ==============================================================================
+# Test Case D1: Settings API - List Settings
+# Goal: Verify API returns settings list with filtering options
+# # Expected: 200 OK with { settings: [...], total: number }
+# List all settings (admin sees all, non-admin sees public only)
+
+
+### list_settings
+
+GET {{BASE_URL}}/api/v1/settings HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Filter by group (clinic, appointment, localization, security, notification, backup, system)
+
+
+### list_settings_by_group_clinic
+
+GET {{BASE_URL}}/api/v1/settings?group=clinic HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_settings_by_group_appointment
+
+GET {{BASE_URL}}/api/v1/settings?group=appointment HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Filter public settings only
+
+
+### list_settings_public_only
+
+GET {{BASE_URL}}/api/v1/settings?public_only=true HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Search by key or name
+
+
+### list_settings_search_phone
+
+GET {{BASE_URL}}/api/v1/settings?search=phone HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_settings_search_duration
+
+GET {{BASE_URL}}/api/v1/settings?search=duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SETTINGS API - LIST GROUPS
+# ==============================================================================
+# Goal: Verify API returns all setting groups with counts
+# Expected: 200 OK with { groups: [{ key, name, setting_count }] }
+
+
+### list_setting_groups
+
+GET {{BASE_URL}}/api/v1/settings/groups HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SECTION D2: SETTINGS API - GET BY GROUP
+# ==============================================================================
+# Test Case D2: Settings API - Get Settings by Group
+# Goal: Verify API returns settings filtered by group
+# Expected: 200 OK with { settings: [...], total: number }
+
+
+### get_settings_group_clinic
+
+GET {{BASE_URL}}/api/v1/settings/group/clinic HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_appointment
+
+GET {{BASE_URL}}/api/v1/settings/group/appointment HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_localization
+
+GET {{BASE_URL}}/api/v1/settings/group/localization HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_security
+
+GET {{BASE_URL}}/api/v1/settings/group/security HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_notification
+
+GET {{BASE_URL}}/api/v1/settings/group/notification HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_backup
+
+GET {{BASE_URL}}/api/v1/settings/group/backup HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_settings_group_system
+
+GET {{BASE_URL}}/api/v1/settings/group/system HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SETTINGS API - GET SINGLE SETTING
+# ==============================================================================
+# Goal: Verify API returns single setting by key
+# Expected: 200 OK with setting object
+# Clinic settings
+
+
+### get_setting_clinic_name
+
+GET {{BASE_URL}}/api/v1/settings/clinic.name HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_clinic_phone
+
+GET {{BASE_URL}}/api/v1/settings/clinic.phone HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_clinic_email
+
+GET {{BASE_URL}}/api/v1/settings/clinic.email HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Appointment settings
+
+
+### get_setting_appointment_default_duration
+
+GET {{BASE_URL}}/api/v1/settings/appointment.default_duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_appointment_buffer_minutes
+
+GET {{BASE_URL}}/api/v1/settings/appointment.buffer_minutes HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_appointment_max_per_day
+
+GET {{BASE_URL}}/api/v1/settings/appointment.max_per_day HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Localization settings
+
+
+### get_setting_localization_default_language
+
+GET {{BASE_URL}}/api/v1/settings/localization.default_language HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_localization_date_format
+
+GET {{BASE_URL}}/api/v1/settings/localization.date_format HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_localization_first_day_of_week
+
+GET {{BASE_URL}}/api/v1/settings/localization.first_day_of_week HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Security settings
+
+
+### get_setting_security_session_timeout
+
+GET {{BASE_URL}}/api/v1/settings/security.session_timeout_minutes HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_setting_security_mfa_required
+
+GET {{BASE_URL}}/api/v1/settings/security.mfa_required HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Test 404 for non-existent setting
+
+
+### get_setting_not_found
+
+GET {{BASE_URL}}/api/v1/settings/nonexistent.setting HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SETTINGS API - UPDATE SINGLE SETTING
+# ==============================================================================
+# Goal: Verify API updates single setting
+# Expected: 200 OK with updated setting object
+# Update STRING value
+
+
+### update_setting_clinic_phone
+
+PUT {{BASE_URL}}/api/v1/settings/clinic.phone HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": "+39 06 12345678"
+}
+
+
+### 
+
+# Update INTEGER value
+
+
+### update_setting_appointment_duration
+
+PUT {{BASE_URL}}/api/v1/settings/appointment.default_duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": 30
+}
+
+
+### 
+
+
+### update_setting_appointment_buffer
+
+PUT {{BASE_URL}}/api/v1/settings/appointment.buffer_minutes HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": 15
+}
+
+
+### 
+
+
+### update_setting_localization_language
+
+PUT {{BASE_URL}}/api/v1/settings/localization.default_language HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": "it"
+}
+
+
+### 
+
+# Update BOOLEAN value
+
+
+### update_setting_security_mfa
+
+PUT {{BASE_URL}}/api/v1/settings/security.mfa_required HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": false
+}
+
+
+### 
+
+# Test error: Update readonly setting (should fail with 400)
+
+
+### update_setting_readonly_error
+
+PUT {{BASE_URL}}/api/v1/settings/localization.supported_languages HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": [
+    "en",
+    "it",
+    "de"
+  ]
+}
+
+
+### 
+
+# Test error: Invalid value type (should fail with 400)
+
+
+### update_setting_invalid_type_error
+
+PUT {{BASE_URL}}/api/v1/settings/appointment.default_duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "value": "not a number"
+}
+
+
+### 
+
+# ==============================================================================
+# SECTION D3: SETTINGS API - BULK UPDATE
+# ==============================================================================
+# Test Case D3: Settings API - Bulk Update
+# Goal: Verify bulk update settings API
+# Expected: 200 OK with array of updated settings
+
+
+### bulk_update_settings_clinic
+
+POST {{BASE_URL}}/api/v1/settings/bulk HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "settings": [
+    {
+      "key": "clinic.phone",
+      "value": "+39 06 98765432"
+    },
+    {
+      "key": "clinic.email",
+      "value": "information@docpat.local"
+    },
+    {
+      "key": "clinic.website",
+      "value": "https://docpatclinic.local"
+    }
+  ]
+}
+
+
+### 
+
+
+### bulk_update_settings_appointment
+
+POST {{BASE_URL}}/api/v1/settings/bulk HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "settings": [
+    {
+      "key": "appointment.default_duration",
+      "value": 60
+    },
+    {
+      "key": "appointment.buffer_minutes",
+      "value": 30
+    },
+    {
+      "key": "appointment.max_per_day",
+      "value": 10
+    }
+  ]
+}
+
+
+### 
+
+
+### bulk_update_settings_localization
+
+POST {{BASE_URL}}/api/v1/settings/bulk HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "settings": [
+    {
+      "key": "localization.default_language",
+      "value": "en"
+    },
+    {
+      "key": "localization.date_format",
+      "value": "DD/MM/YYYY"
+    },
+    {
+      "key": "localization.time_format",
+      "value": "24h"
+    },
+    {
+      "key": "localization.first_day_of_week",
+      "value": "monday"
+    }
+  ]
+}
+
+
+### 
+
+# Test error: Empty settings array (should fail with 400)
+
+
+### bulk_update_settings_empty_error
+
+POST {{BASE_URL}}/api/v1/settings/bulk HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "settings": []
+}
+
+
+### 
+
+# ==============================================================================
+# SETTINGS API - RESET TO DEFAULT
+# ==============================================================================
+# Goal: Verify API resets setting to default value
+# Expected: 200 OK with reset setting object
+
+
+### reset_setting_appointment_duration
+
+POST {{BASE_URL}}/api/v1/settings/reset/appointment.default_duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### reset_setting_localization_language
+
+POST {{BASE_URL}}/api/v1/settings/reset/localization.default_language HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SECTION D4: WORKING HOURS API - GET SCHEDULE
+# ==============================================================================
+# Test Case D4: Working Hours API - Get Schedule
+# Goal: Verify working hours API returns weekly schedule
+# Expected: 200 OK with { days: [7 day objects] }
+
+
+### get_weekly_schedule
+
+GET {{BASE_URL}}/api/v1/working-hours HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SECTION D5: WORKING HOURS API - UPDATE SCHEDULE
+# ==============================================================================
+# Test Case D5: Working Hours API - Update Schedule
+# Goal: Verify working hours update API
+# Expected: 200 OK with updated schedule
+# Update single day (Monday = 1)
+
+
+### update_working_hours_monday
+
+PUT {{BASE_URL}}/api/v1/working-hours/1 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "break_end": "14:00",
+  "break_start": "13:00",
+  "day_of_week": 1,
+  "end_time": "18:00",
+  "is_working_day": true,
+  "start_time": "09:00"
+}
+
+
+### 
+
+# Update Friday with shorter hours
+
+
+### update_working_hours_friday
+
+PUT {{BASE_URL}}/api/v1/working-hours/5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "break_end": "14:00",
+  "break_start": "13:00",
+  "day_of_week": 5,
+  "end_time": "17:00",
+  "is_working_day": true,
+  "start_time": "09:00"
+}
+
+
+### 
+
+# Set Saturday as non-working day
+
+
+### update_working_hours_saturday_closed
+
+PUT {{BASE_URL}}/api/v1/working-hours/6 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "break_end": null,
+  "break_start": null,
+  "day_of_week": 6,
+  "end_time": null,
+  "is_working_day": false,
+  "start_time": null
+}
+
+
+### 
+
+# Bulk update all 7 days
+
+
+### update_working_hours_all
+
+PUT {{BASE_URL}}/api/v1/working-hours HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "days": [
+    {
+      "break_end": "14:00",
+      "break_start": "13:00",
+      "day_of_week": 1,
+      "end_time": "18:00",
+      "is_working_day": true,
+      "start_time": "09:00"
+    },
+    {
+      "break_end": "14:00",
+      "break_start": "13:00",
+      "day_of_week": 2,
+      "end_time": "18:00",
+      "is_working_day": true,
+      "start_time": "09:00"
+    },
+    {
+      "break_end": "14:00",
+      "break_start": "13:00",
+      "day_of_week": 3,
+      "end_time": "18:00",
+      "is_working_day": true,
+      "start_time": "09:00"
+    },
+    {
+      "break_end": "14:00",
+      "break_start": "13:00",
+      "day_of_week": 4,
+      "end_time": "18:00",
+      "is_working_day": true,
+      "start_time": "09:00"
+    },
+    {
+      "break_end": "14:00",
+      "break_start": "13:00",
+      "day_of_week": 5,
+      "end_time": "17:00",
+      "is_working_day": true,
+      "start_time": "09:00"
+    },
+    {
+      "break_end": null,
+      "break_start": null,
+      "day_of_week": 6,
+      "end_time": null,
+      "is_working_day": false,
+      "start_time": null
+    },
+    {
+      "break_end": null,
+      "break_start": null,
+      "day_of_week": 7,
+      "end_time": null,
+      "is_working_day": false,
+      "start_time": null
+    }
+  ]
+}
+
+
+### 
+
+# Test error: Invalid day number (should fail with 400)
+
+
+### update_working_hours_invalid_day
+
+PUT {{BASE_URL}}/api/v1/working-hours/8 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "day_of_week": 8,
+  "is_working_day": true
+}
+
+
+### 
+
+# ==============================================================================
+# WORKING HOURS API - EFFECTIVE HOURS
+# ==============================================================================
+# Get effective working hours for date range (combines defaults + overrides)
+# Expected: 200 OK with { from_date, to_date, days: [...] }
+
+
+### get_effective_hours_week
+
+GET {{BASE_URL}}/api/v1/working-hours/effective?from_date=2025-12-15&to_date=2025-12-21 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_effective_hours_month
+
+GET {{BASE_URL}}/api/v1/working-hours/effective?from_date=2025-12-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Test error: Date range too large (max 90 days)
+
+
+### get_effective_hours_range_error
+
+GET {{BASE_URL}}/api/v1/working-hours/effective?from_date=2025-01-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# WORKING HOURS API - CHECK WORKING DAY
+# ==============================================================================
+# Check if specific date is a working day
+# Expected: 200 OK with { date, is_working_day }
+
+
+### check_working_day_weekday
+
+GET {{BASE_URL}}/api/v1/working-hours/check/2025-12-17 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_working_day_saturday
+
+GET {{BASE_URL}}/api/v1/working-hours/check/2025-12-20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_working_day_sunday
+
+GET {{BASE_URL}}/api/v1/working-hours/check/2025-12-21 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# WORKING HOURS API - OVERRIDES CRUD
+# ==============================================================================
+# List all overrides
+
+
+### list_overrides
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# List future overrides only
+
+
+### list_overrides_future
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides?future_only=true HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# List overrides by date range
+
+
+### list_overrides_december
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides?from_date=2025-12-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# List overrides by type
+
+
+### list_overrides_closed
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides?override_type=CLOSED HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Create override: CLOSED (practice closed)
+
+
+### create_override_closed
+
+POST {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_date": "2025-12-31",
+  "override_type": "CLOSED",
+  "reason": "New Year's Eve - Practice closed"
+}
+
+
+### 
+
+# Create override: CUSTOM_HOURS (half day)
+
+
+### create_override_custom_hours
+
+POST {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "break_end": null,
+  "break_start": null,
+  "end_time": "13:00",
+  "override_date": "2025-12-24",
+  "override_type": "CUSTOM_HOURS",
+  "reason": "Christmas Eve - Half day",
+  "start_time": "09:00"
+}
+
+
+### 
+
+# Create override: EXTENDED_HOURS
+
+
+### create_override_extended
+
+POST {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "break_end": "14:00",
+  "break_start": "13:00",
+  "end_time": "20:00",
+  "override_date": "2025-12-30",
+  "override_type": "EXTENDED_HOURS",
+  "reason": "Extended hours before year end",
+  "start_time": "08:00"
+}
+
+
+### 
+
+# Get override by ID
+
+
+### get_override
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides/{{create_override_closed.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Update override
+
+
+### update_override
+
+PUT {{BASE_URL}}/api/v1/working-hours/overrides/{{create_override_custom_hours.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "end_time": "14:00",
+  "reason": "Christmas Eve - Extended half day"
+}
+
+
+### 
+
+# Delete override
+
+
+### delete_override_extended
+
+DELETE {{BASE_URL}}/api/v1/working-hours/overrides/{{create_override_extended.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Test error: Duplicate date (should fail with 409)
+
+
+### create_override_duplicate_error
+
+POST {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_date": "2025-12-31",
+  "override_type": "CLOSED",
+  "reason": "Duplicate date test"
+}
+
+
+### 
+
+# ==============================================================================
+# SECTION D6: HOLIDAYS API - LIST HOLIDAYS
+# ==============================================================================
+# Test Case D6: Holidays API - List Holidays
+# Goal: Verify holidays list API with filtering options
+# Expected: 200 OK with { holidays: [...], total: number }
+
+
+### list_holidays
+
+GET {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Filter by year
+
+
+### list_holidays_2025
+
+GET {{BASE_URL}}/api/v1/holidays?year=2025 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_holidays_2026
+
+GET {{BASE_URL}}/api/v1/holidays?year=2026 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Filter by type
+
+
+### list_holidays_national
+
+GET {{BASE_URL}}/api/v1/holidays?holiday_type=NATIONAL HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_holidays_practice_closed
+
+GET {{BASE_URL}}/api/v1/holidays?holiday_type=PRACTICE_CLOSED HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_holidays_vacation
+
+GET {{BASE_URL}}/api/v1/holidays?holiday_type=VACATION HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Filter by date range
+
+
+### list_holidays_december
+
+GET {{BASE_URL}}/api/v1/holidays?from_date=2025-12-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Include recurring holidays
+
+
+### list_holidays_with_recurring
+
+GET {{BASE_URL}}/api/v1/holidays?year=2025&include_recurring=true HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SECTION D7: HOLIDAYS API - CRUD OPERATIONS
+# ==============================================================================
+# Test Case D7: Holidays API - CRUD Operations
+# Goal: Verify holidays create, update, delete APIs
+# Expected:
+# Create: 201 Created
+# Update: 200 OK
+# Delete: 204 No Content
+# Create NATIONAL holiday
+
+
+### create_holiday_national
+
+POST {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2025-04-25",
+  "holiday_type": "NATIONAL",
+  "is_recurring": true,
+  "name": "Festa della Liberazione",
+  "notes": "Liberation Day - Italian national holiday"
+}
+
+
+### 
+
+# Create PRACTICE_CLOSED holiday
+
+
+### create_holiday_practice_closed
+
+POST {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2025-08-17",
+  "holiday_type": "PRACTICE_CLOSED",
+  "is_recurring": false,
+  "name": "Practice Summer Break",
+  "notes": "Annual summer closure - before Ferragosto"
+}
+
+
+### 
+
+# Create VACATION holiday
+
+
+### create_holiday_vacation
+
+POST {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2026-07-15",
+  "holiday_type": "VACATION",
+  "is_recurring": false,
+  "name": "Doctor Vacation",
+  "notes": "Summer vacation"
+}
+
+
+### 
+
+# Get holiday by ID
+
+
+### get_holiday
+
+GET {{BASE_URL}}/api/v1/holidays/{{create_holiday_vacation.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Update holiday
+
+
+### update_holiday
+
+PUT {{BASE_URL}}/api/v1/holidays/{{create_holiday_vacation.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2026-08-13",
+  "name": "Practice Summer Break (Extended)",
+  "notes": "Annual summer closure - extended by one day"
+}
+
+
+### 
+
+# Delete holiday
+
+
+### delete_holiday
+
+DELETE {{BASE_URL}}/api/v1/holidays/{{create_holiday_vacation.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Test error: Validation error (name too long, should fail with 400)
+
+
+### create_holiday_validation_error
+
+POST {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2025-09-01",
+  "holiday_type": "VACATION",
+  "is_recurring": false,
+  "name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+}
+
+
+### 
+
+# ==============================================================================
+# HOLIDAYS API - CHECK HOLIDAY
+# ==============================================================================
+# Check if specific date is a holiday
+# Expected: 200 OK with { date, is_holiday, holiday }
+
+
+### check_holiday_christmas
+
+GET {{BASE_URL}}/api/v1/holidays/check/2025-12-25 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_holiday_regular_day
+
+GET {{BASE_URL}}/api/v1/holidays/check/2025-12-17 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_holiday_new_year
+
+GET {{BASE_URL}}/api/v1/holidays/check/2025-01-01 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# HOLIDAYS API - GET RANGE
+# ==============================================================================
+# Get holidays within date range (useful for calendar display)
+# Expected: 200 OK with array of holidays
+
+
+### get_holidays_range_december
+
+GET {{BASE_URL}}/api/v1/holidays/range?from_date=2025-12-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_holidays_range_year
+
+GET {{BASE_URL}}/api/v1/holidays/range?from_date=2025-01-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_holidays_range_quarter
+
+GET {{BASE_URL}}/api/v1/holidays/range?from_date=2025-04-01&to_date=2025-06-30 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# SECTION D8: HOLIDAYS API - IMPORT NATIONAL HOLIDAYS
+# ==============================================================================
+# Test Case D8: Holidays API - Import
+# Goal: Verify holiday import API for Italian national holidays
+# Expected: 201 Created with { year, imported_count, skipped_count, holidays }
+
+
+### import_national_holidays_2025
+
+POST {{BASE_URL}}/api/v1/holidays/import-national HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_existing": false,
+  "year": 2025
+}
+
+
+### 
+
+
+### import_national_holidays_2026
+
+POST {{BASE_URL}}/api/v1/holidays/import-national HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_existing": false,
+  "year": 2026
+}
+
+
+### 
+
+# Import with override (replaces existing national holidays)
+
+
+### import_national_holidays_override
+
+POST {{BASE_URL}}/api/v1/holidays/import-national HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_existing": true,
+  "year": 2025
+}
+
+
+### 
+
+# Test error: Invalid year (should fail with 400)
+
+
+### import_national_holidays_invalid_year
+
+POST {{BASE_URL}}/api/v1/holidays/import-national HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "override_existing": false,
+  "year": 2010
+}
+
+
+### 
+
+# ==============================================================================
+# AUTHORIZATION TESTS - NON-ADMIN ACCESS
+# ==============================================================================
+# Goal: Verify non-admin access restrictions
+# Doctors CAN: read settings (public only), read working hours, read holidays
+# Doctors CANNOT: update settings, update working hours, create/update holidays
+
+
+### login_doctor
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{DOCTOR_PASSWORD}}",
+  "username": "{{DOCTOR_USERNAME}}"
+}
+
+
+### 
+
+# ALLOWED: Doctor can list settings (sees public only)
+
+
+### doctor_list_settings
+
+GET {{BASE_URL}}/api/v1/settings HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can get public setting
+
+
+### doctor_get_setting_clinic_name
+
+GET {{BASE_URL}}/api/v1/settings/clinic.name HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot list setting groups
+
+
+### doctor_list_groups_forbidden
+
+GET {{BASE_URL}}/api/v1/settings/groups HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot get settings by group
+
+
+### doctor_get_group_forbidden
+
+GET {{BASE_URL}}/api/v1/settings/group/security HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot update settings
+
+
+### doctor_update_setting_forbidden
+
+PUT {{BASE_URL}}/api/v1/settings/clinic.name HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "value": "Unauthorized Change"
+}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot bulk update settings
+
+
+### doctor_bulk_update_forbidden
+
+POST {{BASE_URL}}/api/v1/settings/bulk HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "settings": [
+    {
+      "key": "clinic.phone",
+      "value": "+39 00 00000000"
+    }
+  ]
+}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot reset settings
+
+
+### doctor_reset_setting_forbidden
+
+POST {{BASE_URL}}/api/v1/settings/reset/appointment.default_duration HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can read working hours
+
+
+### doctor_get_working_hours
+
+GET {{BASE_URL}}/api/v1/working-hours HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can check working day
+
+
+### doctor_check_working_day
+
+GET {{BASE_URL}}/api/v1/working-hours/check/2025-12-17 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can get effective hours
+
+
+### doctor_get_effective_hours
+
+GET {{BASE_URL}}/api/v1/working-hours/effective?from_date=2025-12-15&to_date=2025-12-21 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can list overrides
+
+
+### doctor_list_overrides
+
+GET {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot update working hours
+
+
+### doctor_update_working_hours_forbidden
+
+PUT {{BASE_URL}}/api/v1/working-hours/1 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "day_of_week": 1,
+  "end_time": "16:00",
+  "is_working_day": true,
+  "start_time": "10:00"
+}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot create override
+
+
+### doctor_create_override_forbidden
+
+POST {{BASE_URL}}/api/v1/working-hours/overrides HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "override_date": "2025-12-29",
+  "override_type": "CLOSED",
+  "reason": "Unauthorized"
+}
+
+
+### 
+
+# ALLOWED: Doctor can list holidays
+
+
+### doctor_list_holidays
+
+GET {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can check holiday
+
+
+### doctor_check_holiday
+
+GET {{BASE_URL}}/api/v1/holidays/check/2025-12-25 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ALLOWED: Doctor can get holidays range
+
+
+### doctor_get_holidays_range
+
+GET {{BASE_URL}}/api/v1/holidays/range?from_date=2025-12-01&to_date=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot create holiday
+
+
+### doctor_create_holiday_forbidden
+
+POST {{BASE_URL}}/api/v1/holidays HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "holiday_date": "2025-09-01",
+  "holiday_type": "VACATION",
+  "is_recurring": false,
+  "name": "Unauthorized Holiday"
+}
+
+
+### 
+
+# FORBIDDEN: Doctor cannot import national holidays
+
+
+### doctor_import_holidays_forbidden
+
+POST {{BASE_URL}}/api/v1/holidays/import-national HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "override_existing": false,
+  "year": 2025
+}
+
+
+### 
+
+# ==============================================================================
+# CLEANUP (Run manually to remove test data)
+# ==============================================================================
+# Delete test override (Christmas Eve)
+
+
+### cleanup_delete_override_custom
+
+DELETE {{BASE_URL}}/api/v1/working-hours/overrides/{{create_override_custom_hours.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Delete test override (New Year's Eve)
+
+
+### cleanup_delete_override_closed
+
+DELETE {{BASE_URL}}/api/v1/working-hours/overrides/{{create_override_closed.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Delete test holiday (Practice Summer Break)
+
+
+### cleanup_delete_holiday_practice
+
+DELETE {{BASE_URL}}/api/v1/holidays/{{create_holiday_practice_closed.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# Delete test holiday (Liberation Day)
+
+
+### cleanup_delete_holiday_national
+
+DELETE {{BASE_URL}}/api/v1/holidays/{{create_holiday_national.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 

@@ -129,9 +129,12 @@ export const usersApi = {
 
   /**
    * Reset user MFA (ADMIN only)
-   * Note: This endpoint needs to be added to the backend
+   *
+   * Clears MFA secret and backup codes, disabling MFA for the user.
+   * The user will need to re-enroll in MFA.
    *
    * @param id - User UUID
+   * @returns Updated user with mfa_enabled: false
    */
   resetMfa: async (id: string): Promise<User> => {
     const response = await apiClient.post<User>(`/api/v1/users/${id}/reset-mfa`);

@@ -149,7 +149,7 @@ pub struct CreateHolidayRequest {
 }
 
 /// Request to update an existing holiday
-#[derive(Debug, Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct UpdateHolidayRequest {
     /// New date for the holiday (optional)
     pub holiday_date: Option<NaiveDate>,

@@ -12,7 +12,8 @@
 use crate::models::{
     Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics,
     AppointmentStatus, AppointmentType, AuditAction, AuditLog, CreateAuditLog,
-    CreateAppointmentRequest, EntityType, RecurringPattern, TimeSlot, UpdateAppointmentRequest,
+    CreateAppointmentRequest, EntityType, RecurringPattern, RequestContext, TimeSlot,
+    UpdateAppointmentRequest,
 };
 use crate::services::{HolidayService, WorkingHoursService};
 use anyhow::{anyhow, Context, Result};
@@ -78,6 +79,7 @@ impl AppointmentService {
         &self,
         data: CreateAppointmentRequest,
         created_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<AppointmentDto> {
         // Validate request
         data.validate()
@@ -179,9 +181,9 @@ impl AppointmentService {
                     "scheduled_start": data.scheduled_start,
                     "type": data.appointment_type,
                 })),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -194,6 +196,7 @@ impl AppointmentService {
         &self,
         id: Uuid,
         user_id: Option<Uuid>,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<Option<AppointmentDto>> {
         // If user_id is provided, use RLS context
         let appointment = if let Some(uid) = user_id {
@@ -228,9 +231,9 @@ impl AppointmentService {
                     entity_type: EntityType::Appointment,
                     entity_id: Some(appt.id.to_string()),
                     changes: None,
-                    ip_address: None,
-                    user_agent: None,
-                    request_id: None,
+                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                    request_id: request_ctx.map(|c| c.request_id),
                 },
             )
             .await;
@@ -245,6 +248,7 @@ impl AppointmentService {
         id: Uuid,
         data: UpdateAppointmentRequest,
         updated_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<AppointmentDto> {
         // Validate request
         data.validate()
@@ -388,9 +392,9 @@ impl AppointmentService {
                 entity_type: EntityType::Appointment,
                 entity_id: Some(id.to_string()),
                 changes: Some(audit_changes),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -404,6 +408,7 @@ impl AppointmentService {
         id: Uuid,
         cancellation_reason: String,
         cancelled_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<AppointmentDto> {
         let mut tx = self.pool.begin().await?;
 
@@ -456,9 +461,9 @@ impl AppointmentService {
                     "status": "CANCELLED",
                     "cancellation_reason": cancellation_reason,
                 })),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -471,11 +476,13 @@ impl AppointmentService {
         &self,
         id: Uuid,
         deleted_by_id: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<()> {
         self.cancel_appointment(
             id,
             "Appointment deleted".to_string(),
             deleted_by_id,
+            request_ctx,
         )
         .await?;
 
@@ -487,6 +494,7 @@ impl AppointmentService {
         &self,
         filter: AppointmentSearchFilter,
         user_id: Option<Uuid>,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<(Vec<AppointmentDto>, i64)> {
         // Validate filter
         filter.validate()
@@ -663,9 +671,9 @@ impl AppointmentService {
                     entity_type: EntityType::Appointment,
                     entity_id: None,
                     changes: Some(serde_json::to_value(&filter)?),
-                    ip_address: None,
-                    user_agent: None,
-                    request_id: None,
+                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                    request_id: request_ctx.map(|c| c.request_id),
                 },
             )
             .await;

@@ -21,9 +21,10 @@ use validator::Validate;
 use crate::{
     handlers::auth::AppState,
     models::{
-        AuthUser, CreateDocumentTemplateRequest, DeliverDocumentRequest,
-        DocumentTemplateFilter, DocumentType, GenerateDocumentRequest, GeneratedDocumentFilter,
-        TemplateLanguage, UpdateDocumentTemplateRequest, UserRole,
+        AuditAction, AuditLog, AuthUser, CreateAuditLog, CreateDocumentTemplateRequest,
+        DeliverDocumentRequest, DocumentTemplateFilter, DocumentType, EntityType,
+        GenerateDocumentRequest, GeneratedDocumentFilter, RequestContext, TemplateLanguage,
+        UpdateDocumentTemplateRequest, UserRole,
     },
     services::{generate_document_email_body, DocumentService},
     utils::{AppError, Result},
@@ -169,6 +170,7 @@ pub struct ListGeneratedDocumentsQuery {
 pub async fn create_document_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreateDocumentTemplateRequest>,
 ) -> Result<impl IntoResponse> {
     check_template_permission(&state, &auth_user.role, "create").await?;
@@ -187,12 +189,32 @@ pub async fn create_document_template(
 
     let service = DocumentService::new(state.pool.clone(), encryption_key.clone(), storage_path);
     let template = service
-        .create_template(req, auth_user.user_id)
+        .create_template(req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create document template: {}", e);
             AppError::Internal(format!("Failed to create document template: {}", e))
         })?;
+
+    // Create audit log for template creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Document,
+            entity_id: Some(template.id.to_string()),
+            changes: Some(serde_json::json!({
+                "name": req.template_name,
+                "document_type": format!("{:?}", req.document_type),
+                "type": "template",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(template)))
 }
@@ -324,6 +346,7 @@ pub async fn list_document_templates(
 pub async fn update_document_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateDocumentTemplateRequest>,
 ) -> Result<impl IntoResponse> {
@@ -343,12 +366,28 @@ pub async fn update_document_template(
 
     let service = DocumentService::new(state.pool.clone(), encryption_key.clone(), storage_path);
     let template = service
-        .update_template(id, req, auth_user.user_id)
+        .update_template(id, req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update document template {}: {}", id, e);
             AppError::Internal(format!("Failed to update document template: {}", e))
         })?;
+
+    // Create audit log for template update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Document,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::to_value(&req).unwrap_or_default()),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(template))
 }
@@ -359,6 +398,7 @@ pub async fn update_document_template(
 pub async fn delete_document_template(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     check_template_permission(&state, &auth_user.role, "delete").await?;
@@ -381,6 +421,22 @@ pub async fn delete_document_template(
             AppError::Internal(format!("Failed to delete document template: {}", e))
         })?;
 
+    // Create audit log for template deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Document,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({"type": "template"})),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -392,6 +448,7 @@ pub async fn delete_document_template(
 pub async fn generate_document(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<GenerateDocumentRequest>,
 ) -> Result<impl IntoResponse> {
     check_document_permission(&state, &auth_user.role, "create").await?;
@@ -410,7 +467,7 @@ pub async fn generate_document(
 
     let service = DocumentService::new(state.pool.clone(), encryption_key.clone(), storage_path);
     let document = service
-        .generate_document(req, auth_user.user_id)
+        .generate_document(req.clone(), auth_user.user_id)
         .await
         .map_err(|e| {
             // Log the full error chain for debugging
@@ -418,6 +475,27 @@ pub async fn generate_document(
             // Return detailed error message
             AppError::Internal(format!("Failed to generate document: {:#}", e))
         })?;
+
+    // Create audit log for document generation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Document,
+            entity_id: Some(document.id.to_string()),
+            changes: Some(serde_json::json!({
+                "template_id": req.template_id,
+                "patient_id": req.patient_id,
+                "visit_id": req.visit_id,
+                "type": "generated",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(document)))
 }
@@ -716,6 +794,7 @@ pub async fn deliver_document(
 pub async fn sign_document(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     check_document_permission(&state, &auth_user.role, "update").await?;
@@ -738,6 +817,25 @@ pub async fn sign_document(
             AppError::Internal(format!("Failed to sign document: {}", e))
         })?;
 
+    // Create audit log for document signing
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Document,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "sign",
+                "is_signed": true,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(document))
 }
 
@@ -752,6 +850,7 @@ pub async fn sign_document(
 pub async fn delete_generated_document(
     State(state): State<AppState>,
     Extension(auth_user): Extension<AuthUser>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // First check basic delete permission (Doctor or Admin can attempt delete)
@@ -795,6 +894,22 @@ pub async fn delete_generated_document(
             tracing::error!("Failed to delete document {}: {}", id, e);
             AppError::Internal(format!("Failed to delete document: {}", e))
         })?;
+
+    // Create audit log for document deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(auth_user.user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Document,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({"type": "generated"})),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

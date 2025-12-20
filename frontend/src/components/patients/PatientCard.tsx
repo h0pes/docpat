@@ -19,13 +19,14 @@ import {
 import { Patient, PatientStatus, Gender } from '@/types/patient';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Phone, Mail, Heart, FileText, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Phone, Mail, Heart, FileText, MoreVertical, Eye, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
 interface PatientCardProps {
   patient: Patient;
   onClick?: () => void;
   onDelete?: (patientId: string) => void;
+  onReactivate?: (patientId: string) => void;
   className?: string;
 }
 
@@ -97,15 +98,16 @@ function formatDate(dateString: string): string {
 /**
  * PatientCard component
  */
-export function PatientCard({ patient, onClick, onDelete, className }: PatientCardProps) {
+export function PatientCard({ patient, onClick, onDelete, onReactivate, className }: PatientCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const age = calculateAge(patient.date_of_birth);
   const fullName = `${patient.first_name} ${patient.last_name}`;
 
-  // Check if user has admin role for delete permission
-  const canDelete = user?.role === 'ADMIN';
+  // Check if user has admin role for delete/reactivate permission
+  const canManage = user?.role === 'ADMIN';
+  const isInactive = patient.status === PatientStatus.INACTIVE;
 
   /**
    * Handle quick action: View details
@@ -130,6 +132,16 @@ export function PatientCard({ patient, onClick, onDelete, className }: PatientCa
     e.stopPropagation();
     if (onDelete) {
       onDelete(patient.id);
+    }
+  };
+
+  /**
+   * Handle quick action: Reactivate patient
+   */
+  const handleReactivate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onReactivate) {
+      onReactivate(patient.id);
     }
   };
 
@@ -186,16 +198,26 @@ export function PatientCard({ patient, onClick, onDelete, className }: PatientCa
                   <Edit className="mr-2 h-4 w-4" />
                   {t('patients.actions.edit')}
                 </DropdownMenuItem>
-                {canDelete && (
+                {canManage && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {t('patients.actions.delete')}
-                    </DropdownMenuItem>
+                    {isInactive ? (
+                      <DropdownMenuItem
+                        onClick={handleReactivate}
+                        className="text-blue-600 focus:text-blue-600"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        {t('patients.actions.reactivate')}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={handleDelete}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('patients.actions.delete')}
+                      </DropdownMenuItem>
+                    )}
                   </>
                 )}
               </DropdownMenuContent>

@@ -17,7 +17,7 @@ use validator::Validate;
 
 use crate::{
     handlers::auth::AppState,
-    models::{CreateVisitRequest, UpdateVisitRequest, UserRole, VisitResponse, VisitStatus, VisitType},
+    models::{CreateVisitRequest, RequestContext, UpdateVisitRequest, UserRole, VisitResponse, VisitStatus, VisitType},
     services::{VisitSearchFilter, VisitService},
     utils::{AppError, Result},
 };
@@ -127,6 +127,7 @@ pub async fn create_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreateVisitRequest>,
 ) -> Result<impl IntoResponse> {
     tracing::info!("Creating visit by user: {} (role: {:?})", user_id, user_role);
@@ -148,7 +149,7 @@ pub async fn create_visit(
 
     // Create visit (service handles transaction and RLS internally)
     let visit = visit_service
-        .create_visit(req, user_id)
+        .create_visit(req, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to create visit: {}", e);
@@ -170,6 +171,7 @@ pub async fn get_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -183,7 +185,7 @@ pub async fn get_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .get_visit(id, user_id)
+        .get_visit(id, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to get visit {}: {}", id, e);
@@ -205,6 +207,7 @@ pub async fn update_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateVisitRequest>,
 ) -> Result<impl IntoResponse> {
@@ -223,7 +226,7 @@ pub async fn update_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .update_visit(id, req, user_id)
+        .update_visit(id, req, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to update visit {}: {}", id, e);
@@ -249,6 +252,7 @@ pub async fn delete_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions (ADMIN only)
@@ -262,7 +266,7 @@ pub async fn delete_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     visit_service
-        .delete_visit(id, user_id)
+        .delete_visit(id, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to delete visit {}: {}", id, e);
@@ -433,6 +437,7 @@ pub async fn sign_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -446,7 +451,7 @@ pub async fn sign_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .sign_visit(id, user_id)
+        .sign_visit(id, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to sign visit {}: {}", id, e);
@@ -471,6 +476,7 @@ pub async fn lock_visit(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     // Check permissions
@@ -484,7 +490,7 @@ pub async fn lock_visit(
 
     let visit_service = VisitService::new(state.pool.clone(), encryption_key.clone());
     let visit = visit_service
-        .lock_visit(id, user_id)
+        .lock_visit(id, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             tracing::error!("Failed to lock visit {}: {}", id, e);

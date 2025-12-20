@@ -479,17 +479,29 @@ impl HolidayService {
         override_existing: bool,
         user_id: Uuid,
     ) -> Result<Option<HolidayResponse>, String> {
-        // Check if holiday already exists
-        let existing = self.check_holiday(date).await?;
+        // Check if holiday already exists for this EXACT date (not recurring matches)
+        // We only want to skip if there's already a holiday entry for this specific date
+        let existing: Option<Holiday> = sqlx::query_as(
+            r#"
+            SELECT id, holiday_date, name, holiday_type, is_recurring, notes,
+                   created_at, updated_at, created_by, updated_by
+            FROM holidays
+            WHERE holiday_date = $1
+            "#,
+        )
+        .bind(date)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| format!("Failed to check existing holiday: {}", e))?;
 
-        if existing.is_holiday && !override_existing {
-            // Skip, already exists
+        if existing.is_some() && !override_existing {
+            // Skip, already exists for this exact date
             return Ok(None);
         }
 
-        if existing.is_holiday && override_existing {
-            // Delete existing first
-            if let Some(h) = existing.holiday {
+        if let Some(h) = existing {
+            if override_existing {
+                // Delete existing first
                 let _ = self.delete_holiday(h.id).await;
             }
         }

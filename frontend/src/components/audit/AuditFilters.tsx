@@ -74,6 +74,35 @@ export function AuditFilters({
   const [entityIdSearch, setEntityIdSearch] = useState(filter.entity_id || '');
   const [ipAddressSearch, setIpAddressSearch] = useState(filter.ip_address || '');
 
+  // Determine initial preset based on filter dates
+  const getInitialPreset = (): string | null => {
+    if (!filter.date_from || !filter.date_to) return null;
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const from = filter.date_from;
+    const to = filter.date_to;
+
+    // Check for "Last 7 days" preset
+    if (from === format(subDays(today, 7), 'yyyy-MM-dd') && to === todayStr) {
+      return 'last7days';
+    }
+    // Check for "Last 30 days" preset
+    if (from === format(subDays(today, 30), 'yyyy-MM-dd') && to === todayStr) {
+      return 'last30days';
+    }
+    // Check for "Today" preset
+    if (from === todayStr && to === todayStr) {
+      return 'today';
+    }
+    // Check for "This month" preset
+    if (from === format(startOfMonth(today), 'yyyy-MM-dd') && to === format(endOfMonth(today), 'yyyy-MM-dd')) {
+      return 'thisMonth';
+    }
+    return null;
+  };
+
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(getInitialPreset);
+
   // Count active filters
   const activeFilterCount = [
     filter.user_id,
@@ -104,6 +133,7 @@ export function AuditFilters({
 
     setDateFrom(from);
     setDateTo(to);
+    setSelectedPreset(preset.key);
     onFilterChange({
       ...filter,
       date_from: format(from, 'yyyy-MM-dd'),
@@ -114,6 +144,8 @@ export function AuditFilters({
 
   // Handle custom date range
   const handleDateChange = (type: 'from' | 'to', date: Date | undefined) => {
+    // Clear preset when manually selecting dates
+    setSelectedPreset(null);
     if (type === 'from') {
       setDateFrom(date);
       if (date) {
@@ -169,6 +201,7 @@ export function AuditFilters({
     setDateTo(undefined);
     setEntityIdSearch('');
     setIpAddressSearch('');
+    setSelectedPreset(null);
     onFilterChange({
       page: 1,
       page_size: filter.page_size,
@@ -208,7 +241,7 @@ export function AuditFilters({
           {DATE_PRESETS.map((preset) => (
             <Button
               key={preset.key}
-              variant="outline"
+              variant={selectedPreset === preset.key ? 'default' : 'outline'}
               size="sm"
               onClick={() => handlePresetClick(preset)}
               className="h-8"
@@ -221,19 +254,19 @@ export function AuditFilters({
 
       {/* Custom date range */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <Label>{t('audit.filters.date_from')}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  'w-full justify-start text-left font-normal',
+                  'w-full justify-start text-left font-normal truncate',
                   !dateFrom && 'text-muted-foreground'
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateFrom ? format(dateFrom, 'PPP') : t('audit.filters.select_date')}
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                {dateFrom ? format(dateFrom, 'PP') : t('audit.filters.select_date')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -247,19 +280,19 @@ export function AuditFilters({
           </Popover>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <Label>{t('audit.filters.date_to')}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  'w-full justify-start text-left font-normal',
+                  'w-full justify-start text-left font-normal truncate',
                   !dateTo && 'text-muted-foreground'
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateTo ? format(dateTo, 'PPP') : t('audit.filters.select_date')}
+                <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                {dateTo ? format(dateTo, 'PP') : t('audit.filters.select_date')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

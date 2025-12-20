@@ -18,7 +18,7 @@ use crate::models::system_setting::{
     BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse, SettingsFilter,
     SystemSettingResponse, UpdateSettingRequest,
 };
-use crate::models::UserRole;
+use crate::models::{RequestContext, UserRole};
 
 #[cfg(feature = "rbac")]
 use crate::utils::permissions::require_admin;
@@ -153,6 +153,7 @@ pub async fn update_setting(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(key): Path<String>,
     Json(request): Json<UpdateSettingRequest>,
 ) -> Result<Json<SystemSettingResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -162,7 +163,7 @@ pub async fn update_setting(
 
     let result = state
         .settings_service
-        .update_setting(&key, request, user_id)
+        .update_setting(&key, request, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             let error_msg = e.to_string();
@@ -204,6 +205,7 @@ pub async fn bulk_update_settings(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(request): Json<BulkUpdateSettingsRequest>,
 ) -> Result<Json<Vec<SystemSettingResponse>>, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can update settings
@@ -219,7 +221,7 @@ pub async fn bulk_update_settings(
 
     let results = state
         .settings_service
-        .bulk_update_settings(request, user_id)
+        .bulk_update_settings(request, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             let error_msg = e.to_string();
@@ -252,6 +254,7 @@ pub async fn reset_setting(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(key): Path<String>,
 ) -> Result<Json<SystemSettingResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can reset settings
@@ -260,7 +263,7 @@ pub async fn reset_setting(
 
     let result = state
         .settings_service
-        .reset_setting(&key, user_id)
+        .reset_setting(&key, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             let error_msg = e.to_string();

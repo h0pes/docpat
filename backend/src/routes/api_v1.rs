@@ -15,6 +15,7 @@ use crate::handlers::{
     bulk_update_settings, cancel_appointment, check_availability, create_appointment,
     create_diagnosis, create_patient, create_prescription, create_prescription_template,
     create_visit, create_visit_template, delete_diagnosis, delete_patient, delete_prescription,
+    reactivate_patient,
     delete_prescription_template, delete_visit, delete_visit_template, discontinue_prescription,
     export_report, get_appointment, get_appointment_report, get_daily_schedule,
     get_dashboard_report, get_diagnosis, get_diagnosis_report, get_monthly_schedule, get_patient,
@@ -35,6 +36,7 @@ use crate::handlers::holidays;
 use crate::handlers::system_health;
 use crate::handlers::working_hours;
 use crate::middleware::auth::jwt_auth_middleware;
+use crate::middleware::request_context::request_context_middleware;
 
 #[cfg(feature = "rbac")]
 use crate::handlers::users;
@@ -69,6 +71,7 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .route("/{id}/deactivate", post(users::deactivate_user))
         .route("/{id}/role", post(users::assign_role))
         .route("/{id}/reset-password", post(users::reset_password))
+        .route("/{id}/reset-mfa", post(users::reset_mfa))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             jwt_auth_middleware,
@@ -80,6 +83,7 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .route("/search", get(search_patients))
         .route("/statistics", get(get_patient_statistics))
         .route("/{id}", get(get_patient).put(update_patient).delete(delete_patient))
+        .route("/{id}/reactivate", post(reactivate_patient))
         .route("/{id}/visits", get(get_patient_visits))
         .route("/{id}/diagnoses", get(get_patient_diagnoses))
         .route("/{id}/prescriptions", get(get_patient_prescriptions))
@@ -313,7 +317,11 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             .nest("/documents", document_routes);
     }
 
-    router.with_state(state)
+    // Apply request context middleware to all routes
+    // This extracts IP address, user agent, and generates request ID
+    router
+        .layer(middleware::from_fn(request_context_middleware))
+        .with_state(state)
 }
 
 #[cfg(test)]

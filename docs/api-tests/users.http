@@ -1,0 +1,312 @@
+# User Management API Tests
+# Kulala HTTP Client file for testing Section B from TEST_CASES_MILESTONE13.md
+#
+# Prerequisites:
+# - Backend server running on http://localhost:8000
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+#
+# Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+#
+# Note: Request variables (e.g., {{REQUEST_NAME.response.body.$.path}}) require
+# the named request to be executed first before referencing its response.
+
+# ==============================================================================
+# Authentication - Login as Admin
+# ==============================================================================
+
+### login_admin
+POST {{BASE_URL}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{ADMIN_USERNAME}}",
+  "password": "{{ADMIN_PASSWORD}}"
+}
+
+###
+
+# ==============================================================================
+# Test Case B1: User API - List Users
+# ==============================================================================
+# Goal: Verify API returns users list
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains:
+#   {
+#     "users": [...users],
+#     "total": <number>,
+#     "offset": <number>,
+#     "limit": <number>
+#   }
+
+### list_users
+GET {{BASE_URL}}/api/v1/users
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# Test Case B2: User API - Get Single User
+# ==============================================================================
+# Goal: Verify API returns user details
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains full user object
+#
+# Note: Uses the first user ID from the list_users response.
+# You must run list_users first to populate the response variable.
+
+### get_user
+GET {{BASE_URL}}/api/v1/users/{{list_users.response.body.$.users[0].id}}
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# Test Case B3: User API - Create User
+# ==============================================================================
+# Goal: Verify API creates user
+#
+# Expected Results:
+# - Response: 201 Created
+# - Response body contains created user with id, username, email, role, etc.
+#
+# Note: Each test run creates a new user. You may want to change the username
+# and email to avoid conflicts, or delete the user after testing.
+
+### create_user
+POST {{BASE_URL}}/api/v1/users
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "username": "testuser_api2",
+  "email": "testuser_api2@docpat.local",
+  "password": "TestUser123!",
+  "role": "DOCTOR",
+  "first_name": "Test2",
+  "last_name": "User2",
+  "phone": "+39 123 456 7890"
+}
+
+###
+
+# ==============================================================================
+# Test Case B4: User API - Update User
+# ==============================================================================
+# Goal: Verify API updates user
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains updated user object
+#
+# Note: Uses the ID from create_user response. Run create_user first.
+
+### update_user
+PUT {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "first_name": "Updated",
+  "last_name": "TestUser",
+  "email": "updated_testuser@docpat.local",
+  "phone": "+39 987 654 3210"
+}
+
+###
+
+# ==============================================================================
+# Test Case B5: User API - Deactivate/Activate
+# ==============================================================================
+# Goal: Verify status toggle APIs
+#
+# Expected Results:
+# - Deactivate: POST /api/v1/users/:id/deactivate → 200 OK
+# - Activate: POST /api/v1/users/:id/activate → 200 OK
+#
+# Note: Uses the ID from create_user response. Run create_user first.
+
+### deactivate_user
+POST {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}/deactivate
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### activate_user
+POST {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}/activate
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# Test Case B6: User API - Reset Password
+# ==============================================================================
+# Goal: Verify password reset API
+#
+# Expected Results:
+# - Response: 204 No Content
+#
+# Note: Uses the ID from create_user response. Run create_user first.
+
+### reset_password
+POST {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}/reset-password
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "new_password": "NewPassword123!"
+}
+
+###
+
+# ==============================================================================
+# Test Case B7: User API - Reset MFA
+# ==============================================================================
+# Goal: Verify MFA reset API
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body: { "message": "MFA reset successfully", "mfa_enabled": false }
+#
+# Note: Uses the ID from create_user response. Run create_user first.
+# This test is meaningful only if the user has MFA enabled.
+
+### reset_mfa
+POST {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}/reset-mfa
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# Additional: User API - Assign Role
+# ==============================================================================
+# Goal: Verify role assignment API
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains updated user with new role
+#
+# Note: Uses the ID from create_user response. Run create_user first.
+
+### assign_role
+POST {{BASE_URL}}/api/v1/users/{{create_user.response.body.$.id}}/role
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "role": "ADMIN"
+}
+
+###
+
+# ==============================================================================
+# Additional: User API - List Users with Query Parameters
+# ==============================================================================
+# Goal: Verify list users with filtering, pagination, and sorting
+#
+# Query Parameters:
+# - search: Search by name, username, email
+# - role: Filter by role (ADMIN, DOCTOR)
+# - is_active: Filter by status (true, false)
+# - page: Page number (default: 1)
+# - page_size: Items per page (default: 20, max: 100)
+# - sort_by: Sort field (name, username, created_at)
+# - sort_order: Sort direction (asc, desc)
+
+# List users filtered by role
+### list_users_by_role
+GET {{BASE_URL}}/api/v1/users?role=DOCTOR
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List users with search query
+### list_users_search
+GET {{BASE_URL}}/api/v1/users?search=test
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List active users only
+### list_users_active
+GET {{BASE_URL}}/api/v1/users?is_active=true
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List users with pagination
+### list_users_paginated
+GET {{BASE_URL}}/api/v1/users?page=1&page_size=10
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List users sorted by created_at descending
+### list_users_sorted
+GET {{BASE_URL}}/api/v1/users?sort_by=created_at&sort_order=desc
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# Test Case B8: User API - Authorization (Non-Admin Access Denied)
+# ==============================================================================
+# Goal: Verify non-admin cannot access user APIs
+#
+# Expected Results:
+# - All user management endpoints return 403 Forbidden
+# - Error message indicates insufficient permissions
+#
+# Note: Run login_doctor first to get doctor's access token.
+
+### login_doctor
+POST {{BASE_URL}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{DOCTOR_USERNAME}}",
+  "password": "{{DOCTOR_PASSWORD}}"
+}
+
+###
+
+# Try to list users as doctor - should return 403 Forbidden
+### list_users_as_doctor
+GET {{BASE_URL}}/api/v1/users
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# Try to create user as doctor - should return 403 Forbidden
+### create_user_as_doctor
+POST {{BASE_URL}}/api/v1/users
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "username": "unauthorized_user",
+  "email": "unauthorized@docpat.local",
+  "password": "TestUser123!",
+  "role": "DOCTOR",
+  "first_name": "Unauthorized",
+  "last_name": "User"
+}
+
+###

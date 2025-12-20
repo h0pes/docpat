@@ -39,12 +39,16 @@ import { useSettingsByGroup, useBulkUpdateSettings } from '@/hooks/useSettings';
 
 /**
  * Form validation schema
+ * Note: Using nested structure because React Hook Form interprets dots as nesting
+ * Key names must match database setting_key values (e.g., mfa_required not require_mfa)
  */
 const securitySettingsSchema = z.object({
-  'security.session_timeout_minutes': z.number().min(5).max(480),
-  'security.max_login_attempts': z.number().min(3).max(10),
-  'security.lockout_duration_minutes': z.number().min(5).max(1440),
-  'security.require_mfa': z.boolean(),
+  security: z.object({
+    session_timeout_minutes: z.number().min(5).max(480),
+    max_login_attempts: z.number().min(3).max(10),
+    lockout_duration_minutes: z.number().min(5).max(1440),
+    mfa_required: z.boolean(),
+  }),
 });
 
 type SecuritySettingsFormData = z.infer<typeof securitySettingsSchema>;
@@ -69,31 +73,41 @@ export function SecuritySettingsSection() {
   const form = useForm<SecuritySettingsFormData>({
     resolver: zodResolver(securitySettingsSchema),
     defaultValues: {
-      'security.session_timeout_minutes': 30,
-      'security.max_login_attempts': 5,
-      'security.lockout_duration_minutes': 15,
-      'security.require_mfa': false,
+      security: {
+        session_timeout_minutes: 30,
+        max_login_attempts: 5,
+        lockout_duration_minutes: 15,
+        mfa_required: false,
+      },
     },
   });
 
   // Populate form with current settings
   useEffect(() => {
-    if (settingsData?.settings) {
-      const values: Partial<SecuritySettingsFormData> = {};
-      for (const setting of settingsData.settings) {
-        const key = setting.setting_key as keyof SecuritySettingsFormData;
-        if (key in form.getValues()) {
-          const value = setting.setting_value;
-          if (typeof value === 'number' || typeof value === 'boolean') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            values[key] = value as any;
-          }
+    if (!settingsData?.settings) return;
+
+    // Build nested form values from flat setting keys
+    const securityValues: SecuritySettingsFormData['security'] = {
+      session_timeout_minutes: 30,
+      max_login_attempts: 5,
+      lockout_duration_minutes: 15,
+      mfa_required: false,
+    };
+
+    for (const setting of settingsData.settings) {
+      // Extract field name from setting key (e.g., "security.mfa_required" -> "mfa_required")
+      const fieldName = setting.setting_key.replace('security.', '') as keyof typeof securityValues;
+      if (fieldName in securityValues) {
+        const value = setting.setting_value;
+        if (typeof value === 'number') {
+          (securityValues as Record<string, number | boolean>)[fieldName] = value;
+        } else if (typeof value === 'boolean') {
+          (securityValues as Record<string, number | boolean>)[fieldName] = value;
         }
       }
-      if (Object.keys(values).length > 0) {
-        form.reset({ ...form.getValues(), ...values });
-      }
     }
+
+    form.reset({ security: securityValues });
   }, [settingsData, form]);
 
   /**
@@ -101,8 +115,9 @@ export function SecuritySettingsSection() {
    */
   const onSubmit = async (data: SecuritySettingsFormData) => {
     try {
-      const settings = Object.entries(data).map(([key, value]) => ({
-        key,
+      // Convert nested form data to flat setting keys for the API
+      const settings = Object.entries(data.security).map(([key, value]) => ({
+        key: `security.${key}`,
         value,
       }));
 
@@ -122,7 +137,7 @@ export function SecuritySettingsSection() {
   };
 
   // Watch for MFA changes to show warning
-  const requireMfa = form.watch('security.require_mfa');
+  const requireMfa = form.watch('security.mfa_required');
 
   if (isLoading) {
     return (
@@ -292,7 +307,7 @@ export function SecuritySettingsSection() {
 
             <FormField
               control={form.control}
-              name="security.require_mfa"
+              name="security.mfa_required"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">

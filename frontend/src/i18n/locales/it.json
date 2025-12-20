@@ -26,16 +26,25 @@
     "loading": "Caricamento...",
     "noResults": "Nessun risultato trovato",
     "comingSoon": "Prossimamente",
+    "actionsTitle": "Azioni",
     "actions": {
       "retry": "Riprova",
       "backToList": "Torna all'Elenco",
       "deleting": "Eliminazione...",
+      "reactivating": "Riattivazione...",
       "cancel": "Annulla",
       "delete": "Elimina",
       "viewAll": "Visualizza Tutto"
     },
+    "metadata": "Metadati",
+    "created_at": "Creato il",
+    "updated_at": "Aggiornato il",
     "required": "Obbligatorio",
     "optional": "Facoltativo",
+    "yes": "Sì",
+    "no": "No",
+    "enabled": "Abilitato",
+    "disabled": "Disabilitato",
     "copied": "Copiato",
     "copy": "Copia",
     "download": "Scarica",
@@ -167,7 +176,10 @@
       "backupCodesDescription": "Salva questi codici di backup in un luogo sicuro. Ogni codice può essere utilizzato una volta se perdi l'accesso al tuo dispositivo di autenticazione.",
       "backupCodesCopied": "Codici di backup copiati negli appunti",
       "backupCodesDownloaded": "Codici di backup scaricati",
-      "secretCopied": "Chiave segreta copiata negli appunti"
+      "secretCopied": "Chiave segreta copiata negli appunti",
+      "setupRequired": "Configurazione MFA Obbligatoria",
+      "setupRequiredDescription": "La tua organizzazione richiede che tutti gli utenti configurino l'autenticazione a due fattori. Completa la configurazione per continuare.",
+      "cannotSkipSetup": "Non puoi saltare la configurazione MFA. Completa la configurazione per accedere all'applicazione."
     },
     "validation": {
       "usernameRequired": "Il nome utente è obbligatorio",
@@ -216,6 +228,7 @@
     "title": "Pazienti",
     "subtitle": "Gestisci i record dei pazienti",
     "new_patient": "Nuovo Paziente",
+    "view": "Visualizza Paziente",
     "list": {
       "title": "Pazienti",
       "subtitle": "Visualizza e gestisci tutti i record dei pazienti"
@@ -241,11 +254,18 @@
       "deleteSuccess": "Paziente Eliminato",
       "deleteSuccessDescription": "Il record del paziente è stato eliminato con successo",
       "deleteError": "Errore nell'Eliminazione del Paziente",
-      "loadError": "Errore nel Caricamento del Paziente"
+      "loadError": "Errore nel Caricamento del Paziente",
+      "reactivateSuccess": "Paziente Riattivato",
+      "reactivateSuccessDescription": "Il record del paziente è stato riattivato con successo",
+      "reactivateError": "Errore nella Riattivazione del Paziente"
     },
     "delete": {
       "confirmTitle": "Conferma Eliminazione",
       "confirmMessage": "Sei sicuro di voler eliminare {{name}}? Questa azione non può essere annullata."
+    },
+    "reactivate": {
+      "confirmTitle": "Conferma Riattivazione",
+      "confirmMessage": "Sei sicuro di voler riattivare {{name}}? Questo ripristinerà il paziente allo stato attivo."
     },
     "add_first_patient": "Aggiungi il Tuo Primo Paziente",
     "total_count": "{{count}} pazienti",
@@ -349,6 +369,7 @@
       "delete": "Elimina Paziente",
       "deactivate": "Disattiva Paziente",
       "activate": "Attiva Paziente",
+      "reactivate": "Riattiva Paziente",
       "delete_confirm": "Sei sicuro di voler eliminare questo paziente?",
       "delete_warning": "Questa azione non può essere annullata.",
       "save_success": "Paziente salvato con successo",
@@ -1637,7 +1658,14 @@
     "total_count": "{{count}} utenti",
     "search_placeholder": "Cerca per nome, username o email...",
     "filters": "Filtri",
+    "advanced_filters": "Filtri Avanzati",
+    "clear_all": "Cancella Tutto",
     "clear_filters": "Cancella Filtri",
+    "role_label": "Ruolo",
+    "role_all": "Tutti i Ruoli",
+    "status_label": "Stato",
+    "status_all": "Tutti gli Stati",
+    "page": "pagina",
     "showing_results": "Mostrando da {{from}} a {{to}} di {{total}} risultati",
     "page_of": "Pagina {{current}} di {{total}}",
     "previous": "Precedente",
@@ -1770,6 +1798,8 @@
       "nameDesc": "Nome (Z-A)",
       "usernameAsc": "Username (A-Z)",
       "usernameDesc": "Username (Z-A)",
+      "roleAsc": "Ruolo (A-Z)",
+      "roleDesc": "Ruolo (Z-A)",
       "createdAsc": "Meno Recente",
       "createdDesc": "Più Recente"
     }
@@ -1799,6 +1829,7 @@
       "name_hint": "Il nome visualizzato in tutta l'applicazione",
       "address": "Indirizzo",
       "address_placeholder": "Inserisci l'indirizzo dello studio",
+      "address_hint": "Indirizzo completo incluso via, città e CAP",
       "city": "Città",
       "city_placeholder": "Inserisci la città",
       "phone": "Telefono",
@@ -1809,10 +1840,18 @@
       "website_placeholder": "https://www.esempio.com",
       "tax_id": "Codice Fiscale / Partita IVA",
       "tax_id_placeholder": "Inserisci il codice fiscale o partita IVA",
+      "tax_id_hint": "Richiesto per fatturazione e documenti ufficiali",
+      "vat_number": "Partita IVA",
+      "vat_number_placeholder": "Inserisci la partita IVA",
+      "vat_number_hint": "Richiesto per fatturazione e documenti ufficiali",
       "logo": "Logo",
       "logo_hint": "Carica il logo dello studio (PNG, JPG, max 2MB)",
       "upload_logo": "Carica Logo",
       "remove_logo": "Rimuovi Logo",
+      "logo_saved": "Il logo è stato salvato con successo",
+      "logo_removed": "Il logo è stato rimosso",
+      "logo_invalid_type": "Seleziona un file immagine valido",
+      "logo_too_large": "L'immagine deve essere inferiore a 2MB",
       "contact_details": "Dettagli Contatto"
     },
     "appointment": {
@@ -1889,53 +1928,61 @@
     "holidays": {
       "title": "Festività e Chiusure",
       "description": "Gestisci festività, chiusure e orari speciali",
-      "year_label": "Anno",
-      "add_holiday": "Aggiungi Festività",
-      "import_national": "Importa Festività Nazionali",
-      "import_italian": "Importa Festività Italiane",
-      "import_success": "Festività Importate",
-      "import_success_description": "{{count}} festività nazionali sono state importate",
-      "import_error": "Impossibile importare le festività",
-      "no_holidays": "Nessuna Festività",
-      "no_holidays_description": "Nessuna festività configurata per quest'anno",
-      "form": {
-        "title_create": "Aggiungi Festività",
-        "title_edit": "Modifica Festività",
-        "name": "Nome Festività",
-        "name_placeholder": "es. Natale",
-        "date": "Data",
-        "type": "Tipo",
-        "description": "Descrizione",
-        "description_placeholder": "Dettagli aggiuntivi su questa festività...",
-        "is_recurring": "Ricorrente Annuale",
-        "is_recurring_hint": "Ripeti automaticamente questa festività ogni anno"
-      },
-      "types": {
-        "national": "Festività Nazionale",
-        "practice_closed": "Studio Chiuso",
-        "vacation": "Ferie"
-      },
-      "delete": {
-        "title": "Elimina Festività",
-        "description": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata."
-      },
-      "messages": {
-        "create_success": "Festività Aggiunta",
-        "create_success_description": "La festività è stata aggiunta con successo",
-        "create_error": "Impossibile aggiungere la festività",
-        "update_success": "Festività Aggiornata",
-        "update_success_description": "La festività è stata aggiornata con successo",
-        "update_error": "Impossibile aggiornare la festività",
-        "delete_success": "Festività Eliminata",
-        "delete_success_description": "La festività è stata eliminata con successo",
-        "delete_error": "Impossibile eliminare la festività"
-      }
+      "year": "Anno",
+      "add": "Aggiungi Festività",
+      "cannot_add_past": "Non è possibile aggiungere festività ad anni passati",
+      "cannot_edit_past": "Non è possibile modificare festività passate",
+      "cannot_delete_past": "Non è possibile eliminare festività passate",
+      "import": "Importa Festività",
+      "date": "Data",
+      "date_mode": "Selezione Data",
+      "single_date": "Data Singola",
+      "date_range": "Intervallo Date",
+      "select_date": "Seleziona una data",
+      "select_date_range": "Seleziona intervallo date",
+      "select_end_date": "Seleziona data fine",
+      "days_selected": "{{count}} giorno/i selezionato/i",
+      "name": "Nome",
+      "name_placeholder": "es. Natale",
+      "type": "Tipo",
+      "recurring": "Ricorrente",
+      "recurring_hint": "Ripeti automaticamente questa festività ogni anno",
+      "notes": "Note",
+      "notes_placeholder": "Dettagli aggiuntivi su questa festività...",
+      "empty": "Nessuna festività configurata per quest'anno",
+      "add_title": "Aggiungi Festività",
+      "edit_title": "Modifica Festività",
+      "form_description": "Configura i dettagli della festività",
+      "delete_title": "Elimina Festività",
+      "delete_description": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata.",
+      "import_title": "Importa Festività Nazionali",
+      "import_description": "Importa le festività nazionali italiane per un anno specifico",
+      "import_info": "Seleziona un anno per importare tutte le festività nazionali italiane. Le festività esistenti non verranno sovrascritte.",
+      "import_year": "Importa {{year}}",
+      "created": "Festività Aggiunta",
+      "created_description": "La festività è stata aggiunta con successo",
+      "create_error": "Impossibile aggiungere la festività",
+      "range_created": "Festività Aggiunte",
+      "range_created_description": "{{count}} festività aggiunte per l'intervallo di date",
+      "range_created_with_skipped": "{{count}} festività aggiunte, {{skipped}} saltate (già esistenti)",
+      "range_all_skipped": "Nessuna Festività Aggiunta",
+      "range_all_skipped_description": "Tutte le date selezionate hanno già festività configurate",
+      "updated": "Festività Aggiornata",
+      "updated_description": "La festività è stata aggiornata con successo",
+      "update_error": "Impossibile aggiornare la festività",
+      "deleted": "Festività Eliminata",
+      "deleted_description": "La festività è stata eliminata con successo",
+      "delete_error": "Impossibile eliminare la festività",
+      "imported": "Festività Importate",
+      "imported_description": "{{count}} festività importate, {{skipped}} saltate",
+      "import_error": "Impossibile importare le festività"
     }
   },
   "audit": {
     "page": {
       "title": "Log di Audit",
-      "description": "Visualizza ed esporta i log delle attività di sistema per conformità e monitoraggio della sicurezza"
+      "description": "Visualizza ed esporta i log delle attività di sistema per conformità e monitoraggio della sicurezza",
+      "export": "Esporta"
     },
     "tabs": {
       "logs": "Log",
@@ -1950,10 +1997,17 @@
         "last_7_days": "Ultimi 7 giorni",
         "last_30_days": "Ultimi 30 giorni",
         "this_month": "Questo mese",
-        "custom": "Personalizzato"
+        "custom": "Personalizzato",
+        "last7days": "Ultimi 7 giorni",
+        "last30days": "Ultimi 30 giorni",
+        "thisMonth": "Questo mese"
       },
       "from_date": "Da",
       "to_date": "A",
+      "date_from": "Da",
+      "date_to": "A",
+      "select_date": "Seleziona data",
+      "clear": "Cancella",
       "user": "Utente",
       "all_users": "Tutti gli Utenti",
       "action": "Azione",
@@ -1964,6 +2018,7 @@
       "entity_id_placeholder": "Inserisci UUID entità...",
       "ip_address": "Indirizzo IP",
       "ip_placeholder": "es. 192.168.1.1",
+      "ip_address_placeholder": "es. 192.168.1.1",
       "apply": "Applica Filtri",
       "reset": "Reimposta"
     },
@@ -1972,15 +2027,21 @@
       "user": "Utente",
       "action": "Azione",
       "entity": "Entità",
+      "entity_type": "Tipo Entità",
+      "entity_id": "ID Entità",
       "ip_address": "Indirizzo IP",
       "details": "Dettagli",
+      "actions": "Azioni",
       "view_details": "Visualizza Dettagli",
       "no_logs": "Nessun Log di Audit Trovato",
+      "no_logs_hint": "Nessun log di audit corrisponde ai filtri correnti",
       "no_logs_description": "Nessun log di audit corrisponde ai filtri correnti",
       "loading": "Caricamento log di audit...",
       "error": "Impossibile caricare i log di audit",
+      "system": "Sistema",
+      "rows_per_page": "Righe per pagina",
       "showing": "Visualizzando da {{from}} a {{to}} di {{total}} log",
-      "page_of": "Pagina {{current}} di {{total}}"
+      "page_of": "Pagina {{page}} di {{totalPages}}"
     },
     "detail": {
       "title": "Dettagli Log di Audit",
@@ -2148,6 +2209,33 @@
       "holidays_desc": "Gestisci calendario festività",
       "documents": "Documenti",
       "documents_desc": "Gestisci modelli documento"
+    }
+  },
+  "profile": {
+    "title": "Il Mio Profilo",
+    "description": "Visualizza le informazioni del tuo profilo e gestisci le impostazioni di sicurezza",
+    "contactInfo": "Informazioni di Contatto",
+    "accountInfo": "Informazioni Account",
+    "security": {
+      "title": "Impostazioni di Sicurezza",
+      "description": "Gestisci la sicurezza del tuo account e le opzioni di autenticazione",
+      "mfa": {
+        "title": "Autenticazione a Due Fattori",
+        "enabled": "L'autenticazione a due fattori è abilitata sul tuo account",
+        "disabled": "L'autenticazione a due fattori non è abilitata",
+        "enable": "Abilita MFA",
+        "disable": "Disabilita MFA",
+        "warning": {
+          "title": "Raccomandazione di Sicurezza",
+          "description": "Ti consigliamo vivamente di abilitare l'autenticazione a due fattori per aggiungere un ulteriore livello di sicurezza al tuo account."
+        },
+        "disableDialog": {
+          "title": "Disabilita Autenticazione a Due Fattori",
+          "description": "Sei sicuro di voler disabilitare l'autenticazione a due fattori? Questo renderà il tuo account meno sicuro.",
+          "warning": "Il tuo account non richiederà più un codice di verifica al momento dell'accesso."
+        },
+        "disableNotImplemented": "La funzionalità di disabilitazione MFA non è ancora disponibile. Contatta un amministratore."
+      }
     }
   }
 }

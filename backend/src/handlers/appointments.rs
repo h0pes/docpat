@@ -20,7 +20,7 @@ use crate::{
     models::{
         AppointmentDto, AppointmentSearchFilter, AppointmentStatistics, AppointmentStatus,
         AppointmentType, AvailabilityResponse, CancelAppointmentRequest,
-        CreateAppointmentRequest, TimeSlot, UpdateAppointmentRequest, UserRole,
+        CreateAppointmentRequest, RequestContext, TimeSlot, UpdateAppointmentRequest, UserRole,
     },
     services::AppointmentService,
     utils::{AppError, Result},
@@ -133,6 +133,7 @@ pub async fn create_appointment(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreateAppointmentRequest>,
 ) -> Result<impl IntoResponse> {
     check_permission(&state, &user_role, "create").await?;
@@ -144,14 +145,16 @@ pub async fn create_appointment(
     let service = AppointmentService::new(state.pool.clone());
 
     let appointment = service
-        .create_appointment(req, user_id)
+        .create_appointment(req, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             let error_str = e.to_string();
-            if error_str.contains("conflict") {
+            let error_lower = error_str.to_lowercase();
+            if error_lower.contains("conflict") {
                 AppError::Conflict(error_str)
-            } else if error_str.contains("foreign key") || error_str.contains("patient") {
-                AppError::BadRequest("Patient not found or invalid provider".to_string())
+            } else if error_lower.contains("foreign key") || error_lower.contains("patient") {
+                // Return the actual error message for better debugging
+                AppError::BadRequest(error_str)
             } else {
                 AppError::Internal(error_str)
             }
@@ -167,6 +170,7 @@ pub async fn get_appointment(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<impl IntoResponse> {
     check_permission(&state, &user_role, "read").await?;
@@ -174,7 +178,7 @@ pub async fn get_appointment(
     let service = AppointmentService::new(state.pool.clone());
 
     let appointment = service
-        .get_appointment(id, Some(user_id))
+        .get_appointment(id, Some(user_id), Some(&request_ctx))
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?
         .ok_or_else(|| AppError::NotFound("Appointment not found".to_string()))?;
@@ -189,6 +193,7 @@ pub async fn update_appointment(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateAppointmentRequest>,
 ) -> Result<impl IntoResponse> {
@@ -201,7 +206,7 @@ pub async fn update_appointment(
     let service = AppointmentService::new(state.pool.clone());
 
     let appointment = service
-        .update_appointment(id, req, user_id)
+        .update_appointment(id, req, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             if e.to_string().contains("conflict") {
@@ -223,6 +228,7 @@ pub async fn cancel_appointment(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(req): Json<CancelAppointmentRequest>,
 ) -> Result<impl IntoResponse> {
@@ -235,7 +241,7 @@ pub async fn cancel_appointment(
     let service = AppointmentService::new(state.pool.clone());
 
     let appointment = service
-        .cancel_appointment(id, req.cancellation_reason, user_id)
+        .cancel_appointment(id, req.cancellation_reason, user_id, Some(&request_ctx))
         .await
         .map_err(|e| {
             if e.to_string().contains("not found") {
@@ -279,6 +285,7 @@ pub async fn list_appointments(
     State(state): State<AppState>,
     Extension(user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Query(query): Query<ListAppointmentsQuery>,
 ) -> Result<impl IntoResponse> {
     check_permission(&state, &user_role, "read").await?;
@@ -301,7 +308,7 @@ pub async fn list_appointments(
     let service = AppointmentService::new(state.pool.clone());
 
     let (appointments, total) = service
-        .list_appointments(filter, Some(user_id))
+        .list_appointments(filter, Some(user_id), Some(&request_ctx))
         .await
         .map_err(|e| AppError::Internal(e.to_string()))?;
 

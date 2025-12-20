@@ -146,7 +146,7 @@ export function UserDetailPage() {
    */
   const handleResetPassword = async (newPassword: string) => {
     try {
-      await resetPasswordMutation.mutateAsync({ id: id!, newPassword });
+      await resetPasswordMutation.mutateAsync({ id: id!, data: { new_password: newPassword } });
       toast({
         title: t('users.messages.resetPasswordSuccess'),
         description: t('users.messages.resetPasswordSuccessDescription'),

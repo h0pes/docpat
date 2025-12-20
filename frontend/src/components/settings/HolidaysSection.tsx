@@ -5,7 +5,7 @@
  * Allows adding, editing, and deleting holidays.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CalendarDays,
@@ -15,7 +15,9 @@ import {
   Download,
   Calendar as CalendarIcon,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, eachDayOfInterval, startOfDay } from 'date-fns';
+import { enUS, it } from 'date-fns/locale';
+import type { DateRange } from 'react-day-picker';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,10 +91,17 @@ import { getHolidayTypeBadgeVariant, getHolidayTypeDisplayName } from '@/types/h
 export function HolidaysSection() {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
-  const currentYear = new Date().getFullYear();
+  const today = startOfDay(new Date());
+  const currentYear = today.getFullYear();
 
   // State
   const [selectedYear, setSelectedYear] = useState(currentYear);
+
+  // Check if adding holidays is allowed for the selected year
+  // - Past years: not allowed
+  // - Current year: allowed (calendar will restrict to today onwards)
+  // - Future years: allowed
+  const canAddHolidays = selectedYear >= currentYear;
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -101,10 +110,13 @@ export function HolidaysSection() {
 
   // Form state
   const [formDate, setFormDate] = useState<Date | undefined>(undefined);
+  const [formDateRange, setFormDateRange] = useState<DateRange | undefined>(undefined);
+  const [formDateMode, setFormDateMode] = useState<'single' | 'range'>('single');
   const [formName, setFormName] = useState('');
   const [formType, setFormType] = useState<HolidayType>('PRACTICE_CLOSED');
   const [formRecurring, setFormRecurring] = useState(false);
   const [formNotes, setFormNotes] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Fetch holidays
   const { data: holidaysData, isLoading } = useHolidays({
@@ -118,15 +130,63 @@ export function HolidaysSection() {
   const deleteMutation = useDeleteHoliday();
   const importMutation = useImportNationalHolidays();
 
+  // Track which years we've already auto-imported to avoid duplicate imports
+  const autoImportedYearsRef = useRef<Set<number>>(new Set());
+
+  /**
+   * Auto-import national holidays when viewing a year with no national holidays
+   * This ensures national holidays are always pre-populated for any selected year
+   */
+  useEffect(() => {
+    // Skip if still loading, already importing, or already auto-imported this year
+    if (isLoading || importMutation.isPending || autoImportedYearsRef.current.has(selectedYear)) {
+      return;
+    }
+
+    // Check if there are any national holidays for this year
+    const hasNationalHolidays = holidaysData?.holidays?.some(
+      (h) => h.holiday_type === 'NATIONAL'
+    );
+
+    // If no national holidays exist, auto-import them
+    if (holidaysData && !hasNationalHolidays) {
+      autoImportedYearsRef.current.add(selectedYear);
+      importMutation.mutate(
+        { year: selectedYear, override_existing: false },
+        {
+          onSuccess: (result) => {
+            if (result.imported_count > 0) {
+              toast({
+                title: t('settings.holidays.imported'),
+                description: t('settings.holidays.imported_description', {
+                  count: result.imported_count,
+                  skipped: result.skipped_count,
+                }),
+              });
+            }
+          },
+          // Silently handle errors for auto-import
+          onError: () => {
+            // Remove from set so it can retry on next view
+            autoImportedYearsRef.current.delete(selectedYear);
+          },
+        }
+      );
+    }
+  }, [holidaysData, selectedYear, isLoading, importMutation, toast, t]);
+
   /**
    * Reset form
    */
   const resetForm = () => {
     setFormDate(undefined);
+    setFormDateRange(undefined);
+    setFormDateMode('single');
     setFormName('');
     setFormType('PRACTICE_CLOSED');
     setFormRecurring(false);
     setFormNotes('');
+    setIsCalendarOpen(false);
   };
 
   /**
@@ -162,25 +222,79 @@ export function HolidaysSection() {
    * Handle create holiday
    */
   const handleCreate = async () => {
-    if (!formDate || !formName) return;
+    // Validate based on mode
+    if (formDateMode === 'single' && (!formDate || !formName)) return;
+    if (formDateMode === 'range' && (!formDateRange?.from || !formDateRange?.to || !formName)) return;
 
     try {
-      const data: CreateHolidayRequest = {
-        holiday_date: format(formDate, 'yyyy-MM-dd'),
-        name: formName,
-        holiday_type: formType,
-        is_recurring: formRecurring,
-        notes: formNotes || undefined,
-      };
+      if (formDateMode === 'single' && formDate) {
+        // Single date mode - create one holiday
+        const data: CreateHolidayRequest = {
+          holiday_date: format(formDate, 'yyyy-MM-dd'),
+          name: formName,
+          holiday_type: formType,
+          is_recurring: formRecurring,
+          notes: formNotes || undefined,
+        };
+        await createMutation.mutateAsync(data);
+        toast({
+          title: t('settings.holidays.created'),
+          description: t('settings.holidays.created_description'),
+        });
+      } else if (formDateMode === 'range' && formDateRange?.from && formDateRange?.to) {
+        // Date range mode - create one holiday for each day in the range
+        const dates = eachDayOfInterval({
+          start: formDateRange.from,
+          end: formDateRange.to,
+        });
 
-      await createMutation.mutateAsync(data);
+        // Create holidays sequentially, skipping dates that already have holidays
+        let createdCount = 0;
+        let skippedCount = 0;
+        for (const date of dates) {
+          const data: CreateHolidayRequest = {
+            holiday_date: format(date, 'yyyy-MM-dd'),
+            name: formName,
+            holiday_type: formType,
+            is_recurring: false, // Recurring doesn't make sense for ranges
+            notes: formNotes || undefined,
+          };
+          try {
+            await createMutation.mutateAsync(data);
+            createdCount++;
+          } catch (error) {
+            // Check if it's a duplicate date error (409 Conflict)
+            // Axios errors have response.data with error details
+            const axiosError = error as { response?: { status?: number; data?: { error?: string } } };
+            if (axiosError.response?.status === 409 || axiosError.response?.data?.error === 'DUPLICATE_DATE') {
+              skippedCount++;
+            } else {
+              // Re-throw other errors
+              throw error;
+            }
+          }
+        }
+
+        // Show appropriate toast based on results
+        if (createdCount > 0) {
+          toast({
+            title: t('settings.holidays.range_created'),
+            description: skippedCount > 0
+              ? t('settings.holidays.range_created_with_skipped', { count: createdCount, skipped: skippedCount })
+              : t('settings.holidays.range_created_description', { count: createdCount }),
+          });
+        } else if (skippedCount > 0) {
+          // All dates were skipped
+          toast({
+            variant: 'destructive',
+            title: t('settings.holidays.range_all_skipped'),
+            description: t('settings.holidays.range_all_skipped_description'),
+          });
+        }
+      }
+
       setIsAddDialogOpen(false);
       resetForm();
-
-      toast({
-        title: t('settings.holidays.created'),
-        description: t('settings.holidays.created_description'),
-      });
     } catch {
       toast({
         variant: 'destructive',
@@ -276,6 +390,7 @@ export function HolidaysSection() {
   };
 
   const locale = i18n.language === 'it' ? 'it' : 'en';
+  const dateLocale = i18n.language === 'it' ? it : enUS;
 
   if (isLoading) {
     return (
@@ -305,7 +420,11 @@ export function HolidaysSection() {
             <Download className="mr-2 h-4 w-4" />
             {t('settings.holidays.import')}
           </Button>
-          <Button onClick={handleAddClick}>
+          <Button
+            onClick={handleAddClick}
+            disabled={!canAddHolidays}
+            title={!canAddHolidays ? t('settings.holidays.cannot_add_past') : undefined}
+          >
             <Plus className="mr-2 h-4 w-4" />
             {t('settings.holidays.add')}
           </Button>
@@ -356,40 +475,48 @@ export function HolidaysSection() {
                 </TableCell>
               </TableRow>
             ) : (
-              holidaysData?.holidays.map((holiday) => (
-                <TableRow key={holiday.id}>
-                  <TableCell>
-                    {format(new Date(holiday.holiday_date), 'dd MMM yyyy')}
-                  </TableCell>
-                  <TableCell className="font-medium">{holiday.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={getHolidayTypeBadgeVariant(holiday.holiday_type)}>
-                      {getHolidayTypeDisplayName(holiday.holiday_type, locale)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {holiday.is_recurring ? '✓' : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClick(holiday)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(holiday)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              holidaysData?.holidays.map((holiday) => {
+                const holidayDate = startOfDay(new Date(holiday.holiday_date));
+                const isPastHoliday = holidayDate < today;
+                return (
+                  <TableRow key={holiday.id}>
+                    <TableCell>
+                      {format(new Date(holiday.holiday_date), 'EEE, dd MMM yyyy', { locale: dateLocale })}
+                    </TableCell>
+                    <TableCell className="font-medium">{holiday.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={getHolidayTypeBadgeVariant(holiday.holiday_type)}>
+                        {getHolidayTypeDisplayName(holiday.holiday_type, locale)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {holiday.is_recurring ? '✓' : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(holiday)}
+                          disabled={isPastHoliday}
+                          title={isPastHoliday ? t('settings.holidays.cannot_edit_past') : undefined}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(holiday)}
+                          disabled={isPastHoliday}
+                          title={isPastHoliday ? t('settings.holidays.cannot_delete_past') : undefined}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -420,28 +547,105 @@ export function HolidaysSection() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Date Mode Toggle - only show in Add mode, not Edit */}
+            {!isEditDialogOpen && (
+              <div className="space-y-2">
+                <Label>{t('settings.holidays.date_mode')}</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={formDateMode === 'single' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFormDateMode('single');
+                      setFormDateRange(undefined);
+                    }}
+                  >
+                    {t('settings.holidays.single_date')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={formDateMode === 'range' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setFormDateMode('range');
+                      setFormDate(undefined);
+                      setFormRecurring(false); // Recurring not applicable for ranges
+                    }}
+                  >
+                    {t('settings.holidays.date_range')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Date Picker */}
             <div className="space-y-2">
               <Label>{t('settings.holidays.date')}</Label>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formDate ? format(formDate, 'PPP') : t('settings.holidays.select_date')}
+                    {formDateMode === 'single' ? (
+                      formDate ? format(formDate, 'PPP', { locale: dateLocale }) : t('settings.holidays.select_date')
+                    ) : (
+                      formDateRange?.from ? (
+                        formDateRange.to ? (
+                          `${format(formDateRange.from, 'PP', { locale: dateLocale })} - ${format(formDateRange.to, 'PP', { locale: dateLocale })}`
+                        ) : (
+                          `${format(formDateRange.from, 'PP', { locale: dateLocale })} - ${t('settings.holidays.select_end_date')}`
+                        )
+                      ) : (
+                        t('settings.holidays.select_date_range')
+                      )
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formDate}
-                    onSelect={setFormDate}
-                    initialFocus
-                  />
+                  {formDateMode === 'single' || isEditDialogOpen ? (
+                    <Calendar
+                      mode="single"
+                      selected={formDate}
+                      onSelect={(date) => {
+                        setFormDate(date);
+                        // Auto-close calendar when date is selected
+                        if (date) {
+                          setIsCalendarOpen(false);
+                        }
+                      }}
+                      disabled={{ before: today }}
+                      defaultMonth={selectedYear > currentYear ? new Date(selectedYear, 0, 1) : today}
+                      initialFocus
+                    />
+                  ) : (
+                    <Calendar
+                      mode="range"
+                      selected={formDateRange}
+                      onSelect={(range) => {
+                        setFormDateRange(range);
+                        // Auto-close calendar when both dates are selected
+                        if (range?.from && range?.to) {
+                          setIsCalendarOpen(false);
+                        }
+                      }}
+                      disabled={{ before: today }}
+                      defaultMonth={selectedYear > currentYear ? new Date(selectedYear, 0, 1) : today}
+                      numberOfMonths={2}
+                      initialFocus
+                    />
+                  )}
                 </PopoverContent>
               </Popover>
+              {formDateMode === 'range' && formDateRange?.from && formDateRange?.to && (
+                <p className="text-sm text-muted-foreground">
+                  {t('settings.holidays.days_selected', {
+                    count: eachDayOfInterval({ start: formDateRange.from, end: formDateRange.to }).length,
+                  })}
+                </p>
+              )}
             </div>
 
             {/* Name */}
@@ -475,16 +679,18 @@ export function HolidaysSection() {
               </Select>
             </div>
 
-            {/* Recurring */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t('settings.holidays.recurring')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.holidays.recurring_hint')}
-                </p>
+            {/* Recurring - only show for single date mode (not applicable for ranges) */}
+            {(formDateMode === 'single' || isEditDialogOpen) && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>{t('settings.holidays.recurring')}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('settings.holidays.recurring_hint')}
+                  </p>
+                </div>
+                <Switch checked={formRecurring} onCheckedChange={setFormRecurring} />
               </div>
-              <Switch checked={formRecurring} onCheckedChange={setFormRecurring} />
-            </div>
+            )}
 
             {/* Notes */}
             <div className="space-y-2">
@@ -512,10 +718,12 @@ export function HolidaysSection() {
             <Button
               onClick={isEditDialogOpen ? handleUpdate : handleCreate}
               disabled={
-                !formDate ||
                 !formName ||
                 createMutation.isPending ||
-                updateMutation.isPending
+                updateMutation.isPending ||
+                (isEditDialogOpen && !formDate) ||
+                (!isEditDialogOpen && formDateMode === 'single' && !formDate) ||
+                (!isEditDialogOpen && formDateMode === 'range' && (!formDateRange?.from || !formDateRange?.to))
               }
             >
               {createMutation.isPending || updateMutation.isPending

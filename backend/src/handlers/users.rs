@@ -8,11 +8,11 @@ use axum::{
     Extension, Json,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::handlers::auth::AppState;
 use crate::models::user::{User, UserRole};
+use crate::models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext};
 use crate::utils::password::{validate_password, PasswordHasherUtil};
 
 #[cfg(feature = "rbac")]
@@ -115,8 +115,9 @@ fn default_limit() -> i64 {
 /// Create a new user (ADMIN only)
 pub async fn create_user(
     State(state): State<AppState>,
-    // Extension to get current user role (set by auth middleware)
+    Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserResponse>), (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
@@ -185,6 +186,26 @@ pub async fn create_user(
         }
     })?;
 
+    // Create audit log for user creation
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::User,
+            entity_id: Some(user.id.to_string()),
+            changes: Some(serde_json::json!({
+                "username": user.username,
+                "email": user.email,
+                "role": format!("{:?}", user.role),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok((StatusCode::CREATED, Json(UserResponse::from(user))))
 }
 
@@ -222,6 +243,7 @@ pub async fn update_user(
     Path(user_id): Path<Uuid>,
     Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<UserResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
@@ -260,19 +282,19 @@ pub async fn update_user(
         })?;
 
     // Update fields
-    if let Some(email) = req.email {
+    if let Some(email) = req.email.clone() {
         user.email = email;
     }
-    if let Some(first_name) = req.first_name {
+    if let Some(first_name) = req.first_name.clone() {
         user.first_name = first_name;
     }
-    if let Some(last_name) = req.last_name {
+    if let Some(last_name) = req.last_name.clone() {
         user.last_name = last_name;
     }
-    if let Some(phone) = req.phone {
+    if let Some(phone) = req.phone.clone() {
         user.phone = Some(phone);
     }
-    if let Some(role) = req.role {
+    if let Some(role) = req.role.clone() {
         user.role = role;
     }
 
@@ -304,6 +326,28 @@ pub async fn update_user(
         )
     })?;
 
+    // Create audit log for user update
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "email": req.email,
+                "first_name": req.first_name,
+                "last_name": req.last_name,
+                "phone": req.phone,
+                "role": req.role.map(|r| format!("{:?}", r)),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(UserResponse::from(user)))
 }
 
@@ -321,7 +365,7 @@ pub async fn list_users(
     let mut where_clauses = Vec::new();
 
     if let Some(role) = &query.role {
-        where_clauses.push(format!("role = '{:?}'", role));
+        where_clauses.push(format!("role = '{}'", role));
     }
     if let Some(is_active) = query.is_active {
         where_clauses.push(format!("is_active = {}", is_active));
@@ -383,7 +427,9 @@ pub async fn list_users(
 pub async fn deactivate_user(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
+    Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
 ) -> Result<(StatusCode, Json<UserResponse>), (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
     #[cfg(feature = "rbac")]
@@ -406,6 +452,25 @@ pub async fn deactivate_user(
         )
     })?;
 
+    // Create audit log for user deactivation
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "deactivate",
+                "is_active": false,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok((StatusCode::OK, Json(UserResponse::from(user))))
 }
 
@@ -413,7 +478,9 @@ pub async fn deactivate_user(
 pub async fn activate_user(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
+    Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
 ) -> Result<(StatusCode, Json<UserResponse>), (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
     #[cfg(feature = "rbac")]
@@ -436,6 +503,25 @@ pub async fn activate_user(
         )
     })?;
 
+    // Create audit log for user activation
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "activate",
+                "is_active": true,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok((StatusCode::OK, Json(UserResponse::from(user))))
 }
 
@@ -443,7 +529,9 @@ pub async fn activate_user(
 pub async fn assign_role(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
+    Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<AssignRoleRequest>,
 ) -> Result<Json<UserResponse>, (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
@@ -468,6 +556,25 @@ pub async fn assign_role(
         )
     })?;
 
+    // Create audit log for role assignment
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "assign_role",
+                "new_role": format!("{:?}", req.role),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(UserResponse::from(user)))
 }
 
@@ -475,7 +582,9 @@ pub async fn assign_role(
 pub async fn reset_password(
     State(state): State<AppState>,
     Path(user_id): Path<Uuid>,
+    Extension(current_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<ResetPasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     let pool = &state.pool;
@@ -524,5 +633,99 @@ pub async fn reset_password(
         )
     })?;
 
+    // Create audit log for password reset (don't log the actual password!)
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "reset_password",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Reset user MFA (ADMIN only)
+///
+/// Clears MFA secret, backup codes, and disables MFA for the user.
+/// This allows the user to re-enroll in MFA.
+pub async fn reset_mfa(
+    State(state): State<AppState>,
+    Path(user_id): Path<Uuid>,
+    Extension(current_user_id): Extension<Uuid>,
+    Extension(user_role): Extension<UserRole>,
+    Extension(request_ctx): Extension<RequestContext>,
+) -> Result<(StatusCode, Json<UserResponse>), (StatusCode, Json<serde_json::Value>)> {
+    let pool = &state.pool;
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
+    // Verify user exists first
+    let _existing = User::find_by_id(pool, &user_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Database error fetching user for MFA reset: {}", e);
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found"
+                })),
+            )
+        })?;
+
+    // Reset MFA: clear secret, backup codes, and disable MFA
+    let user = sqlx::query_as::<_, User>(
+        r#"
+        UPDATE users
+        SET mfa_secret = NULL, mfa_enabled = false, backup_codes = NULL, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+        "#
+    )
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| {
+        tracing::error!("Database error resetting MFA for user {}: {}", user_id, e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "INTERNAL_ERROR",
+                "message": "Failed to reset MFA"
+            })),
+        )
+    })?;
+
+    // Create audit log for MFA reset
+    let _ = AuditLog::create(
+        pool,
+        CreateAuditLog {
+            user_id: Some(current_user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::User,
+            entity_id: Some(user_id.to_string()),
+            changes: Some(serde_json::json!({
+                "action": "reset_mfa",
+                "mfa_enabled": false,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
+    tracing::info!("MFA reset successfully for user: {}", user_id);
+
+    Ok((StatusCode::OK, Json(UserResponse::from(user))))
 }

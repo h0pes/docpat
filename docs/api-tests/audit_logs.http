@@ -1,0 +1,632 @@
+# Audit Logs API Tests
+# Kulala HTTP Client file for testing Section J from TEST_CASES_MILESTONE13.md
+#
+# Prerequisites:
+# - Backend server running on http://localhost:8000
+# Command: cd backend && RUST_LOG=info cargo run --bin docpat-backend --features "rbac,pdf-export"
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+#
+# Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+#
+# Note: Request variables (e.g., {{REQUEST_NAME.response.body.$.path}}) require
+# the named request to be executed first before referencing its response.
+#
+# ==============================================================================
+# API REFERENCE
+# ==============================================================================
+#
+# Endpoints:
+# GET  /api/v1/audit-logs              - List logs with pagination and filters
+# GET  /api/v1/audit-logs/:id          - Get single log entry
+# GET  /api/v1/audit-logs/statistics   - Get summary statistics
+# GET  /api/v1/audit-logs/filter-options - Get available filter options
+# GET  /api/v1/audit-logs/user/:user_id/activity - Get user activity summary
+# GET  /api/v1/audit-logs/export       - Export logs to CSV/JSON
+#
+# Query Parameters for listing:
+# - user_id: UUID - Filter by user
+# - action: CREATE, READ, UPDATE, DELETE, LOGIN, LOGOUT, SEARCH, EXPORT
+# - entity_type: PATIENT, PATIENT_INSURANCE, VISIT, PRESCRIPTION, DIAGNOSIS,
+#                APPOINTMENT, USER, DOCUMENT, HOLIDAY, WORKING_HOURS,
+#                SYSTEM_SETTING, FILE, TEMPLATE
+# - entity_id: String - Filter by specific entity ID
+# - date_from: YYYY-MM-DD - Start date (inclusive)
+# - date_to: YYYY-MM-DD - End date (inclusive)
+# - ip_address: String - Filter by IP (partial match)
+# - page: Integer (default: 1)
+# - page_size: Integer (default: 50, max: 100)
+# - sort_by: created_at, action, entity_type, user_email (default: created_at)
+# - sort_order: asc, desc (default: desc)
+#
+# Export Parameters:
+# - format: csv, json (default: csv)
+# - limit: Integer (default: 10000, max: 50000)
+# - All filter parameters from list endpoint
+#
+# Authorization: All endpoints require ADMIN role
+#
+# ==============================================================================
+# AUTHENTICATION
+# ==============================================================================
+
+### login_admin
+# @name login_admin
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "{{ADMIN_USERNAME}}",
+  "password": "{{ADMIN_PASSWORD}}"
+}
+
+###
+
+# ==============================================================================
+# TEST CASE J1: AUDIT LOGS API - LIST LOGS
+# ==============================================================================
+# Goal: Verify API returns audit logs list with pagination
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains:
+#   {
+#     "logs": [...],
+#     "total": <number>,
+#     "page": <number>,
+#     "page_size": <number>,
+#     "total_pages": <number>
+#   }
+
+### list_audit_logs
+# @name list_audit_logs
+GET {{BASE_URL}}/api/v1/audit-logs HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List with custom page size
+### list_audit_logs_page_size
+GET {{BASE_URL}}/api/v1/audit-logs?page=1&page_size=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# List with pagination - page 2
+### list_audit_logs_page_2
+GET {{BASE_URL}}/api/v1/audit-logs?page=2&page_size=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH FILTERS - BY ACTION
+# ==============================================================================
+# Filter by different action types
+
+### list_logs_action_login
+GET {{BASE_URL}}/api/v1/audit-logs?action=LOGIN HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_logout
+GET {{BASE_URL}}/api/v1/audit-logs?action=LOGOUT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_create
+GET {{BASE_URL}}/api/v1/audit-logs?action=CREATE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_update
+GET {{BASE_URL}}/api/v1/audit-logs?action=UPDATE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_delete
+GET {{BASE_URL}}/api/v1/audit-logs?action=DELETE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_read
+GET {{BASE_URL}}/api/v1/audit-logs?action=READ HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_search
+GET {{BASE_URL}}/api/v1/audit-logs?action=SEARCH HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_action_export
+GET {{BASE_URL}}/api/v1/audit-logs?action=EXPORT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH FILTERS - BY ENTITY TYPE
+# ==============================================================================
+# Filter by different entity types
+
+### list_logs_entity_patient
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=PATIENT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_visit
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=VISIT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_prescription
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=PRESCRIPTION HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_diagnosis
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=DIAGNOSIS HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_appointment
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=APPOINTMENT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_user
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=USER HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_document
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=DOCUMENT HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_holiday
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=HOLIDAY HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_working_hours
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=WORKING_HOURS HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_system_setting
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=SYSTEM_SETTING HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_file
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=FILE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_entity_template
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=TEMPLATE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH FILTERS - BY DATE RANGE
+# ==============================================================================
+# Filter logs by date range
+
+### list_logs_today
+GET {{BASE_URL}}/api/v1/audit-logs?date_from=2025-12-20&date_to=2025-12-20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_this_week
+GET {{BASE_URL}}/api/v1/audit-logs?date_from=2025-12-16&date_to=2025-12-22 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_this_month
+GET {{BASE_URL}}/api/v1/audit-logs?date_from=2025-12-01&date_to=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH FILTERS - COMBINED FILTERS
+# ==============================================================================
+# Multiple filters at once
+
+### list_logs_combined_login_today
+GET {{BASE_URL}}/api/v1/audit-logs?action=LOGIN&date_from=2025-12-20&date_to=2025-12-20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_combined_patient_updates
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=PATIENT&action=UPDATE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_combined_user_creates
+GET {{BASE_URL}}/api/v1/audit-logs?entity_type=USER&action=CREATE HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH SORTING
+# ==============================================================================
+# Different sort options
+
+### list_logs_sort_by_action_asc
+GET {{BASE_URL}}/api/v1/audit-logs?sort_by=action&sort_order=asc HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_sort_by_entity_type_desc
+GET {{BASE_URL}}/api/v1/audit-logs?sort_by=entity_type&sort_order=desc HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_sort_by_user_email
+GET {{BASE_URL}}/api/v1/audit-logs?sort_by=user_email&sort_order=asc HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_sort_by_created_at_oldest
+GET {{BASE_URL}}/api/v1/audit-logs?sort_by=created_at&sort_order=asc HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH USER ID FILTER
+# ==============================================================================
+# Filter by specific user ID
+# Note: Replace the UUID with an actual user ID from your system
+
+### list_logs_by_user
+# Use the admin user ID from list_users response if available
+GET {{BASE_URL}}/api/v1/audit-logs?user_id=0bd21b8d-b27c-452e-a4a8-1e2f020d880a HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# LIST WITH IP ADDRESS FILTER
+# ==============================================================================
+# Filter by IP address (partial match)
+
+### list_logs_by_ip_localhost
+GET {{BASE_URL}}/api/v1/audit-logs?ip_address=127.0.0.1 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+### list_logs_by_ip_partial
+GET {{BASE_URL}}/api/v1/audit-logs?ip_address=127 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# GET SINGLE AUDIT LOG
+# ==============================================================================
+# Get a specific audit log entry by ID
+# Note: Uses the first log ID from the list response
+
+### get_audit_log
+GET {{BASE_URL}}/api/v1/audit-logs/{{list_audit_logs.response.body.$.logs[0].id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Test 404 for non-existent log
+### get_audit_log_not_found
+GET {{BASE_URL}}/api/v1/audit-logs/999999999 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE J2: AUDIT LOGS API - GET STATISTICS
+# ==============================================================================
+# Goal: Verify statistics API works
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains:
+#   {
+#     "total_logs": <number>,
+#     "logs_today": <number>,
+#     "logs_this_week": <number>,
+#     "logs_this_month": <number>,
+#     "actions_breakdown": [...],
+#     "entity_types_breakdown": [...],
+#     "top_users": [...]
+#   }
+
+### get_statistics
+# @name get_statistics
+GET {{BASE_URL}}/api/v1/audit-logs/statistics HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# GET FILTER OPTIONS
+# ==============================================================================
+# Get available filter options (action types and entity types)
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains:
+#   {
+#     "actions": ["CREATE", "READ", "UPDATE", "DELETE", "LOGIN", "LOGOUT", "SEARCH", "EXPORT"],
+#     "entity_types": ["PATIENT", "PATIENT_INSURANCE", "VISIT", ...]
+#   }
+
+### get_filter_options
+GET {{BASE_URL}}/api/v1/audit-logs/filter-options HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# GET USER ACTIVITY SUMMARY
+# ==============================================================================
+# Get activity summary for a specific user
+# Note: Replace UUID with actual user ID
+#
+# Expected Results:
+# - Response: 200 OK
+# - Response body contains:
+#   {
+#     "user_id": "...",
+#     "user_email": "...",
+#     "total_actions": <number>,
+#     "first_activity": "...",
+#     "last_activity": "...",
+#     "actions_breakdown": [...],
+#     "recent_logs": [...]
+#   }
+
+### get_user_activity
+GET {{BASE_URL}}/api/v1/audit-logs/user/0bd21b8d-b27c-452e-a4a8-1e2f020d880a/activity HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Test 404 for user with no activity
+### get_user_activity_not_found
+GET {{BASE_URL}}/api/v1/audit-logs/user/00000000-0000-0000-0000-000000000000/activity HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE J3: AUDIT LOGS API - EXPORT
+# ==============================================================================
+# Goal: Verify export API works
+#
+# Expected Results:
+# - Response: 200 OK
+# - Content-Type: text/csv or application/json
+# - Content-Disposition: attachment
+
+# Export as CSV (default format)
+### export_csv
+GET {{BASE_URL}}/api/v1/audit-logs/export HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export as CSV with explicit format
+### export_csv_explicit
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=csv HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export as JSON
+### export_json
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=json HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export with custom limit
+### export_csv_limited
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=csv&limit=100 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export with filters - logins only
+### export_csv_logins
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=csv&action=LOGIN HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export with filters - patient actions this month
+### export_csv_patients_month
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=csv&entity_type=PATIENT&date_from=2025-12-01&date_to=2025-12-31 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# Export JSON with filters - all updates
+### export_json_updates
+GET {{BASE_URL}}/api/v1/audit-logs/export?format=json&action=UPDATE&limit=500 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# TEST CASE J4: AUTHORIZATION - NON-ADMIN ACCESS DENIED
+# ==============================================================================
+# Goal: Verify non-admin cannot access audit logs API
+#
+# Expected Results:
+# - All audit log endpoints return 403 Forbidden
+# - Error message indicates insufficient permissions
+
+### login_doctor
+# @name login_doctor
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "{{DOCTOR_USERNAME}}",
+  "password": "{{DOCTOR_PASSWORD}}"
+}
+
+###
+
+# FORBIDDEN: Doctor cannot list audit logs
+### doctor_list_audit_logs_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# FORBIDDEN: Doctor cannot get single audit log
+### doctor_get_audit_log_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs/1 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# FORBIDDEN: Doctor cannot get statistics
+### doctor_get_statistics_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs/statistics HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# FORBIDDEN: Doctor cannot get filter options
+### doctor_get_filter_options_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs/filter-options HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# FORBIDDEN: Doctor cannot get user activity
+### doctor_get_user_activity_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs/user/0bd21b8d-b27c-452e-a4a8-1e2f020d880a/activity HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# FORBIDDEN: Doctor cannot export audit logs
+### doctor_export_forbidden
+GET {{BASE_URL}}/api/v1/audit-logs/export HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+###
+
+# ==============================================================================
+# UNAUTHORIZED - NO TOKEN
+# ==============================================================================
+# Verify 401 when no token provided
+
+### no_auth_list
+GET {{BASE_URL}}/api/v1/audit-logs HTTP/1.1
+Content-Type: application/json
+
+###
+
+### no_auth_statistics
+GET {{BASE_URL}}/api/v1/audit-logs/statistics HTTP/1.1
+Content-Type: application/json
+
+###
+
+### no_auth_export
+GET {{BASE_URL}}/api/v1/audit-logs/export HTTP/1.1
+Content-Type: application/json
+
+###

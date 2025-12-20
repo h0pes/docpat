@@ -112,6 +112,15 @@ export const patientsApi = {
   },
 
   /**
+   * Reactivate an inactive patient
+   *
+   * @param id - Patient UUID
+   */
+  reactivate: async (id: string): Promise<void> => {
+    await apiClient.post(`/api/v1/patients/${id}/reactivate`);
+  },
+
+  /**
    * Get patient statistics
    *
    * @returns Patient statistics

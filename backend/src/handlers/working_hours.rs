@@ -18,7 +18,7 @@ use crate::models::working_hours::{
     OverridesFilter, UpdateAllWorkingHoursRequest, UpdateDayWorkingHoursRequest,
     UpdateOverrideRequest, WeeklyScheduleResponse, WorkingHoursOverrideResponse,
 };
-use crate::models::UserRole;
+use crate::models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext, UserRole};
 use crate::services::WorkingHoursService;
 
 #[cfg(feature = "rbac")]
@@ -72,6 +72,7 @@ pub async fn update_day_working_hours(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(day): Path<i16>,
     Json(mut request): Json<UpdateDayWorkingHoursRequest>,
 ) -> Result<Json<crate::models::working_hours::DefaultWorkingHoursResponse>, (StatusCode, Json<serde_json::Value>)>
@@ -94,7 +95,7 @@ pub async fn update_day_working_hours(
     let service = WorkingHoursService::new(state.pool.clone());
 
     let result = service
-        .update_day_working_hours(request, user_id)
+        .update_day_working_hours(request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update working hours for day {}: {}", day, e);
@@ -107,6 +108,27 @@ pub async fn update_day_working_hours(
                 )
             }
         })?;
+
+    // Create audit log for working hours update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::SystemSetting,
+            entity_id: Some(format!("working_hours_day_{}", day)),
+            changes: Some(serde_json::json!({
+                "day_of_week": day,
+                "is_working_day": request.is_working_day,
+                "start_time": request.start_time,
+                "end_time": request.end_time,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(result))
 }
@@ -122,6 +144,7 @@ pub async fn update_all_working_hours(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(request): Json<UpdateAllWorkingHoursRequest>,
 ) -> Result<Json<WeeklyScheduleResponse>, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can update working hours
@@ -131,7 +154,7 @@ pub async fn update_all_working_hours(
     let service = WorkingHoursService::new(state.pool.clone());
 
     let result = service
-        .update_all_working_hours(request, user_id)
+        .update_all_working_hours(request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to bulk update working hours: {}", e);
@@ -144,6 +167,25 @@ pub async fn update_all_working_hours(
                 )
             }
         })?;
+
+    // Create audit log for bulk working hours update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::SystemSetting,
+            entity_id: Some("working_hours_all".to_string()),
+            changes: Some(serde_json::json!({
+                "action": "bulk_update_working_hours",
+                "days_updated": request.days.len(),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(Json(result))
 }
@@ -225,6 +267,7 @@ pub async fn create_override(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(request): Json<CreateOverrideRequest>,
 ) -> Result<(StatusCode, Json<WorkingHoursOverrideResponse>), (StatusCode, Json<serde_json::Value>)>
 {
@@ -235,7 +278,7 @@ pub async fn create_override(
     let service = WorkingHoursService::new(state.pool.clone());
 
     let result = service
-        .create_override(request, user_id)
+        .create_override(request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create override: {}", e);
@@ -254,6 +297,26 @@ pub async fn create_override(
             }
         })?;
 
+    // Create audit log for override creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::SystemSetting,
+            entity_id: Some(result.id.to_string()),
+            changes: Some(serde_json::json!({
+                "type": "working_hours_override",
+                "override_date": request.override_date.to_string(),
+                "override_type": format!("{:?}", request.override_type),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok((StatusCode::CREATED, Json(result)))
 }
 
@@ -271,6 +334,7 @@ pub async fn update_override(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateOverrideRequest>,
 ) -> Result<Json<WorkingHoursOverrideResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -281,7 +345,7 @@ pub async fn update_override(
     let service = WorkingHoursService::new(state.pool.clone());
 
     let result = service
-        .update_override(id, request, user_id)
+        .update_override(id, request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update override {}: {}", id, e);
@@ -300,6 +364,25 @@ pub async fn update_override(
             }
         })?;
 
+    // Create audit log for override update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::SystemSetting,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "type": "working_hours_override",
+                "changes": serde_json::to_value(&request).unwrap_or_default(),
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(result))
 }
 
@@ -314,6 +397,8 @@ pub async fn update_override(
 pub async fn delete_override(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can delete overrides
@@ -336,6 +421,24 @@ pub async fn delete_override(
             )
         }
     })?;
+
+    // Create audit log for override deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::SystemSetting,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::json!({
+                "type": "working_hours_override",
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }

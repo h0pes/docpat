@@ -75,20 +75,24 @@ pub enum EntityType {
     PatientInsurance,
     Visit,
     Prescription,
+    Diagnosis,
     Appointment,
     User,
     Document,
     Holiday,
     WorkingHours,
     SystemSetting,
+    File,
+    Template,
 }
 
 impl EntityType {
     /// Returns all possible entity type values
     pub fn all() -> Vec<&'static str> {
         vec![
-            "PATIENT", "PATIENT_INSURANCE", "VISIT", "PRESCRIPTION",
-            "APPOINTMENT", "USER", "DOCUMENT", "HOLIDAY", "WORKING_HOURS", "SYSTEM_SETTING"
+            "PATIENT", "PATIENT_INSURANCE", "VISIT", "PRESCRIPTION", "DIAGNOSIS",
+            "APPOINTMENT", "USER", "DOCUMENT", "HOLIDAY", "WORKING_HOURS", "SYSTEM_SETTING",
+            "FILE", "TEMPLATE"
         ]
     }
 
@@ -99,12 +103,15 @@ impl EntityType {
             "PATIENT_INSURANCE" => Some(Self::PatientInsurance),
             "VISIT" => Some(Self::Visit),
             "PRESCRIPTION" => Some(Self::Prescription),
+            "DIAGNOSIS" => Some(Self::Diagnosis),
             "APPOINTMENT" => Some(Self::Appointment),
             "USER" => Some(Self::User),
             "DOCUMENT" => Some(Self::Document),
             "HOLIDAY" => Some(Self::Holiday),
             "WORKING_HOURS" => Some(Self::WorkingHours),
             "SYSTEM_SETTING" => Some(Self::SystemSetting),
+            "FILE" => Some(Self::File),
+            "TEMPLATE" => Some(Self::Template),
             _ => None,
         }
     }
@@ -117,12 +124,15 @@ impl std::fmt::Display for EntityType {
             Self::PatientInsurance => write!(f, "PATIENT_INSURANCE"),
             Self::Visit => write!(f, "VISIT"),
             Self::Prescription => write!(f, "PRESCRIPTION"),
+            Self::Diagnosis => write!(f, "DIAGNOSIS"),
             Self::Appointment => write!(f, "APPOINTMENT"),
             Self::User => write!(f, "USER"),
             Self::Document => write!(f, "DOCUMENT"),
             Self::Holiday => write!(f, "HOLIDAY"),
             Self::WorkingHours => write!(f, "WORKING_HOURS"),
             Self::SystemSetting => write!(f, "SYSTEM_SETTING"),
+            Self::File => write!(f, "FILE"),
+            Self::Template => write!(f, "TEMPLATE"),
         }
     }
 }
@@ -230,6 +240,20 @@ pub struct AuditLogsFilter {
     /// Number of items per page (max 100)
     #[serde(default = "default_page_size")]
     pub page_size: i64,
+    /// Sort by column (created_at, action, entity_type, user_email)
+    #[serde(default = "default_sort_by")]
+    pub sort_by: String,
+    /// Sort order (asc or desc)
+    #[serde(default = "default_sort_order")]
+    pub sort_order: String,
+}
+
+fn default_sort_by() -> String {
+    "created_at".to_string()
+}
+
+fn default_sort_order() -> String {
+    "desc".to_string()
 }
 
 fn default_page() -> i64 {
@@ -241,6 +265,14 @@ fn default_page_size() -> i64 {
 }
 
 impl AuditLogsFilter {
+    /// Valid columns for sorting
+    const VALID_SORT_COLUMNS: &'static [&'static str] = &[
+        "created_at",
+        "action",
+        "entity_type",
+        "user_email",
+    ];
+
     /// Validate and sanitize filter parameters
     pub fn validate(&mut self) {
         if self.page < 1 {
@@ -252,6 +284,28 @@ impl AuditLogsFilter {
         if self.page_size > 100 {
             self.page_size = 100;
         }
+        // Validate sort_by (prevent SQL injection)
+        if !Self::VALID_SORT_COLUMNS.contains(&self.sort_by.as_str()) {
+            self.sort_by = "created_at".to_string();
+        }
+        // Validate sort_order
+        if self.sort_order != "asc" && self.sort_order != "desc" {
+            self.sort_order = "desc".to_string();
+        }
+    }
+
+    /// Get the ORDER BY clause for the query
+    pub fn order_by_clause(&self) -> String {
+        let order = if self.sort_order == "asc" { "ASC" } else { "DESC" };
+        // Map frontend column names to database column names
+        let column = match self.sort_by.as_str() {
+            "user_email" => "u.email".to_string(),
+            "created_at" => "al.created_at".to_string(),
+            "action" => "al.action".to_string(),
+            "entity_type" => "al.entity_type".to_string(),
+            _ => "al.created_at".to_string(),
+        };
+        format!("{} {} NULLS LAST", column, order)
     }
 
     /// Calculate offset for pagination

@@ -10,7 +10,7 @@
  */
 
 use crate::models::{
-    AuditAction, AuditLog, CreateAuditLog, EntityType,
+    AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext,
 };
 use crate::models::system_setting::{
     BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse, SettingChangeAudit,
@@ -258,6 +258,7 @@ impl SettingsService {
         key: &str,
         request: UpdateSettingRequest,
         updated_by: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<SystemSettingResponse> {
         // First, get the current setting to validate and audit
         let current_setting = sqlx::query_as!(
@@ -323,9 +324,9 @@ impl SettingsService {
                 entity_type: EntityType::User, // Using User as settings entity placeholder
                 entity_id: Some(key.to_string()),
                 changes: Some(audit_changes),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;
@@ -340,6 +341,7 @@ impl SettingsService {
         &self,
         request: BulkUpdateSettingsRequest,
         updated_by: Uuid,
+        request_ctx: Option<&RequestContext>,
     ) -> Result<Vec<SystemSettingResponse>> {
         let mut results = Vec::new();
         let mut errors = Vec::new();
@@ -352,6 +354,7 @@ impl SettingsService {
                         value: setting_update.value,
                     },
                     updated_by,
+                    request_ctx,
                 )
                 .await
             {
@@ -371,7 +374,12 @@ impl SettingsService {
     }
 
     /// Reset a setting to its default value
-    pub async fn reset_setting(&self, key: &str, updated_by: Uuid) -> Result<SystemSettingResponse> {
+    pub async fn reset_setting(
+        &self,
+        key: &str,
+        updated_by: Uuid,
+        request_ctx: Option<&RequestContext>,
+    ) -> Result<SystemSettingResponse> {
         // Get the current setting with its default value
         let current_setting = sqlx::query_as!(
             SystemSetting,
@@ -440,9 +448,9 @@ impl SettingsService {
                 entity_type: EntityType::User,
                 entity_id: Some(key.to_string()),
                 changes: Some(audit_changes),
-                ip_address: None,
-                user_agent: None,
-                request_id: None,
+                ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                request_id: request_ctx.map(|c| c.request_id),
             },
         )
         .await;

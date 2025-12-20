@@ -21,6 +21,9 @@ pub mod rate_limit;
 // Audit logging middleware
 pub mod audit;
 
+// Request context extraction middleware
+pub mod request_context;
+
 // CORS configuration
 pub mod cors;
 

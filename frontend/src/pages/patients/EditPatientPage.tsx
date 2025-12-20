@@ -192,8 +192,7 @@ export function EditPatientPage() {
 
       {/* Patient form with pre-populated data */}
       <PatientForm
-        mode="edit"
-        initialData={patient}
+        patient={patient}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isSubmitting={updateMutation.isPending}

@@ -10,6 +10,7 @@ use axum::{
     http::StatusCode,
     Extension, Json,
 };
+use chrono::Utc;
 use uuid::Uuid;
 
 use crate::handlers::auth::AppState;
@@ -18,7 +19,7 @@ use crate::models::holiday::{
     ImportHolidaysResponse, ImportNationalHolidaysRequest, ListHolidaysResponse,
     UpdateHolidayRequest,
 };
-use crate::models::UserRole;
+use crate::models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext, UserRole};
 use crate::services::HolidayService;
 
 #[cfg(feature = "rbac")]
@@ -110,6 +111,7 @@ pub async fn create_holiday(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(request): Json<CreateHolidayRequest>,
 ) -> Result<(StatusCode, Json<HolidayResponse>), (StatusCode, Json<serde_json::Value>)> {
     // Only admins can create holidays
@@ -125,10 +127,22 @@ pub async fn create_holiday(
         )
     })?;
 
+    // Validate that holiday date is not in the past
+    let today = Utc::now().date_naive();
+    if request.holiday_date < today {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            error_response(
+                "PAST_DATE",
+                "Holiday date cannot be in the past. Please select today or a future date.",
+            ),
+        ));
+    }
+
     let service = HolidayService::new(state.pool.clone());
 
     let result = service
-        .create_holiday(request, user_id)
+        .create_holiday(request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to create holiday: {}", e);
@@ -144,6 +158,27 @@ pub async fn create_holiday(
                 )
             }
         })?;
+
+    // Create audit log for holiday creation
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Holiday,
+            entity_id: Some(result.id.to_string()),
+            changes: Some(serde_json::json!({
+                "name": request.name,
+                "holiday_date": request.holiday_date.to_string(),
+                "holiday_type": format!("{:?}", request.holiday_type),
+                "is_recurring": request.is_recurring,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(result)))
 }
@@ -162,6 +197,7 @@ pub async fn update_holiday(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
     Json(request): Json<UpdateHolidayRequest>,
 ) -> Result<Json<HolidayResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -178,10 +214,24 @@ pub async fn update_holiday(
         )
     })?;
 
+    // Validate that new holiday date (if provided) is not in the past
+    if let Some(new_date) = request.holiday_date {
+        let today = Utc::now().date_naive();
+        if new_date < today {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                error_response(
+                    "PAST_DATE",
+                    "Holiday date cannot be in the past. Please select today or a future date.",
+                ),
+            ));
+        }
+    }
+
     let service = HolidayService::new(state.pool.clone());
 
     let result = service
-        .update_holiday(id, request, user_id)
+        .update_holiday(id, request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to update holiday {}: {}", id, e);
@@ -203,6 +253,22 @@ pub async fn update_holiday(
             }
         })?;
 
+    // Create audit log for holiday update
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Update,
+            entity_type: EntityType::Holiday,
+            entity_id: Some(id.to_string()),
+            changes: Some(serde_json::to_value(&request).unwrap_or_default()),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
+
     Ok(Json(result))
 }
 
@@ -217,6 +283,8 @@ pub async fn update_holiday(
 pub async fn delete_holiday(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
+    Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, Json<serde_json::Value>)> {
     // Only admins can delete holidays
@@ -239,6 +307,22 @@ pub async fn delete_holiday(
             )
         }
     })?;
+
+    // Create audit log for holiday deletion
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Delete,
+            entity_type: EntityType::Holiday,
+            entity_id: Some(id.to_string()),
+            changes: None,
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -297,6 +381,7 @@ pub async fn import_national_holidays(
     State(state): State<AppState>,
     Extension(user_role): Extension<UserRole>,
     Extension(user_id): Extension<Uuid>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(request): Json<ImportNationalHolidaysRequest>,
 ) -> Result<(StatusCode, Json<ImportHolidaysResponse>), (StatusCode, Json<serde_json::Value>)> {
     // Only admins can import holidays
@@ -314,7 +399,7 @@ pub async fn import_national_holidays(
     let service = HolidayService::new(state.pool.clone());
 
     let result = service
-        .import_national_holidays(request, user_id)
+        .import_national_holidays(request.clone(), user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to import national holidays: {}", e);
@@ -323,6 +408,28 @@ pub async fn import_national_holidays(
                 error_response("INTERNAL_ERROR", "Failed to import national holidays"),
             )
         })?;
+
+    // Create audit log for holiday import
+    let _ = AuditLog::create(
+        &state.pool,
+        CreateAuditLog {
+            user_id: Some(user_id),
+            action: AuditAction::Create,
+            entity_type: EntityType::Holiday,
+            entity_id: None,
+            changes: Some(serde_json::json!({
+                "action": "import_national_holidays",
+                "year": request.year,
+                "override_existing": request.override_existing,
+                "imported_count": result.imported_count,
+                "skipped_count": result.skipped_count,
+            })),
+            ip_address: request_ctx.ip_address.clone(),
+            user_agent: request_ctx.user_agent.clone(),
+            request_id: Some(request_ctx.request_id),
+        },
+    )
+    .await;
 
     Ok((StatusCode::CREATED, Json(result)))
 }

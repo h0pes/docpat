@@ -26,16 +26,25 @@
     "loading": "Loading...",
     "noResults": "No results found",
     "comingSoon": "Coming soon",
+    "actionsTitle": "Actions",
     "actions": {
       "retry": "Retry",
       "backToList": "Back to List",
       "deleting": "Deleting...",
+      "reactivating": "Reactivating...",
       "cancel": "Cancel",
       "delete": "Delete",
       "viewAll": "View All"
     },
+    "metadata": "Metadata",
+    "created_at": "Created At",
+    "updated_at": "Updated At",
     "required": "Required",
     "optional": "Optional",
+    "yes": "Yes",
+    "no": "No",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
     "copied": "Copied",
     "copy": "Copy",
     "download": "Download",
@@ -167,7 +176,10 @@
       "backupCodesDescription": "Save these backup codes in a safe place. Each code can be used once if you lose access to your authenticator device.",
       "backupCodesCopied": "Backup codes copied to clipboard",
       "backupCodesDownloaded": "Backup codes downloaded",
-      "secretCopied": "Secret key copied to clipboard"
+      "secretCopied": "Secret key copied to clipboard",
+      "setupRequired": "MFA Setup Required",
+      "setupRequiredDescription": "Your organization requires all users to set up two-factor authentication. Please complete the setup to continue.",
+      "cannotSkipSetup": "You cannot skip MFA setup. Please complete the setup to access the application."
     },
     "validation": {
       "usernameRequired": "Username is required",
@@ -216,6 +228,7 @@
     "title": "Patients",
     "subtitle": "Manage patient records",
     "new_patient": "New Patient",
+    "view": "View Patient",
     "list": {
       "title": "Patients",
       "subtitle": "View and manage all patient records"
@@ -241,11 +254,18 @@
       "deleteSuccess": "Patient Deleted",
       "deleteSuccessDescription": "Patient record has been successfully deleted",
       "deleteError": "Failed to Delete Patient",
-      "loadError": "Failed to Load Patient"
+      "loadError": "Failed to Load Patient",
+      "reactivateSuccess": "Patient Reactivated",
+      "reactivateSuccessDescription": "Patient record has been successfully reactivated",
+      "reactivateError": "Failed to Reactivate Patient"
     },
     "delete": {
       "confirmTitle": "Confirm Deletion",
       "confirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    },
+    "reactivate": {
+      "confirmTitle": "Confirm Reactivation",
+      "confirmMessage": "Are you sure you want to reactivate {{name}}? This will restore the patient to active status."
     },
     "add_first_patient": "Add Your First Patient",
     "total_count": "{{count}} patients",
@@ -349,6 +369,7 @@
       "delete": "Delete Patient",
       "deactivate": "Deactivate Patient",
       "activate": "Activate Patient",
+      "reactivate": "Reactivate Patient",
       "delete_confirm": "Are you sure you want to delete this patient?",
       "delete_warning": "This action cannot be undone.",
       "save_success": "Patient saved successfully",
@@ -1637,7 +1658,14 @@
     "total_count": "{{count}} users",
     "search_placeholder": "Search by name, username, or email...",
     "filters": "Filters",
+    "advanced_filters": "Advanced Filters",
+    "clear_all": "Clear All",
     "clear_filters": "Clear Filters",
+    "role_label": "Role",
+    "role_all": "All Roles",
+    "status_label": "Status",
+    "status_all": "All Statuses",
+    "page": "page",
     "showing_results": "Showing {{from}} to {{to}} of {{total}} results",
     "page_of": "Page {{current}} of {{total}}",
     "previous": "Previous",
@@ -1770,6 +1798,8 @@
       "nameDesc": "Name (Z-A)",
       "usernameAsc": "Username (A-Z)",
       "usernameDesc": "Username (Z-A)",
+      "roleAsc": "Role (A-Z)",
+      "roleDesc": "Role (Z-A)",
       "createdAsc": "Oldest First",
       "createdDesc": "Newest First"
     }
@@ -1799,6 +1829,7 @@
       "name_hint": "The name displayed throughout the application",
       "address": "Address",
       "address_placeholder": "Enter your practice address",
+      "address_hint": "Full address including street, city, and postal code",
       "city": "City",
       "city_placeholder": "Enter city",
       "phone": "Phone",
@@ -1809,10 +1840,18 @@
       "website_placeholder": "https://www.example.com",
       "tax_id": "Tax ID / VAT Number",
       "tax_id_placeholder": "Enter tax identification number",
+      "tax_id_hint": "Required for invoicing and official documents",
+      "vat_number": "VAT Number",
+      "vat_number_placeholder": "Enter VAT identification number",
+      "vat_number_hint": "Required for invoicing and official documents",
       "logo": "Logo",
       "logo_hint": "Upload your practice logo (PNG, JPG, max 2MB)",
       "upload_logo": "Upload Logo",
       "remove_logo": "Remove Logo",
+      "logo_saved": "Logo has been saved successfully",
+      "logo_removed": "Logo has been removed",
+      "logo_invalid_type": "Please select a valid image file",
+      "logo_too_large": "Image must be smaller than 2MB",
       "contact_details": "Contact Details"
     },
     "appointment": {
@@ -1889,53 +1928,61 @@
     "holidays": {
       "title": "Holidays & Closures",
       "description": "Manage holidays, closures, and special schedules",
-      "year_label": "Year",
-      "add_holiday": "Add Holiday",
-      "import_national": "Import National Holidays",
-      "import_italian": "Import Italian Holidays",
-      "import_success": "Holidays Imported",
-      "import_success_description": "{{count}} national holidays have been imported",
-      "import_error": "Failed to import holidays",
-      "no_holidays": "No Holidays",
-      "no_holidays_description": "No holidays have been configured for this year",
-      "form": {
-        "title_create": "Add Holiday",
-        "title_edit": "Edit Holiday",
-        "name": "Holiday Name",
-        "name_placeholder": "e.g., Christmas Day",
-        "date": "Date",
-        "type": "Type",
-        "description": "Description",
-        "description_placeholder": "Additional details about this holiday...",
-        "is_recurring": "Recurring Annual",
-        "is_recurring_hint": "Automatically repeat this holiday every year"
-      },
-      "types": {
-        "national": "National Holiday",
-        "practice_closed": "Practice Closed",
-        "vacation": "Vacation"
-      },
-      "delete": {
-        "title": "Delete Holiday",
-        "description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
-      },
-      "messages": {
-        "create_success": "Holiday Added",
-        "create_success_description": "The holiday has been added successfully",
-        "create_error": "Failed to add holiday",
-        "update_success": "Holiday Updated",
-        "update_success_description": "The holiday has been updated successfully",
-        "update_error": "Failed to update holiday",
-        "delete_success": "Holiday Deleted",
-        "delete_success_description": "The holiday has been deleted successfully",
-        "delete_error": "Failed to delete holiday"
-      }
+      "year": "Year",
+      "add": "Add Holiday",
+      "cannot_add_past": "Cannot add holidays to past years",
+      "cannot_edit_past": "Cannot edit past holidays",
+      "cannot_delete_past": "Cannot delete past holidays",
+      "import": "Import Holidays",
+      "date": "Date",
+      "date_mode": "Date Selection",
+      "single_date": "Single Date",
+      "date_range": "Date Range",
+      "select_date": "Select a date",
+      "select_date_range": "Select date range",
+      "select_end_date": "Select end date",
+      "days_selected": "{{count}} day(s) selected",
+      "name": "Name",
+      "name_placeholder": "e.g., Christmas Day",
+      "type": "Type",
+      "recurring": "Recurring",
+      "recurring_hint": "Automatically repeat this holiday every year",
+      "notes": "Notes",
+      "notes_placeholder": "Additional details about this holiday...",
+      "empty": "No holidays configured for this year",
+      "add_title": "Add Holiday",
+      "edit_title": "Edit Holiday",
+      "form_description": "Configure the holiday details",
+      "delete_title": "Delete Holiday",
+      "delete_description": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+      "import_title": "Import National Holidays",
+      "import_description": "Import Italian national holidays for a specific year",
+      "import_info": "Select a year to import all Italian national holidays. Existing holidays will not be overwritten.",
+      "import_year": "Import {{year}}",
+      "created": "Holiday Added",
+      "created_description": "The holiday has been added successfully",
+      "create_error": "Failed to add holiday",
+      "range_created": "Holidays Added",
+      "range_created_description": "{{count}} holidays have been added for the date range",
+      "range_created_with_skipped": "{{count}} holidays added, {{skipped}} skipped (already exist)",
+      "range_all_skipped": "No Holidays Added",
+      "range_all_skipped_description": "All selected dates already have holidays configured",
+      "updated": "Holiday Updated",
+      "updated_description": "The holiday has been updated successfully",
+      "update_error": "Failed to update holiday",
+      "deleted": "Holiday Deleted",
+      "deleted_description": "The holiday has been deleted successfully",
+      "delete_error": "Failed to delete holiday",
+      "imported": "Holidays Imported",
+      "imported_description": "{{count}} holidays imported, {{skipped}} skipped",
+      "import_error": "Failed to import holidays"
     }
   },
   "audit": {
     "page": {
       "title": "Audit Logs",
-      "description": "View and export system activity logs for compliance and security monitoring"
+      "description": "View and export system activity logs for compliance and security monitoring",
+      "export": "Export"
     },
     "tabs": {
       "logs": "Logs",
@@ -1950,10 +1997,17 @@
         "last_7_days": "Last 7 days",
         "last_30_days": "Last 30 days",
         "this_month": "This month",
-        "custom": "Custom"
+        "custom": "Custom",
+        "last7days": "Last 7 days",
+        "last30days": "Last 30 days",
+        "thisMonth": "This month"
       },
       "from_date": "From",
       "to_date": "To",
+      "date_from": "From",
+      "date_to": "To",
+      "select_date": "Select date",
+      "clear": "Clear",
       "user": "User",
       "all_users": "All Users",
       "action": "Action",
@@ -1964,6 +2018,7 @@
       "entity_id_placeholder": "Enter entity UUID...",
       "ip_address": "IP Address",
       "ip_placeholder": "e.g., 192.168.1.1",
+      "ip_address_placeholder": "e.g., 192.168.1.1",
       "apply": "Apply Filters",
       "reset": "Reset"
     },
@@ -1972,15 +2027,21 @@
       "user": "User",
       "action": "Action",
       "entity": "Entity",
+      "entity_type": "Entity Type",
+      "entity_id": "Entity ID",
       "ip_address": "IP Address",
       "details": "Details",
+      "actions": "Actions",
       "view_details": "View Details",
       "no_logs": "No Audit Logs Found",
+      "no_logs_hint": "No audit logs match your current filters",
       "no_logs_description": "No audit logs match your current filters",
       "loading": "Loading audit logs...",
       "error": "Failed to load audit logs",
+      "system": "System",
+      "rows_per_page": "Rows per page",
       "showing": "Showing {{from}} to {{to}} of {{total}} logs",
-      "page_of": "Page {{current}} of {{total}}"
+      "page_of": "Page {{page}} of {{totalPages}}"
     },
     "detail": {
       "title": "Audit Log Details",
@@ -2148,6 +2209,33 @@
       "holidays_desc": "Manage holiday schedule",
       "documents": "Documents",
       "documents_desc": "Manage document templates"
+    }
+  },
+  "profile": {
+    "title": "My Profile",
+    "description": "View your profile information and manage security settings",
+    "contactInfo": "Contact Information",
+    "accountInfo": "Account Information",
+    "security": {
+      "title": "Security Settings",
+      "description": "Manage your account security and authentication options",
+      "mfa": {
+        "title": "Two-Factor Authentication",
+        "enabled": "Two-factor authentication is enabled on your account",
+        "disabled": "Two-factor authentication is not enabled",
+        "enable": "Enable MFA",
+        "disable": "Disable MFA",
+        "warning": {
+          "title": "Security Recommendation",
+          "description": "We strongly recommend enabling two-factor authentication to add an extra layer of security to your account."
+        },
+        "disableDialog": {
+          "title": "Disable Two-Factor Authentication",
+          "description": "Are you sure you want to disable two-factor authentication? This will make your account less secure.",
+          "warning": "Your account will no longer require a verification code when logging in."
+        },
+        "disableNotImplemented": "MFA disable functionality is not yet available. Please contact an administrator."
+      }
     }
   }
 }

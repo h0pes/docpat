@@ -18,6 +18,7 @@ import {
   FileText,
   Calendar,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -40,6 +41,7 @@ import { PatientDocumentsSection, DocumentGenerationDialog } from '@/components/
 import { patientsApi } from '@/services/api/patients';
 import { usePatientVisits } from '@/hooks/useVisits';
 import { getStatusBadgeColor, VisitStatus, VisitType } from '@/types/visit';
+import { PatientStatus } from '@/types/patient';
 import { useToast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
@@ -65,6 +67,7 @@ export function PatientDetailPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
   const [showGenerateDocDialog, setShowGenerateDocDialog] = useState(false);
 
   /**
@@ -155,6 +158,33 @@ export function PatientDetailPage() {
   });
 
   /**
+   * Reactivate patient mutation
+   */
+  const reactivateMutation = useMutation({
+    mutationFn: () => patientsApi.reactivate(id!),
+    onSuccess: () => {
+      // Invalidate queries to refetch updated data
+      queryClient.invalidateQueries({ queryKey: ['patient', id] });
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+
+      toast({
+        title: t('patients.messages.reactivateSuccess'),
+        description: t('patients.messages.reactivateSuccessDescription'),
+      });
+
+      setShowReactivateDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: t('patients.messages.reactivateError'),
+        description: error?.response?.data?.message || t('common.errors.generic'),
+      });
+      setShowReactivateDialog(false);
+    },
+  });
+
+  /**
    * Handle edit button
    */
   const handleEdit = () => {
@@ -194,6 +224,20 @@ export function PatientDetailPage() {
    */
   const handleConfirmDelete = () => {
     deleteMutation.mutate();
+  };
+
+  /**
+   * Handle reactivate button
+   */
+  const handleReactivate = () => {
+    setShowReactivateDialog(true);
+  };
+
+  /**
+   * Confirm reactivate action
+   */
+  const handleConfirmReactivate = () => {
+    reactivateMutation.mutate();
   };
 
   /**
@@ -286,7 +330,18 @@ export function PatientDetailPage() {
             <Edit className="h-4 w-4" />
             {t('patients.actions.edit')}
           </Button>
-          {canDelete && (
+          {canDelete && patient.status === PatientStatus.INACTIVE && (
+            <Button
+              variant="default"
+              onClick={handleReactivate}
+              disabled={reactivateMutation.isPending}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {t('patients.actions.reactivate')}
+            </Button>
+          )}
+          {canDelete && patient.status !== PatientStatus.INACTIVE && (
             <Button
               variant="destructive"
               onClick={handleDelete}
@@ -419,6 +474,35 @@ export function PatientDetailPage() {
               {deleteMutation.isPending
                 ? t('common.actions.deleting')
                 : t('common.actions.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reactivate confirmation dialog */}
+      <AlertDialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('patients.reactivate.confirmTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('patients.reactivate.confirmMessage', {
+                name: `${patient.first_name} ${patient.last_name}`,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reactivateMutation.isPending}>
+              {t('common.actions.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReactivate}
+              disabled={reactivateMutation.isPending}
+            >
+              {reactivateMutation.isPending
+                ? t('common.actions.reactivating')
+                : t('patients.actions.reactivate')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

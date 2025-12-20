@@ -16,7 +16,7 @@ use axum::{
     extract::{Path, Query, State},
     http::{header, StatusCode},
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use uuid::Uuid;
 
@@ -27,8 +27,12 @@ use crate::{
         EntityType, ExportAuditLogsRequest, ExportFormat, ListAuditLogsResponse,
         UserActivitySummary,
     },
+    models::user::UserRole,
     services::AuditLogService,
 };
+
+#[cfg(feature = "rbac")]
+use crate::utils::permissions::require_admin;
 
 /// List audit logs with pagination and filters
 ///
@@ -48,8 +52,12 @@ use crate::{
 /// Returns: ListAuditLogsResponse with paginated logs
 pub async fn list_audit_logs(
     State(state): State<AppState>,
+    Extension(user_role): Extension<UserRole>,
     Query(filter): Query<AuditLogsFilter>,
 ) -> Result<Json<ListAuditLogsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
     let service = AuditLogService::new(state.pool.clone());
 
     match service.list_logs(filter).await {
@@ -74,8 +82,12 @@ pub async fn list_audit_logs(
 /// Returns: AuditLogResponse or 404 if not found
 pub async fn get_audit_log(
     State(state): State<AppState>,
+    Extension(user_role): Extension<UserRole>,
     Path(id): Path<i64>,
 ) -> Result<Json<AuditLogResponse>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
     let service = AuditLogService::new(state.pool.clone());
 
     match service.get_log(id).await {
@@ -112,7 +124,11 @@ pub async fn get_audit_log(
 /// - Top active users (last 30 days)
 pub async fn get_statistics(
     State(state): State<AppState>,
+    Extension(user_role): Extension<UserRole>,
 ) -> Result<Json<AuditLogStatistics>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
     let service = AuditLogService::new(state.pool.clone());
 
     match service.get_statistics().await {
@@ -141,8 +157,12 @@ pub async fn get_statistics(
 /// - Recent activity logs (last 20)
 pub async fn get_user_activity(
     State(state): State<AppState>,
+    Extension(user_role): Extension<UserRole>,
     Path(user_id): Path<Uuid>,
 ) -> Result<Json<UserActivitySummary>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
     let service = AuditLogService::new(state.pool.clone());
 
     match service.get_user_activity(user_id).await {
@@ -179,8 +199,12 @@ pub async fn get_user_activity(
 /// Returns: File download (CSV or JSON format)
 pub async fn export_audit_logs(
     State(state): State<AppState>,
+    Extension(user_role): Extension<UserRole>,
     Query(request): Query<ExportAuditLogsRequest>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
     let service = AuditLogService::new(state.pool.clone());
 
     let format = request.format.clone();
@@ -246,9 +270,14 @@ pub async fn export_audit_logs(
 /// GET /api/v1/audit-logs/filter-options
 ///
 /// Returns available action types and entity types for filtering
-pub async fn get_filter_options() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
+pub async fn get_filter_options(
+    Extension(user_role): Extension<UserRole>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    require_admin(&user_role)?;
+
+    Ok(Json(serde_json::json!({
         "actions": AuditAction::all(),
         "entity_types": EntityType::all()
-    }))
+    })))
 }

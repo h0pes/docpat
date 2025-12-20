@@ -153,7 +153,7 @@ export function UserCard({
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">{t('common.actions')}</span>
+                <span className="sr-only">{t('common.menu')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

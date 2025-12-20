@@ -5,7 +5,7 @@
  * Handles practice name, address, contact details, and logo.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building2, Upload, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -30,14 +30,17 @@ import { useSettingsByGroup, useBulkUpdateSettings } from '@/hooks/useSettings';
 
 /**
  * Form validation schema
+ * Note: Using nested structure because React Hook Form interprets dots as nesting
  */
 const practiceSettingsSchema = z.object({
-  'clinic.name': z.string().min(1, 'Practice name is required').max(200),
-  'clinic.address': z.string().max(500).optional(),
-  'clinic.phone': z.string().max(50).optional(),
-  'clinic.email': z.string().email('Invalid email').or(z.literal('')).optional(),
-  'clinic.website': z.string().url('Invalid URL').or(z.literal('')).optional(),
-  'clinic.tax_id': z.string().max(50).optional(),
+  clinic: z.object({
+    name: z.string().min(1, 'Practice name is required').max(200),
+    address: z.string().max(500).optional(),
+    phone: z.string().max(50).optional(),
+    email: z.string().email('Invalid email').or(z.literal('')).optional(),
+    website: z.string().url('Invalid URL').or(z.literal('')).optional(),
+    vat_number: z.string().max(50).optional(),
+  }),
 });
 
 type PracticeSettingsFormData = z.infer<typeof practiceSettingsSchema>;
@@ -62,37 +65,72 @@ export function PracticeSettingsSection() {
   const form = useForm<PracticeSettingsFormData>({
     resolver: zodResolver(practiceSettingsSchema),
     defaultValues: {
-      'clinic.name': '',
-      'clinic.address': '',
-      'clinic.phone': '',
-      'clinic.email': '',
-      'clinic.website': '',
-      'clinic.tax_id': '',
+      clinic: {
+        name: '',
+        address: '',
+        phone: '',
+        email: '',
+        website: '',
+        vat_number: '',
+      },
     },
   });
 
-  // Populate form with current settings
+  // Track the data version to know when to reload form
+  const lastLoadedDataRef = useRef<string | null>(null);
+
+  // Populate form with current settings and load logo
   useEffect(() => {
-    if (settingsData?.settings) {
-      const values: Partial<PracticeSettingsFormData> = {};
-      for (const setting of settingsData.settings) {
-        const key = setting.setting_key as keyof PracticeSettingsFormData;
-        if (key in form.getValues()) {
-          values[key] = (setting.setting_value as string) || '';
-        }
-      }
-      form.reset(values);
+    if (!settingsData?.settings) return;
+
+    // Create a hash of the current data to detect actual changes
+    const dataHash = settingsData.settings
+      .map(s => `${s.setting_key}:${JSON.stringify(s.setting_value)}`)
+      .sort()
+      .join('|');
+
+    // Only reset form if data has actually changed (not just re-fetched)
+    if (lastLoadedDataRef.current === dataHash) {
+      return;
     }
-  }, [settingsData, form]);
+
+    lastLoadedDataRef.current = dataHash;
+
+    // Build nested form values from flat setting keys
+    const clinicValues: PracticeSettingsFormData['clinic'] = {
+      name: '',
+      address: '',
+      phone: '',
+      email: '',
+      website: '',
+      vat_number: '',
+    };
+
+    for (const setting of settingsData.settings) {
+      // Extract field name from setting key (e.g., "clinic.name" -> "name")
+      const fieldName = setting.setting_key.replace('clinic.', '') as keyof typeof clinicValues;
+      if (fieldName in clinicValues) {
+        clinicValues[fieldName] = (setting.setting_value as string) || '';
+      }
+      // Load existing logo
+      if (setting.setting_key === 'clinic.logo' && setting.setting_value) {
+        setLogoPreview(setting.setting_value as string);
+      }
+    }
+
+    form.reset({ clinic: clinicValues });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsData]);
 
   /**
    * Handle form submission
    */
   const onSubmit = async (data: PracticeSettingsFormData) => {
     try {
-      const settings = Object.entries(data)
+      // Convert nested form data to flat setting keys for the API
+      const settings = Object.entries(data.clinic)
         .filter(([, value]) => value !== undefined)
-        .map(([key, value]) => ({ key, value: value || '' }));
+        .map(([key, value]) => ({ key: `clinic.${key}`, value: value || '' }));
 
       await bulkUpdateMutation.mutateAsync({ settings });
 
@@ -111,8 +149,9 @@ export function PracticeSettingsSection() {
 
   /**
    * Handle logo upload
+   * Converts the image to base64 and saves it to the clinic.logo setting
    */
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       // Validate file type
@@ -125,8 +164,8 @@ export function PracticeSettingsSection() {
         return;
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      // Validate file size (max 2MB for base64 storage)
+      if (file.size > 2 * 1024 * 1024) {
         toast({
           variant: 'destructive',
           title: t('common.error'),
@@ -135,24 +174,54 @@ export function PracticeSettingsSection() {
         return;
       }
 
-      // Create preview
+      // Create preview and save to settings
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
+      reader.onload = async (e) => {
+        const base64Logo = e.target?.result as string;
+        setLogoPreview(base64Logo);
+
+        // Save logo to settings
+        try {
+          await bulkUpdateMutation.mutateAsync({
+            settings: [{ key: 'clinic.logo', value: base64Logo }],
+          });
+          toast({
+            title: t('settings.saved'),
+            description: t('settings.practice.logo_saved'),
+          });
+        } catch {
+          toast({
+            variant: 'destructive',
+            title: t('common.error'),
+            description: t('settings.save_error'),
+          });
+        }
       };
       reader.readAsDataURL(file);
-
-      // TODO: Upload to backend via file upload service
-      // This would require the file upload service from 13.6
     }
   };
 
   /**
    * Remove logo
+   * Clears the clinic.logo setting
    */
-  const handleRemoveLogo = () => {
-    setLogoPreview(null);
-    // TODO: Call API to remove logo
+  const handleRemoveLogo = async () => {
+    try {
+      await bulkUpdateMutation.mutateAsync({
+        settings: [{ key: 'clinic.logo', value: '' }],
+      });
+      setLogoPreview(null);
+      toast({
+        title: t('settings.saved'),
+        description: t('settings.practice.logo_removed'),
+      });
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('settings.save_error'),
+      });
+    }
   };
 
   if (isLoading) {
@@ -349,18 +418,18 @@ export function PracticeSettingsSection() {
 
             <FormField
               control={form.control}
-              name="clinic.tax_id"
+              name="clinic.vat_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('settings.practice.tax_id')}</FormLabel>
+                  <FormLabel>{t('settings.practice.vat_number')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={t('settings.practice.tax_id_placeholder')}
+                      placeholder={t('settings.practice.vat_number_placeholder')}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    {t('settings.practice.tax_id_hint')}
+                    {t('settings.practice.vat_number_hint')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

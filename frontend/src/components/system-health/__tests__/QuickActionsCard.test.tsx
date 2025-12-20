@@ -74,7 +74,7 @@ describe('QuickActionsCard', () => {
     renderWithRouter(<QuickActionsCard />);
 
     const usersLink = screen.getByText('system.actions.users').closest('a');
-    expect(usersLink).toHaveAttribute('href', '/admin/users');
+    expect(usersLink).toHaveAttribute('href', '/users');
   });
 
   it('renders correct link for settings', () => {
@@ -95,7 +95,7 @@ describe('QuickActionsCard', () => {
     renderWithRouter(<QuickActionsCard />);
 
     const documentsLink = screen.getByText('system.actions.documents').closest('a');
-    expect(documentsLink).toHaveAttribute('href', '/documents');
+    expect(documentsLink).toHaveAttribute('href', '/document-templates');
   });
 
   it('renders all six quick action links', () => {

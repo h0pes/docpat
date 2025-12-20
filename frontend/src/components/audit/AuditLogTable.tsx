@@ -8,6 +8,9 @@
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -40,12 +43,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { AuditLog, AuditLogsFilter } from '@/types/audit';
+import type { AuditLog, AuditLogsFilter, AuditLogSortColumn, SortOrder } from '@/types/audit';
 import {
   getActionDisplayName,
   getEntityTypeDisplayName,
   getActionColor,
 } from '@/types/audit';
+import { cn } from '@/lib/utils';
 
 interface AuditLogTableProps {
   /** Array of audit log entries */
@@ -95,6 +99,63 @@ export function AuditLogTable({
   const handlePageSizeChange = (newSize: string) => {
     onFilterChange({ ...filter, page_size: parseInt(newSize), page: 1 });
   };
+
+  // Handle sort change
+  const handleSortChange = (column: AuditLogSortColumn) => {
+    const currentSortBy = filter.sort_by || 'created_at';
+    const currentSortOrder = filter.sort_order || 'desc';
+
+    let newSortOrder: SortOrder = 'desc';
+    if (currentSortBy === column) {
+      // Toggle order if same column
+      newSortOrder = currentSortOrder === 'desc' ? 'asc' : 'desc';
+    }
+
+    onFilterChange({
+      ...filter,
+      sort_by: column,
+      sort_order: newSortOrder,
+      page: 1,
+    });
+  };
+
+  // Get sort icon for a column
+  const getSortIcon = (column: AuditLogSortColumn) => {
+    const currentSortBy = filter.sort_by || 'created_at';
+    const currentSortOrder = filter.sort_order || 'desc';
+
+    if (currentSortBy !== column) {
+      return <ArrowUpDown className="ml-1 h-3 w-3 text-muted-foreground/50" />;
+    }
+    return currentSortOrder === 'asc' ? (
+      <ArrowUp className="ml-1 h-3 w-3" />
+    ) : (
+      <ArrowDown className="ml-1 h-3 w-3" />
+    );
+  };
+
+  // Sortable header component
+  const SortableHeader = ({
+    column,
+    children,
+    className,
+  }: {
+    column: AuditLogSortColumn;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <TableHead className={className}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="-ml-3 h-8 data-[state=open]:bg-accent"
+        onClick={() => handleSortChange(column)}
+      >
+        {children}
+        {getSortIcon(column)}
+      </Button>
+    </TableHead>
+  );
 
   // Format timestamp
   const formatTimestamp = (timestamp: string) => {
@@ -147,20 +208,24 @@ export function AuditLogTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[180px]">
+              <SortableHeader column="created_at" className="w-[180px]">
                 {t('audit.table.timestamp')}
-              </TableHead>
-              <TableHead>{t('audit.table.user')}</TableHead>
-              <TableHead className="w-[100px]">
+              </SortableHeader>
+              <SortableHeader column="user_email">
+                {t('audit.table.user')}
+              </SortableHeader>
+              <SortableHeader column="action" className="w-[100px]">
                 {t('audit.table.action')}
-              </TableHead>
-              <TableHead>{t('audit.table.entity_type')}</TableHead>
+              </SortableHeader>
+              <SortableHeader column="entity_type">
+                {t('audit.table.entity_type')}
+              </SortableHeader>
               <TableHead>{t('audit.table.entity_id')}</TableHead>
               <TableHead className="hidden lg:table-cell">
                 {t('audit.table.ip_address')}
               </TableHead>
               <TableHead className="w-[80px] text-right">
-                {t('audit.table.actions')}
+                {t('audit.table.details')}
               </TableHead>
             </TableRow>
           </TableHeader>

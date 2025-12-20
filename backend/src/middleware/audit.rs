@@ -20,12 +20,13 @@
 
 use axum::{
     body::Body,
-    extract::Request,
+    extract::{ConnectInfo, Request},
     http::{HeaderMap, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
     Extension,
 };
+use std::net::SocketAddr;
 use ipnetwork::IpNetwork;
 use serde_json::{json, Value};
 use sqlx::PgPool;
@@ -161,6 +162,7 @@ fn extract_entity_from_path(path: &str) -> (Option<String>, Option<String>) {
 pub async fn audit_middleware(
     Extension(pool): Extension<PgPool>,
     user_id: Option<Extension<Uuid>>,
+    connect_info: Option<ConnectInfo<SocketAddr>>,
     request: Request,
     next: Next,
 ) -> Response {
@@ -168,7 +170,7 @@ pub async fn audit_middleware(
     let user_id_value = user_id.map(|Extension(id)| id);
 
     // Extract IP address from headers or connection info
-    // In a real deployment, this would come from X-Forwarded-For header (behind reverse proxy)
+    // Priority: X-Forwarded-For > X-Real-IP > Direct connection
     let ip_address = request
         .headers()
         .get("x-forwarded-for")
@@ -181,6 +183,10 @@ pub async fn audit_middleware(
                 .get("x-real-ip")
                 .and_then(|v| v.to_str().ok())
                 .and_then(|s| s.parse::<std::net::IpAddr>().ok())
+        })
+        .or_else(|| {
+            // Fallback to direct connection IP (for development without reverse proxy)
+            connect_info.map(|ConnectInfo(addr)| addr.ip())
         })
         .map(|ip| IpNetwork::from(ip));
 

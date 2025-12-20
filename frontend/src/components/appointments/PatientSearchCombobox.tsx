@@ -12,6 +12,7 @@ import { Check, ChevronsUpDown, User, Loader2 } from 'lucide-react';
 
 import { patientsApi } from '../../services/api/patients';
 import type { Patient } from '../../types/patient';
+import { PatientStatus } from '../../types/patient';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import {
@@ -56,14 +57,17 @@ export function PatientSearchCombobox({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Fetch patients based on search query
+  // Fetch patients based on search query (only ACTIVE patients)
   const { data: patientsData, isLoading } = useQuery({
-    queryKey: ['patients', 'search', debouncedQuery],
+    queryKey: ['patients', 'search', 'active', debouncedQuery],
     queryFn: () => {
-      if (debouncedQuery.length >= 2) {
-        return patientsApi.search({ query: debouncedQuery, limit: 10 });
-      }
-      return patientsApi.getAll({ limit: 10 });
+      // Always filter for ACTIVE patients only - inactive patients cannot have appointments
+      // Use higher limit to show all patients (sorted alphabetically by backend)
+      return patientsApi.search({
+        query: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
+        status: PatientStatus.ACTIVE,
+        limit: 100,
+      });
     },
     enabled: open, // Only fetch when popover is open
     staleTime: 30 * 1000, // 30 seconds

@@ -38,7 +38,7 @@ interface QuickAction {
 const quickActions: QuickAction[] = [
   {
     labelKey: 'system.actions.users',
-    href: '/admin/users',
+    href: '/users',
     icon: Users,
     descriptionKey: 'system.actions.users_desc',
   },
@@ -68,7 +68,7 @@ const quickActions: QuickAction[] = [
   },
   {
     labelKey: 'system.actions.documents',
-    href: '/documents',
+    href: '/document-templates',
     icon: FileText,
     descriptionKey: 'system.actions.documents_desc',
   },

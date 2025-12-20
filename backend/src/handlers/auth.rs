@@ -7,8 +7,10 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
+use axum::Extension;
 use crate::{
     middleware::session_timeout::SessionManager,
+    models::{AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext},
     services::{AuthService, EmailService, LoginRequest, LoginResponse, SettingsService, TokenPair},
     utils::{EncryptionKey, Result},
 };
@@ -71,11 +73,32 @@ pub struct AppState {
 /// ```
 pub async fn login_handler(
     State(state): State<AppState>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(login_req): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>> {
     tracing::info!("Login attempt for user: {}", login_req.username);
 
-    let response = state.auth_service.login(&state.pool, login_req).await?;
+    let mut response = state.auth_service.login(&state.pool, login_req, Some(&request_ctx)).await?;
+
+    // Check if global MFA requirement is enabled and user hasn't set up MFA
+    // Only check if login was successful and user doesn't already need MFA verification
+    if !response.requires_mfa && !response.user.mfa_enabled {
+        // Check the security.mfa_required setting
+        let mfa_required: bool = state
+            .settings_service
+            .get_setting_value("security.mfa_required")
+            .await
+            .unwrap_or(None)
+            .unwrap_or(false);
+
+        if mfa_required {
+            tracing::info!(
+                "MFA setup required for user {} (global mfa_required is ON)",
+                response.user.username
+            );
+            response.requires_mfa_setup = true;
+        }
+    }
 
     // Track session activity on successful login
     state.session_manager.track_activity(&response.user.id);
@@ -168,6 +191,7 @@ pub struct LogoutRequest {
 /// ```
 pub async fn logout_handler(
     State(state): State<AppState>,
+    Extension(request_ctx): Extension<RequestContext>,
     Json(req): Json<LogoutRequest>,
 ) -> Result<impl IntoResponse> {
     tracing::info!("Logout request");
@@ -179,6 +203,22 @@ pub async fn logout_handler(
                 .map_err(|_| crate::utils::AppError::Unauthorized("Invalid user ID in token".to_string()))?;
             state.session_manager.invalidate_session(&user_id);
             tracing::info!("Session invalidated for user: {}", user_id);
+
+            // Create audit log entry for logout
+            let _ = AuditLog::create(
+                &state.pool,
+                CreateAuditLog {
+                    user_id: Some(user_id),
+                    action: AuditAction::Logout,
+                    entity_type: EntityType::User,
+                    entity_id: Some(user_id.to_string()),
+                    changes: None,
+                    ip_address: request_ctx.ip_address.clone(),
+                    user_agent: request_ctx.user_agent.clone(),
+                    request_id: Some(request_ctx.request_id),
+                },
+            )
+            .await;
         }
     }
 

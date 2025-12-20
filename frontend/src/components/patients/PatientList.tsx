@@ -6,8 +6,9 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -40,6 +41,16 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { PatientStatus, Gender, PatientSearchFilters, Patient } from '@/types/patient';
 
 const PAGE_SIZES = [10, 20, 50, 100];
@@ -61,6 +72,13 @@ interface SortConfig {
 export function PatientList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Dialog state for delete/reactivate confirmation
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,6 +134,48 @@ export function PatientList() {
       return patientsApi.getAll({
         limit: activeFilters.limit,
         offset: activeFilters.offset,
+      });
+    },
+  });
+
+  // Delete mutation (soft delete - sets status to INACTIVE)
+  const deleteMutation = useMutation({
+    mutationFn: (patientId: string) => patientsApi.delete(patientId),
+    onSuccess: () => {
+      toast({
+        title: t('patients.messages.deleteSuccess'),
+        description: t('patients.messages.deleteSuccessDescription'),
+      });
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      setShowDeleteDialog(false);
+      setSelectedPatient(null);
+    },
+    onError: () => {
+      toast({
+        title: t('common.error'),
+        description: t('patients.messages.deleteError'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Reactivate mutation (sets status back to ACTIVE)
+  const reactivateMutation = useMutation({
+    mutationFn: (patientId: string) => patientsApi.reactivate(patientId),
+    onSuccess: () => {
+      toast({
+        title: t('patients.messages.reactivateSuccess'),
+        description: t('patients.messages.reactivateSuccessDescription'),
+      });
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      setShowReactivateDialog(false);
+      setSelectedPatient(null);
+    },
+    onError: () => {
+      toast({
+        title: t('common.error'),
+        description: t('patients.messages.reactivateError'),
+        variant: 'destructive',
       });
     },
   });
@@ -232,6 +292,46 @@ export function PatientList() {
     setSortConfig({ field, order });
   };
 
+  /**
+   * Handle delete patient click - opens confirmation dialog
+   */
+  const handleDeleteClick = (patientId: string) => {
+    const patient = patientsData?.patients.find((p) => p.id === patientId);
+    if (patient) {
+      setSelectedPatient(patient);
+      setShowDeleteDialog(true);
+    }
+  };
+
+  /**
+   * Handle reactivate patient click - opens confirmation dialog
+   */
+  const handleReactivateClick = (patientId: string) => {
+    const patient = patientsData?.patients.find((p) => p.id === patientId);
+    if (patient) {
+      setSelectedPatient(patient);
+      setShowReactivateDialog(true);
+    }
+  };
+
+  /**
+   * Confirm delete action
+   */
+  const handleConfirmDelete = () => {
+    if (selectedPatient) {
+      deleteMutation.mutate(selectedPatient.id);
+    }
+  };
+
+  /**
+   * Confirm reactivate action
+   */
+  const handleConfirmReactivate = () => {
+    if (selectedPatient) {
+      reactivateMutation.mutate(selectedPatient.id);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Search and Filters */}
@@ -299,11 +399,11 @@ export function PatientList() {
                       {t('patients.status.label')}
                     </label>
                     <Select
-                      value={filters.status || ''}
+                      value={filters.status || 'all'}
                       onValueChange={(value) =>
                         handleFilterChange(
                           'status',
-                          value ? (value as PatientStatus) : undefined
+                          value === 'all' ? undefined : (value as PatientStatus)
                         )
                       }
                     >
@@ -313,7 +413,7 @@ export function PatientList() {
                         />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">
+                        <SelectItem value="all">
                           {t('patients.status.all')}
                         </SelectItem>
                         <SelectItem value={PatientStatus.ACTIVE}>
@@ -335,11 +435,11 @@ export function PatientList() {
                       {t('patients.gender.label')}
                     </label>
                     <Select
-                      value={filters.gender || ''}
+                      value={filters.gender || 'all'}
                       onValueChange={(value) =>
                         handleFilterChange(
                           'gender',
-                          value ? (value as Gender) : undefined
+                          value === 'all' ? undefined : (value as Gender)
                         )
                       }
                     >
@@ -347,7 +447,7 @@ export function PatientList() {
                         <SelectValue placeholder={t('patients.gender.all')} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">
+                        <SelectItem value="all">
                           {t('patients.gender.all')}
                         </SelectItem>
                         <SelectItem value={Gender.M}>
@@ -543,6 +643,8 @@ export function PatientList() {
                 key={patient.id}
                 patient={patient}
                 onClick={() => handlePatientClick(patient.id)}
+                onDelete={handleDeleteClick}
+                onReactivate={handleReactivateClick}
               />
             ))}
           </div>
@@ -616,6 +718,62 @@ export function PatientList() {
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('patients.delete.confirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('patients.delete.confirmMessage', {
+                name: selectedPatient
+                  ? `${selectedPatient.first_name} ${selectedPatient.last_name}`
+                  : '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending
+                ? t('common.actions.deleting')
+                : t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reactivate Confirmation Dialog */}
+      <AlertDialog open={showReactivateDialog} onOpenChange={setShowReactivateDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('patients.reactivate.confirmTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('patients.reactivate.confirmMessage', {
+                name: selectedPatient
+                  ? `${selectedPatient.first_name} ${selectedPatient.last_name}`
+                  : '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReactivate}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={reactivateMutation.isPending}
+            >
+              {reactivateMutation.isPending
+                ? t('common.actions.reactivating')
+                : t('patients.actions.reactivate')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
