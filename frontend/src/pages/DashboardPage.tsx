@@ -17,7 +17,9 @@ import {
   TrendingUp,
   Clock,
   Activity,
+  Pill,
 } from 'lucide-react';
+import { ActivePrescriptionsWidget } from '@/components/prescriptions';
 
 /**
  * DashboardPage component - main authenticated view
@@ -28,6 +30,7 @@ export function DashboardPage() {
 
   /**
    * Dashboard statistics - placeholder data
+   * Note: In a production app, these would be fetched from API
    */
   const stats = [
     {
@@ -40,23 +43,23 @@ export function DashboardPage() {
     {
       title: t('nav.appointments'),
       value: '18',
-      subtitle: 'Today',
+      subtitle: t('dashboard.today'),
       icon: Calendar,
       trend: 'neutral' as const,
     },
     {
       title: t('nav.visits'),
       value: '42',
-      subtitle: 'This week',
+      subtitle: t('dashboard.this_week'),
       icon: FileText,
       trend: 'neutral' as const,
     },
     {
-      title: 'Revenue',
-      value: '€8,450',
-      change: '+23%',
-      icon: TrendingUp,
-      trend: 'up' as const,
+      title: t('prescriptions.title'),
+      value: '-',
+      subtitle: t('prescriptions.stats.active'),
+      icon: Pill,
+      trend: 'neutral' as const,
     },
   ];
 
@@ -191,30 +194,35 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Quick Actions
+              {t('dashboard.quick_actions')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Button className="w-full justify-start" variant="outline">
                 <Calendar className="mr-2 h-4 w-4" />
-                New Appointment
+                {t('dashboard.new_appointment')}
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <Users className="mr-2 h-4 w-4" />
-                New Patient
+                {t('dashboard.new_patient')}
               </Button>
               <Button className="w-full justify-start" variant="outline">
                 <FileText className="mr-2 h-4 w-4" />
-                New Visit
+                {t('dashboard.new_visit')}
               </Button>
               <Button className="w-full justify-start" variant="outline">
-                <TrendingUp className="mr-2 h-4 w-4" />
-                View Reports
+                <Pill className="mr-2 h-4 w-4" />
+                {t('dashboard.new_prescription')}
               </Button>
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Secondary Content Grid - Prescriptions Widget */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ActivePrescriptionsWidget />
       </div>
 
       {/* System Info - Development only */}

@@ -19,6 +19,9 @@ import {
   User,
   Activity,
   FileOutput,
+  Pill,
+  Plus,
+  Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, it } from 'date-fns/locale';
@@ -28,9 +31,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useVisit } from '@/hooks/useVisits';
+import { useVisit, useVisitPrescriptions } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
 import { VisitStatus, getStatusColor, formatVitalSigns } from '@/types/visit';
+import { PrescriptionStatus, getStatusBadgeColor as getPrescriptionStatusColor } from '@/types/prescription';
+import { Skeleton } from '@/components/ui/skeleton';
 import { DigitalSignatureDialog } from '@/components/visits/DigitalSignatureDialog';
 import { VisitLockDialog } from '@/components/visits/VisitLockDialog';
 import { DocumentGenerationDialog, VisitDocumentsSection } from '@/components/documents';
@@ -52,6 +57,12 @@ export function VisitDetailPage() {
 
   // Fetch visit data
   const { data: visit, isLoading, isError, error } = useVisit(id!);
+
+  // Fetch visit prescriptions
+  const {
+    data: prescriptions,
+    isLoading: prescriptionsLoading,
+  } = useVisitPrescriptions(id!, { enabled: !!id });
 
   // Get date-fns locale
   const getDateFnsLocale = () => {
@@ -550,6 +561,92 @@ export function VisitDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Visit Prescriptions Section */}
+      <Card className="mb-6 print-card">
+        <CardHeader className="print-card-header flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 print-card-title">
+              <Pill className="h-5 w-5" />
+              {t('prescriptions.title')}
+            </CardTitle>
+          </div>
+          <Button
+            size="sm"
+            className="gap-1 no-print"
+            onClick={() => navigate(`/prescriptions/new?patientId=${visit?.patient_id}&visitId=${id}`)}
+          >
+            <Plus className="h-4 w-4" />
+            {t('prescriptions.new_prescription')}
+          </Button>
+        </CardHeader>
+        <CardContent className="print-card-content">
+          {prescriptionsLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : !prescriptions || prescriptions.length === 0 ? (
+            <div className="text-center py-8">
+              <Pill className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4">
+                {t('visits.no_prescriptions')}
+              </p>
+              <Button
+                onClick={() => navigate(`/prescriptions/new?patientId=${visit?.patient_id}&visitId=${id}`)}
+                className="gap-2 no-print"
+              >
+                <Plus className="h-4 w-4" />
+                {t('prescriptions.new_prescription')}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {prescriptions.map((prescription) => (
+                <div
+                  key={prescription.id}
+                  className="flex items-center gap-4 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => navigate(`/prescriptions/${prescription.id}`)}
+                >
+                  <div className="flex-shrink-0">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Pill className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{prescription.medication_name}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {prescription.dosage}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {prescription.frequency}
+                      {prescription.instructions && ` - ${prescription.instructions}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getPrescriptionStatusColor(prescription.status)}>
+                      {t(`prescriptions.status.${prescription.status.toLowerCase()}`)}
+                    </Badge>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 no-print">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Visit Documents Section */}
       <div className="mb-6">

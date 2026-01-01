@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-306%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-462%2B%20passing-brightgreen.svg)]()
 
 > A secure, self-hosted Medical Practice Management System designed for individual practitioners prioritizing simplicity, data sovereignty, and military-grade security.
 
@@ -27,9 +27,12 @@ DocPat (Documentation for Patients) is a comprehensive medical practice manageme
 - **Smart Scheduling**: Conflict detection at database level, recurring appointments, availability management
 - **Clinical Documentation**: SOAP notes, vital signs, ICD-10 diagnoses with autocomplete, digital signatures
 - **Patient Management**: Fast search (<2s), duplicate detection, complete medical history, allergies tracking
-- **Prescription Management**: Medication search, templates, discontinuation workflow, refill tracking
+- **Prescription Management**: Full-featured prescription list with filters, create/edit/renew/discontinue workflows, print functionality, drug interaction warnings, active prescriptions widget
 - **Visit Templates**: Reusable clinical note templates for common visit types
 - **Visit Version History**: Full audit trail with restore capability for visit modifications
+- **Document Generation**: Medical certificates, referral letters, visit summaries, custom templates
+- **Reporting & Analytics**: Appointment utilization, patient demographics, provider productivity dashboards
+- **Administration**: User management, system settings, audit logs, system health monitoring
 - **Internationalization**: Full Italian/English support with runtime switching
 - **Theme Support**: Light/Dark themes with user preferences persistence
 - **Role-Based Access Control**: RBAC with Casbin (ADMIN/DOCTOR roles)
@@ -327,9 +330,9 @@ DocPat maintains comprehensive test coverage:
 | Category | Tests | Status |
 |----------|-------|--------|
 | Backend Integration | 85+ | Passing |
-| Frontend Component | 222+ | Passing |
+| Frontend Component | 378+ | Passing |
 | E2E (Playwright) | 19 | Passing |
-| **Total** | **306+** | **All Passing** |
+| **Total** | **462+** | **All Passing** |
 
 ### Running Tests
 
@@ -404,24 +407,35 @@ npm audit    # Frontend
 - Enhanced prescription workflow (discontinuation, refills)
 - Comprehensive integration testing
 
-### Phase 4: Document Generation (Milestone 11) - IN PROGRESS
+### Phase 4: Document Generation (Milestone 11) - COMPLETE
 - PDF generation for medical certificates
 - Referral letters
 - Visit summaries
 - Lab request forms
-- Custom document templates
+- Custom document templates with variable system
 
-### Phase 5: Reporting & Analytics (Milestones 12-13) - PLANNED
+### Phase 5: Reporting & Analytics (Milestone 12) - COMPLETE
 - Appointment utilization reports
 - Patient demographics analysis
 - Provider productivity metrics
-- Dashboard visualizations
+- Dashboard visualizations with Chart.js
+- Report export (PDF, Excel)
 
-### Phase 6: Administration (Milestones 14-16) - PLANNED
-- System settings management
-- Backup and restore functionality
-- User activity monitoring
-- Email/SMS notification configuration
+### Phase 6: Administration (Milestone 13) - COMPLETE
+- User management with RBAC enforcement
+- System settings management (practice, appointments, localization, security)
+- Working hours and holiday configuration
+- Comprehensive audit logging with export
+- System health dashboard with real-time monitoring
+
+### Phase 7: Prescriptions Management Frontend (Milestone 14) - COMPLETE
+- Full-featured prescription list with filters
+- Create, edit, view prescription workflows
+- Discontinue and renew prescription dialogs
+- Print prescription functionality
+- Drug interaction warnings
+- Active prescriptions dashboard widget
+- 156 unit tests for prescription components
 
 ### Future Enhancements (Milestones 17-21)
 - Automated appointment reminders (email/SMS/WhatsApp)
@@ -459,6 +473,6 @@ This system is designed to help healthcare practitioners maintain HIPAA complian
 
 **Version**: 1.0.0-beta
 **Status**: MVP Complete - Active Development
-**Last Updated**: November 2025
+**Last Updated**: January 2026
 
 **Built with Rust, React, and a commitment to data sovereignty**

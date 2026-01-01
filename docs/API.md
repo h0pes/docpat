@@ -1832,6 +1832,60 @@ Delete diagnosis.
 
 ## Prescription Management Endpoints
 
+### GET /api/v1/prescriptions
+
+List prescriptions with optional filters and pagination.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `status` | string | No | Filter by status (ACTIVE, COMPLETED, CANCELLED, DISCONTINUED, ON_HOLD) |
+| `patient_id` | UUID | No | Filter by patient |
+| `start_date` | string | No | Filter from date (YYYY-MM-DD format) |
+| `end_date` | string | No | Filter to date (YYYY-MM-DD format) |
+| `limit` | integer | No | Max results (default: 20, max: 100) |
+| `offset` | integer | No | Pagination offset (default: 0) |
+
+**Response** `200 OK`
+
+```json
+{
+  "prescriptions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440050",
+      "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+      "provider_id": "550e8400-e29b-41d4-a716-446655440001",
+      "visit_id": "550e8400-e29b-41d4-a716-446655440040",
+      "medication_name": "Lisinopril",
+      "generic_name": "Lisinopril",
+      "dosage": "10mg",
+      "form": "Tablet",
+      "route": "Oral",
+      "frequency": "Once daily",
+      "duration": "90 days",
+      "quantity": 90,
+      "refills": 2,
+      "instructions": "Take in the morning with food",
+      "prescribed_date": "2024-11-15",
+      "start_date": "2024-11-15",
+      "end_date": "2025-02-13",
+      "status": "ACTIVE",
+      "patient_name": "John Doe",
+      "provider_name": "Dr. Smith",
+      "created_at": "2024-11-15T10:00:00Z",
+      "updated_at": "2024-11-15T10:00:00Z"
+    }
+  ],
+  "total": 15
+}
+```
+
+---
+
 ### POST /api/v1/prescriptions
 
 Create a new prescription.

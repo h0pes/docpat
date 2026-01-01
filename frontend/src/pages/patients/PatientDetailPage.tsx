@@ -19,6 +19,7 @@ import {
   Calendar,
   Eye,
   RefreshCw,
+  Pill,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,8 +39,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PatientDetail } from '@/components/patients/PatientDetail';
 import { FullPageSpinner } from '@/components/Spinner';
 import { PatientDocumentsSection, DocumentGenerationDialog } from '@/components/documents';
+import { PrescriptionList } from '@/components/prescriptions';
 import { patientsApi } from '@/services/api/patients';
-import { usePatientVisits } from '@/hooks/useVisits';
+import { usePatientVisits, usePatientPrescriptions } from '@/hooks/useVisits';
 import { getStatusBadgeColor, VisitStatus, VisitType } from '@/types/visit';
 import { PatientStatus } from '@/types/patient';
 import { useToast } from '@/components/ui/use-toast';
@@ -77,6 +79,14 @@ export function PatientDetailPage() {
     data: visitsData,
     isLoading: visitsLoading,
   } = usePatientVisits(id!, { limit: 5 }, { enabled: !!id });
+
+  /**
+   * Fetch patient prescriptions (limit to 5 recent prescriptions)
+   */
+  const {
+    data: prescriptionsData,
+    isLoading: prescriptionsLoading,
+  } = usePatientPrescriptions(id!, { limit: 5 }, { enabled: !!id });
 
   /**
    * Fetch patient data
@@ -210,6 +220,34 @@ export function PatientDetailPage() {
    */
   const handleViewAllVisits = () => {
     navigate(`/patients/${id}/visits`);
+  };
+
+  /**
+   * Handle new prescription button
+   */
+  const handleNewPrescription = () => {
+    navigate(`/prescriptions/new?patientId=${id}`);
+  };
+
+  /**
+   * Handle view prescription
+   */
+  const handleViewPrescription = (prescriptionId: string) => {
+    navigate(`/prescriptions/${prescriptionId}`);
+  };
+
+  /**
+   * Handle edit prescription
+   */
+  const handleEditPrescription = (prescriptionId: string) => {
+    navigate(`/prescriptions/${prescriptionId}/edit`);
+  };
+
+  /**
+   * Handle view all prescriptions
+   */
+  const handleViewAllPrescriptions = () => {
+    navigate(`/prescriptions?patientId=${id}`);
   };
 
   /**
@@ -438,6 +476,67 @@ export function PatientDetailPage() {
                 </div>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Prescriptions Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Pill className="h-5 w-5" />
+              {t('prescriptions.title')}
+            </CardTitle>
+            <CardDescription>
+              {t('patients.prescriptions_section.description')}
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            {prescriptionsData?.prescriptions && prescriptionsData.prescriptions.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleViewAllPrescriptions}>
+                {t('common.actions.viewAll')}
+              </Button>
+            )}
+            <Button size="sm" onClick={handleNewPrescription} className="gap-1">
+              <Plus className="h-4 w-4" />
+              {t('prescriptions.new_prescription')}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {prescriptionsLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                </div>
+              ))}
+            </div>
+          ) : !prescriptionsData?.prescriptions || prescriptionsData.prescriptions.length === 0 ? (
+            <div className="text-center py-8">
+              <Pill className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4">
+                {t('patients.prescriptions_section.no_prescriptions')}
+              </p>
+              <Button onClick={handleNewPrescription} className="gap-2">
+                <Plus className="h-4 w-4" />
+                {t('prescriptions.new_prescription')}
+              </Button>
+            </div>
+          ) : (
+            <PrescriptionList
+              prescriptions={prescriptionsData.prescriptions}
+              showPatient={false}
+              gridCols={1}
+              onView={(p) => handleViewPrescription(p.id)}
+              onEdit={(p) => handleEditPrescription(p.id)}
+            />
           )}
         </CardContent>
       </Card>

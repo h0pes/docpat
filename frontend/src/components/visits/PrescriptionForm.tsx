@@ -20,6 +20,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import {
   Form,
   FormControl,
   FormDescription,
@@ -108,6 +119,8 @@ export function PrescriptionForm({
     initialValues?.medication_name || ''
   );
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [showInteractionConfirmation, setShowInteractionConfirmation] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<PrescriptionFormData | null>(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -120,7 +133,10 @@ export function PrescriptionForm({
     },
   });
 
-  const handleSubmit = (data: PrescriptionFormData) => {
+  /**
+   * Process form data and submit to parent
+   */
+  const processSubmit = (data: PrescriptionFormData) => {
     const prescription: CreatePrescriptionRequest = {
       ...data,
       patient_id: patientId,
@@ -136,6 +152,40 @@ export function PrescriptionForm({
     };
 
     onSubmit(prescription);
+  };
+
+  /**
+   * Handle form submission with interaction warning check
+   */
+  const handleSubmit = (data: PrescriptionFormData) => {
+    // If there are interaction warnings, show confirmation dialog
+    if (interactionWarnings.length > 0) {
+      setPendingSubmitData(data);
+      setShowInteractionConfirmation(true);
+      return;
+    }
+
+    // No warnings, proceed directly
+    processSubmit(data);
+  };
+
+  /**
+   * Handle confirmation of interaction warnings
+   */
+  const handleInteractionConfirm = () => {
+    if (pendingSubmitData) {
+      processSubmit(pendingSubmitData);
+      setPendingSubmitData(null);
+    }
+    setShowInteractionConfirmation(false);
+  };
+
+  /**
+   * Handle cancellation of interaction confirmation
+   */
+  const handleInteractionCancel = () => {
+    setPendingSubmitData(null);
+    setShowInteractionConfirmation(false);
   };
 
   /**
@@ -543,6 +593,64 @@ export function PrescriptionForm({
           onClose={() => setShowTemplateSelector(false)}
         />
       )}
+
+      {/* Drug Interaction Confirmation Dialog */}
+      <AlertDialog open={showInteractionConfirmation} onOpenChange={setShowInteractionConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              {t('prescriptions.interaction_confirmation.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>{t('prescriptions.interaction_confirmation.description')}</p>
+
+                <div className="space-y-2">
+                  {interactionWarnings.map((warning, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-2 p-3 rounded-md bg-muted"
+                    >
+                      <Badge
+                        variant={
+                          warning.severity === 'major'
+                            ? 'destructive'
+                            : warning.severity === 'moderate'
+                            ? 'default'
+                            : 'secondary'
+                        }
+                        className="mt-0.5"
+                      >
+                        {t(`prescriptions.interaction_confirmation.severity.${warning.severity}`)}
+                      </Badge>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{warning.medication_name}</p>
+                        <p className="text-sm text-muted-foreground">{warning.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-sm font-medium text-destructive">
+                  {t('prescriptions.interaction_confirmation.warning_prompt')}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleInteractionCancel}>
+              {t('prescriptions.interaction_confirmation.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleInteractionConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t('prescriptions.interaction_confirmation.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

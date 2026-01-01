@@ -31,6 +31,12 @@ import {
   VisitTemplatesPage,
   PrescriptionTemplatesPage,
 } from '../pages/visits';
+import {
+  PrescriptionsPage,
+  PrescriptionDetailPage,
+  NewPrescriptionPage,
+  EditPrescriptionPage,
+} from '../pages/prescriptions';
 import { PatientVisitsPage } from '../pages/patients/PatientVisitsPage';
 import { DocumentTemplatesPage } from '../components/documents';
 import { DocumentsPage } from '../pages/documents/DocumentsPage';
@@ -141,14 +147,26 @@ export const router = createBrowserRouter([
             path: '/visits/templates',
             element: <VisitTemplatesPage />,
           },
-          // Prescription templates route
+          // Prescription routes
+          {
+            path: '/prescriptions',
+            element: <PrescriptionsPage />,
+          },
+          {
+            path: '/prescriptions/new',
+            element: <NewPrescriptionPage />,
+          },
           {
             path: '/prescriptions/templates',
             element: <PrescriptionTemplatesPage />,
           },
           {
-            path: '/prescriptions',
-            element: <div>Prescriptions page - Coming soon</div>,
+            path: '/prescriptions/:id',
+            element: <PrescriptionDetailPage />,
+          },
+          {
+            path: '/prescriptions/:id/edit',
+            element: <EditPrescriptionPage />,
           },
           {
             path: '/documents',

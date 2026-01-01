@@ -206,6 +206,18 @@
     "admin_section": "Amministrazione",
     "personal_section": "Personale"
   },
+  "dashboard": {
+    "today": "Oggi",
+    "this_week": "Questa settimana",
+    "quick_actions": "Azioni Rapide",
+    "recent_activity": "Attività Recente",
+    "view_all_activity": "Vedi Tutte le Attività",
+    "new_appointment": "Nuovo Appuntamento",
+    "new_patient": "Nuovo Paziente",
+    "new_visit": "Nuova Visita",
+    "new_prescription": "Nuova Prescrizione",
+    "view_reports": "Visualizza Report"
+  },
   "theme": {
     "light": "Chiaro",
     "dark": "Scuro",
@@ -376,6 +388,10 @@
       "save_error": "Errore nel salvataggio del paziente",
       "delete_success": "Paziente eliminato con successo",
       "delete_error": "Errore nell'eliminazione del paziente"
+    },
+    "prescriptions_section": {
+      "description": "Prescrizioni recenti per questo paziente",
+      "no_prescriptions": "Nessuna prescrizione per questo paziente"
     },
     "insurance": {
       "title": "Informazioni Assicurative",
@@ -651,6 +667,7 @@
     "create_first_visit": "Crea Prima Visita",
     "no_visits_yet": "Nessuna visita registrata",
     "no_chief_complaint": "Nessun motivo della visita registrato",
+    "no_prescriptions": "Nessuna prescrizione per questa visita",
     "error_loading": "Impossibile caricare le visite. Riprova.",
     "type": {
       "new_patient": "Nuovo Paziente",
@@ -1127,7 +1144,202 @@
     "frequency": "Frequenza",
     "duration": "Durata",
     "quantity": "Quantità",
-    "instructions": "Istruzioni"
+    "instructions": "Istruzioni",
+    "description": "Gestisci tutte le prescrizioni dei pazienti",
+    "new_prescription": "Nuova Prescrizione",
+    "new_prescription_description": "Crea una nuova prescrizione per il paziente",
+    "edit_prescription": "Modifica Prescrizione",
+    "editing": "Modifica {{medication}}",
+    "select_patient": "Seleziona Paziente",
+    "select_patient_description": "Scegli un paziente per questa prescrizione",
+    "select_patient_first": "Seleziona un paziente per creare una prescrizione",
+    "patient_selected": "Paziente selezionato",
+    "change_patient": "Cambia paziente",
+    "manage_templates": "Gestisci Modelli",
+    "back_to_list": "Torna alle Prescrizioni",
+    "back_to_detail": "Torna ai Dettagli Prescrizione",
+    "view_patient": "Visualizza Paziente",
+    "view_visit": "Visualizza Visita Collegata",
+    "prescribed_by": "Prescritto da {{name}}",
+    "refills_count": "{{count}} ricariche",
+    "needs_refill": "Ricarica Necessaria",
+    "has_interactions": "Interazioni Farmacologiche",
+    "no_prescriptions": "Nessuna prescrizione trovata",
+    "no_prescriptions_description": "Crea la tua prima prescrizione per iniziare",
+    "create_first": "Crea Prima Prescrizione",
+    "error_loading": "Impossibile caricare le prescrizioni",
+    "status": {
+      "active": "Attiva",
+      "completed": "Completata",
+      "cancelled": "Annullata",
+      "discontinued": "Sospesa",
+      "on_hold": "In Attesa"
+    },
+    "stats": {
+      "total": "Totale Prescrizioni",
+      "active": "Attive",
+      "needs_refill": "{{count}} prescrizione necessita ricarica a breve",
+      "needs_refill_plural": "{{count}} prescrizioni necessitano ricarica a breve",
+      "needs_refill_description": "Entro i prossimi 7 giorni"
+    },
+    "list": {
+      "title": "Tutte le Prescrizioni",
+      "description": "Visualizza e gestisci le prescrizioni dei pazienti",
+      "showing": "Visualizzazione {{count}} di {{total}} prescrizioni"
+    },
+    "filters": {
+      "title": "Filtra Prescrizioni",
+      "description": "Filtra le prescrizioni per stato, paziente o data",
+      "status": "Stato",
+      "all_statuses": "Tutti gli Stati",
+      "patient": "Paziente",
+      "select_patient": "Seleziona paziente...",
+      "from_date": "Da Data",
+      "to_date": "A Data",
+      "select_date": "Seleziona...",
+      "clear_all": "Cancella Filtri",
+      "active_filters": "Filtri attivi",
+      "patient_selected": "Paziente selezionato",
+      "from": "Da",
+      "to": "A"
+    },
+    "actions": {
+      "discontinue": "Sospendi",
+      "renew": "Rinnova"
+    },
+    "details": {
+      "medication": "Dettagli Farmaco",
+      "dosage": "Dosaggio",
+      "frequency": "Frequenza",
+      "form": "Forma",
+      "route": "Via di Somministrazione",
+      "duration": "Durata",
+      "quantity": "Quantità Dispensata",
+      "refills": "Ricariche Consentite",
+      "dates_status": "Date e Stato",
+      "prescribed_date": "Data Prescrizione",
+      "start_date": "Data Inizio",
+      "end_date": "Data Fine",
+      "discontinued_date": "Data Sospensione",
+      "discontinued_reason": "Motivo Sospensione",
+      "instructions_notes": "Istruzioni e Note",
+      "patient_instructions": "Istruzioni per il Paziente",
+      "pharmacy_notes": "Note per la Farmacia",
+      "related_info": "Informazioni Correlate",
+      "patient": "Paziente",
+      "visit": "Visita"
+    },
+    "warnings": {
+      "needs_refill_title": "Ricarica Necessaria Presto",
+      "needs_refill_description": "Questa prescrizione dovrà essere ricaricata entro i prossimi 7 giorni",
+      "expired_title": "Prescrizione Scaduta",
+      "expired_description": "Questa prescrizione ha superato la data di fine"
+    },
+    "interactions": {
+      "title": "Avvisi Interazioni Farmacologiche",
+      "severity": {
+        "minor": "Minore",
+        "moderate": "Moderata",
+        "major": "Maggiore"
+      },
+      "one_warning": "1 Interazione",
+      "count_warnings": "{{count}} Interazioni",
+      "single_interaction": "Questa prescrizione presenta una potenziale interazione farmacologica.",
+      "multiple_interactions": "Questa prescrizione presenta {{count}} potenziali interazioni farmacologiche.",
+      "show_details": "Mostra Dettagli",
+      "hide_details": "Nascondi Dettagli"
+    },
+    "print": {
+      "title": "Stampa Prescrizione",
+      "description": "Genera un documento prescrizione stampabile",
+      "document_title": "Prescrizione",
+      "template_label": "Modello Documento",
+      "select_template": "Seleziona un modello...",
+      "select_template_error": "Seleziona un modello",
+      "title_label": "Titolo Documento",
+      "title_placeholder": "Inserisci il titolo del documento...",
+      "no_templates": "Nessun modello di prescrizione disponibile. Creane uno nei Modelli Documento.",
+      "for_patient": "Per il paziente: {{name}}",
+      "generate": "Genera Documento",
+      "generating": "Generazione in corso...",
+      "generated_success": "Documento Generato",
+      "generated_description": "Il documento prescrizione è pronto",
+      "generate_error": "Impossibile generare il documento prescrizione",
+      "document_ready": "Documento generato con successo. Ora puoi stamparlo o scaricarlo.",
+      "print_opened": "Finestra di Stampa Aperta",
+      "print_opened_description": "Usa la finestra di stampa del browser per stampare il documento",
+      "print_error": "Impossibile aprire la finestra di stampa",
+      "download_success": "Documento Scaricato",
+      "download_description": "Il documento prescrizione è stato scaricato",
+      "download_error": "Impossibile scaricare il documento",
+      "opening": "Apertura..."
+    },
+    "discontinue": {
+      "title": "Sospendi Prescrizione",
+      "description": "Seleziona un motivo per sospendere questa prescrizione",
+      "warning": "Stai per sospendere {{medication}}. Questa azione segnerà la prescrizione come sospesa.",
+      "reason_label": "Motivo della Sospensione",
+      "select_reason": "Seleziona un motivo...",
+      "custom_reason_label": "Specifica Motivo",
+      "custom_reason_placeholder": "Inserisci il motivo della sospensione...",
+      "confirm": "Sospendi Prescrizione",
+      "success": "Prescrizione Sospesa",
+      "success_description": "{{medication}} è stata sospesa",
+      "error": "Impossibile sospendere la prescrizione",
+      "reasons": {
+        "side_effects": "Effetti collaterali",
+        "allergic_reaction": "Reazione allergica",
+        "ineffective": "Trattamento inefficace",
+        "patient_request": "Richiesta del paziente",
+        "therapy_completed": "Terapia completata",
+        "changed_medication": "Cambio farmaco",
+        "drug_interaction": "Interazione farmacologica",
+        "other": "Altro motivo"
+      }
+    },
+    "renew": {
+      "title": "Rinnova Prescrizione",
+      "description": "Crea una nuova prescrizione basata su una esistente",
+      "info": "Rinnovo della prescrizione per {{medication}}. Rivedi e modifica i dettagli prima di salvare.",
+      "confirm": "Crea Prescrizione Rinnovata",
+      "success": "Prescrizione Rinnovata",
+      "success_description": "È stata creata una nuova prescrizione per {{medication}}",
+      "error": "Impossibile rinnovare la prescrizione"
+    },
+    "create": {
+      "success": "Prescrizione Creata",
+      "success_description": "La prescrizione per {{medication}} è stata creata",
+      "error": "Impossibile creare la prescrizione"
+    },
+    "update": {
+      "success": "Prescrizione Aggiornata",
+      "success_description": "La prescrizione di {{medication}} è stata aggiornata",
+      "error": "Impossibile aggiornare la prescrizione"
+    },
+    "delete": {
+      "title": "Elimina Prescrizione",
+      "description": "Sei sicuro di voler eliminare la prescrizione per {{medication}}? Questa azione non può essere annullata.",
+      "success": "Prescrizione Eliminata",
+      "success_description": "La prescrizione è stata eliminata",
+      "error": "Impossibile eliminare la prescrizione"
+    },
+    "edit": {
+      "cannot_edit_title": "Impossibile Modificare Prescrizione",
+      "cannot_edit_description": "Questa prescrizione non può essere modificata perché ha stato: {{status}}. Solo le prescrizioni attive possono essere modificate.",
+      "medication_change_warning": "Nota: Il nome del farmaco non può essere modificato. Se devi prescrivere un farmaco diverso, crea una nuova prescrizione."
+    },
+    "interaction_confirmation": {
+      "title": "Avviso Interazione Farmacologica",
+      "description": "Sono state rilevate le seguenti interazioni farmacologiche per questa prescrizione:",
+      "warning_prompt": "Sei sicuro di voler procedere con questa prescrizione nonostante gli avvisi di interazione?",
+      "severity": {
+        "minor": "Lieve",
+        "moderate": "Moderata",
+        "major": "Grave"
+      },
+      "confirm": "Procedi Comunque",
+      "cancel": "Rivedi Prescrizione"
+    }
   },
   "documents": {
     "page_description": "Visualizza e gestisci tutti i documenti generati",

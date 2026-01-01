@@ -746,14 +746,112 @@ BEGIN
         true, true, 'it', v_testdoctor_id, v_testdoctor_id
     ) ON CONFLICT (template_key) DO NOTHING;
 
+    -- English Prescription
+    INSERT INTO document_templates (
+        template_key, template_name, description, document_type,
+        template_html, template_variables, header_html, footer_html, css_styles,
+        page_size, page_orientation, margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm,
+        is_active, is_default, language, created_by, updated_by
+    ) VALUES (
+        'prescription_en',
+        'Medical Prescription',
+        'Standard medical prescription in English',
+        'PRESCRIPTION',
+        E'<div class="prescription">
+    <h1 class="title">MEDICAL PRESCRIPTION</h1>
+
+    <div class="patient-info">
+        <p><strong>Patient:</strong> {{patient.full_name}}</p>
+        <p><strong>Date of Birth:</strong> {{patient.date_of_birth}}</p>
+        {% if patient.fiscal_code %}
+        <p><strong>ID Number:</strong> {{patient.fiscal_code}}</p>
+        {% endif %}
+    </div>
+
+    <div class="prescription-content">
+        <p class="rx-symbol">℞</p>
+
+        {% for rx in prescription.medications %}
+        <div class="medication-item">
+            <p class="medication-name"><strong>{{rx.name}}</strong> {{rx.strength}}</p>
+            <p class="medication-form">{{rx.form}}</p>
+            <p class="medication-dosage">
+                <strong>Directions:</strong> {{rx.dosage}}
+            </p>
+            <p class="medication-instructions">
+                {{rx.instructions}}
+            </p>
+            {% if rx.quantity %}
+            <p class="medication-quantity">
+                <strong>Quantity:</strong> {{rx.quantity}} packages
+            </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if prescription.notes %}
+    <div class="notes">
+        <p><strong>Notes:</strong> {{prescription.notes}}</p>
+    </div>
+    {% endif %}
+
+    <div class="footer-section">
+        <div class="date-location">
+            <p>{{clinic.city}}, {{document.date}}</p>
+        </div>
+        <div class="signature">
+            <p>Physician</p>
+            <p class="signature-line">_________________________</p>
+            <p>Dr. {{provider.full_name}}</p>
+            <p class="license">License No: {{provider.license_number}}</p>
+        </div>
+    </div>
+</div>',
+        '{"required": ["patient", "provider", "clinic", "prescription", "document"], "patient": ["full_name", "date_of_birth"], "provider": ["full_name", "license_number"], "clinic": ["city"], "prescription": ["medications"], "document": ["date"]}',
+        E'<div class="header">
+    <div class="clinic-info">
+        <h2>{{clinic.name}}</h2>
+        <p>{{clinic.address}} - {{clinic.city}}</p>
+        <p>Phone: {{clinic.phone}}</p>
+    </div>
+</div>',
+        E'<div class="footer">
+    <p class="validity">Prescription valid for 30 days from date of issue</p>
+</div>',
+        E'.prescription { font-family: Arial, sans-serif; line-height: 1.5; }
+.title { text-align: center; margin-bottom: 15px; }
+.patient-info { margin: 15px 0; padding: 10px; background-color: #f5f5f5; border-radius: 5px; }
+.patient-info p { margin: 3px 0; }
+.prescription-content { margin: 20px 0; }
+.rx-symbol { font-size: 2em; color: #2563eb; margin-bottom: 10px; }
+.medication-item { margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-left: 4px solid #2563eb; }
+.medication-name { font-size: 1.1em; margin-bottom: 5px; }
+.medication-form { color: #666; font-style: italic; }
+.medication-dosage { margin: 8px 0; }
+.medication-instructions { margin: 8px 0; color: #333; }
+.medication-quantity { margin-top: 8px; }
+.notes { margin: 15px 0; padding: 10px; background-color: #fffbeb; border-left: 4px solid #ffc107; }
+.footer-section { display: flex; justify-content: space-between; margin-top: 30px; }
+.signature { text-align: center; }
+.signature-line { margin: 20px 0 5px 0; }
+.license { font-size: 0.9em; color: #666; }
+.header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; }
+.clinic-info { text-align: center; }
+.footer { text-align: center; border-top: 1px solid #ccc; padding-top: 10px; }
+.validity { font-style: italic; color: #666; }',
+        'A4', 'PORTRAIT', 20, 15, 20, 20,
+        true, true, 'en', v_testdoctor_id, v_testdoctor_id
+    ) ON CONFLICT (template_key) DO NOTHING;
+
     RAISE NOTICE '═══════════════════════════════════════════════════════';
     RAISE NOTICE 'Document Templates Summary:';
     RAISE NOTICE '  Medical Certificate (IT/EN) - 2 templates';
     RAISE NOTICE '  Referral Letter (IT/EN) - 2 templates';
     RAISE NOTICE '  Lab Request (IT) - 1 template';
     RAISE NOTICE '  Visit Summary (IT) - 1 template';
-    RAISE NOTICE '  Prescription (IT) - 1 template';
-    RAISE NOTICE 'Total: 7 templates created';
+    RAISE NOTICE '  Prescription (IT/EN) - 2 templates';
+    RAISE NOTICE 'Total: 8 templates created';
     RAISE NOTICE '═══════════════════════════════════════════════════════';
 
 END $$;

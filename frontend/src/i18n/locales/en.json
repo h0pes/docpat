@@ -206,6 +206,18 @@
     "admin_section": "Administration",
     "personal_section": "Personal"
   },
+  "dashboard": {
+    "today": "Today",
+    "this_week": "This week",
+    "quick_actions": "Quick Actions",
+    "recent_activity": "Recent Activity",
+    "view_all_activity": "View All Activity",
+    "new_appointment": "New Appointment",
+    "new_patient": "New Patient",
+    "new_visit": "New Visit",
+    "new_prescription": "New Prescription",
+    "view_reports": "View Reports"
+  },
   "theme": {
     "light": "Light",
     "dark": "Dark",
@@ -376,6 +388,10 @@
       "save_error": "Failed to save patient",
       "delete_success": "Patient deleted successfully",
       "delete_error": "Failed to delete patient"
+    },
+    "prescriptions_section": {
+      "description": "Recent prescriptions for this patient",
+      "no_prescriptions": "No prescriptions for this patient yet"
     },
     "insurance": {
       "title": "Insurance Information",
@@ -651,6 +667,7 @@
     "create_first_visit": "Create First Visit",
     "no_visits_yet": "No visits recorded yet",
     "no_chief_complaint": "No chief complaint recorded",
+    "no_prescriptions": "No prescriptions for this visit",
     "error_loading": "Failed to load visits. Please try again.",
     "type": {
       "new_patient": "New Patient",
@@ -1127,7 +1144,202 @@
     "frequency": "Frequency",
     "duration": "Duration",
     "quantity": "Quantity",
-    "instructions": "Instructions"
+    "instructions": "Instructions",
+    "description": "Manage all prescriptions across patients",
+    "new_prescription": "New Prescription",
+    "new_prescription_description": "Create a new prescription for the patient",
+    "edit_prescription": "Edit Prescription",
+    "editing": "Editing {{medication}}",
+    "select_patient": "Select Patient",
+    "select_patient_description": "Choose a patient for this prescription",
+    "select_patient_first": "Select a patient to create a prescription",
+    "patient_selected": "Patient selected",
+    "change_patient": "Change patient",
+    "manage_templates": "Manage Templates",
+    "back_to_list": "Back to Prescriptions",
+    "back_to_detail": "Back to Prescription Details",
+    "view_patient": "View Patient",
+    "view_visit": "View Related Visit",
+    "prescribed_by": "Prescribed by {{name}}",
+    "refills_count": "{{count}} refills",
+    "needs_refill": "Needs Refill",
+    "has_interactions": "Drug Interactions",
+    "no_prescriptions": "No prescriptions found",
+    "no_prescriptions_description": "Create your first prescription to get started",
+    "create_first": "Create First Prescription",
+    "error_loading": "Failed to load prescriptions",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "discontinued": "Discontinued",
+      "on_hold": "On Hold"
+    },
+    "stats": {
+      "total": "Total Prescriptions",
+      "active": "Active",
+      "needs_refill": "{{count}} prescription needs refill soon",
+      "needs_refill_plural": "{{count}} prescriptions need refill soon",
+      "needs_refill_description": "Within next 7 days"
+    },
+    "list": {
+      "title": "All Prescriptions",
+      "description": "View and manage patient prescriptions",
+      "showing": "Showing {{count}} of {{total}} prescriptions"
+    },
+    "filters": {
+      "title": "Filter Prescriptions",
+      "description": "Filter prescriptions by status, patient, or date",
+      "status": "Status",
+      "all_statuses": "All Statuses",
+      "patient": "Patient",
+      "select_patient": "Select patient...",
+      "from_date": "From Date",
+      "to_date": "To Date",
+      "select_date": "Select...",
+      "clear_all": "Clear Filters",
+      "active_filters": "Active filters",
+      "patient_selected": "Patient selected",
+      "from": "From",
+      "to": "To"
+    },
+    "actions": {
+      "discontinue": "Discontinue",
+      "renew": "Renew"
+    },
+    "details": {
+      "medication": "Medication Details",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "form": "Form",
+      "route": "Route of Administration",
+      "duration": "Duration",
+      "quantity": "Quantity Dispensed",
+      "refills": "Refills Allowed",
+      "dates_status": "Dates & Status",
+      "prescribed_date": "Prescribed Date",
+      "start_date": "Start Date",
+      "end_date": "End Date",
+      "discontinued_date": "Discontinued Date",
+      "discontinued_reason": "Discontinuation Reason",
+      "instructions_notes": "Instructions & Notes",
+      "patient_instructions": "Patient Instructions",
+      "pharmacy_notes": "Pharmacy Notes",
+      "related_info": "Related Information",
+      "patient": "Patient",
+      "visit": "Visit"
+    },
+    "warnings": {
+      "needs_refill_title": "Refill Needed Soon",
+      "needs_refill_description": "This prescription will need to be refilled within the next 7 days",
+      "expired_title": "Prescription Expired",
+      "expired_description": "This prescription has passed its end date"
+    },
+    "interactions": {
+      "title": "Drug Interaction Warnings",
+      "severity": {
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "major": "Major"
+      },
+      "one_warning": "1 Interaction",
+      "count_warnings": "{{count}} Interactions",
+      "single_interaction": "This prescription has a potential drug interaction.",
+      "multiple_interactions": "This prescription has {{count}} potential drug interactions.",
+      "show_details": "Show Details",
+      "hide_details": "Hide Details"
+    },
+    "print": {
+      "title": "Print Prescription",
+      "description": "Generate a printable prescription document",
+      "document_title": "Prescription",
+      "template_label": "Document Template",
+      "select_template": "Select a template...",
+      "select_template_error": "Please select a template",
+      "title_label": "Document Title",
+      "title_placeholder": "Enter document title...",
+      "no_templates": "No prescription templates available. Please create one in Document Templates.",
+      "for_patient": "For patient: {{name}}",
+      "generate": "Generate Document",
+      "generating": "Generating...",
+      "generated_success": "Document Generated",
+      "generated_description": "Your prescription document is ready",
+      "generate_error": "Failed to generate prescription document",
+      "document_ready": "Document generated successfully. You can now print or download it.",
+      "print_opened": "Print Dialog Opened",
+      "print_opened_description": "Use your browser's print dialog to print the document",
+      "print_error": "Failed to open print dialog",
+      "download_success": "Document Downloaded",
+      "download_description": "The prescription document has been downloaded",
+      "download_error": "Failed to download document",
+      "opening": "Opening..."
+    },
+    "discontinue": {
+      "title": "Discontinue Prescription",
+      "description": "Select a reason for discontinuing this prescription",
+      "warning": "You are about to discontinue {{medication}}. This action will mark the prescription as discontinued.",
+      "reason_label": "Reason for Discontinuation",
+      "select_reason": "Select a reason...",
+      "custom_reason_label": "Specify Reason",
+      "custom_reason_placeholder": "Enter the reason for discontinuation...",
+      "confirm": "Discontinue Prescription",
+      "success": "Prescription Discontinued",
+      "success_description": "{{medication}} has been discontinued",
+      "error": "Failed to discontinue prescription",
+      "reasons": {
+        "side_effects": "Side effects",
+        "allergic_reaction": "Allergic reaction",
+        "ineffective": "Ineffective treatment",
+        "patient_request": "Patient request",
+        "therapy_completed": "Therapy completed",
+        "changed_medication": "Changed to different medication",
+        "drug_interaction": "Drug interaction",
+        "other": "Other reason"
+      }
+    },
+    "renew": {
+      "title": "Renew Prescription",
+      "description": "Create a new prescription based on an existing one",
+      "info": "Renewing prescription for {{medication}}. Review and modify the details below before saving.",
+      "confirm": "Create Renewed Prescription",
+      "success": "Prescription Renewed",
+      "success_description": "A new prescription for {{medication}} has been created",
+      "error": "Failed to renew prescription"
+    },
+    "create": {
+      "success": "Prescription Created",
+      "success_description": "Prescription for {{medication}} has been created",
+      "error": "Failed to create prescription"
+    },
+    "update": {
+      "success": "Prescription Updated",
+      "success_description": "{{medication}} prescription has been updated",
+      "error": "Failed to update prescription"
+    },
+    "delete": {
+      "title": "Delete Prescription",
+      "description": "Are you sure you want to delete the prescription for {{medication}}? This action cannot be undone.",
+      "success": "Prescription Deleted",
+      "success_description": "The prescription has been deleted",
+      "error": "Failed to delete prescription"
+    },
+    "edit": {
+      "cannot_edit_title": "Cannot Edit Prescription",
+      "cannot_edit_description": "This prescription cannot be edited because it has status: {{status}}. Only active prescriptions can be modified.",
+      "medication_change_warning": "Note: The medication name cannot be changed. If you need to prescribe a different medication, create a new prescription instead."
+    },
+    "interaction_confirmation": {
+      "title": "Drug Interaction Warning",
+      "description": "The following drug interactions have been detected for this prescription:",
+      "warning_prompt": "Are you sure you want to proceed with this prescription despite the interaction warnings?",
+      "severity": {
+        "minor": "Minor",
+        "moderate": "Moderate",
+        "major": "Major"
+      },
+      "confirm": "Proceed Anyway",
+      "cancel": "Review Prescription"
+    }
   },
   "documents": {
     "page_description": "View and manage all generated documents",
