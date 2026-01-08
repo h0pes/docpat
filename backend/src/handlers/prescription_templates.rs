@@ -265,9 +265,11 @@ pub async fn delete_template(
     check_permission(&state, &auth_user.role, "delete").await?;
 
     // Delete template service
+    // Admins can delete any template, doctors can only delete their own
+    let is_admin = auth_user.role == UserRole::Admin;
     let template_service = PrescriptionTemplateService::new(state.pool.clone());
     template_service
-        .delete_template(id, auth_user.user_id)
+        .delete_template(id, auth_user.user_id, is_admin)
         .await
         .map_err(|e| {
             tracing::error!("Failed to delete prescription template {}: {}", id, e);

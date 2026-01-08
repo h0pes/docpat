@@ -38,6 +38,7 @@ import type {
   PrescriptionTemplate,
   CreatePrescriptionTemplateRequest,
   MedicationSearchResult,
+  CreateCustomMedicationRequest,
 } from '@/types/prescription';
 
 /**
@@ -407,6 +408,22 @@ export function useMedicationSearch(
 }
 
 /**
+ * Create a custom medication
+ * Custom medications are stored in the database and appear in future medication searches.
+ */
+export function useCreateCustomMedication() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateCustomMedicationRequest) => prescriptionsApi.createCustomMedication(data),
+    onSuccess: () => {
+      // Invalidate medication search cache so the new medication appears
+      queryClient.invalidateQueries({ queryKey: ['medications'] });
+    },
+  });
+}
+
+/**
  * Create a new prescription
  */
 export function useCreatePrescription() {
@@ -466,6 +483,84 @@ export function useDiscontinuePrescription() {
       // Invalidate lists
       queryClient.invalidateQueries({ queryKey: prescriptionKeys.lists() });
       queryClient.invalidateQueries({ queryKey: prescriptionKeys.byPatient(discontinuedPrescription.patient_id) });
+    },
+  });
+}
+
+/**
+ * Cancel a prescription (ACTIVE → CANCELLED)
+ */
+export function useCancelPrescription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: { reason?: string } }) =>
+      prescriptionsApi.cancel(id, data),
+    onSuccess: (cancelledPrescription) => {
+      // Update in cache
+      queryClient.setQueryData(prescriptionKeys.detail(cancelledPrescription.id), cancelledPrescription);
+
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.byPatient(cancelledPrescription.patient_id) });
+    },
+  });
+}
+
+/**
+ * Put a prescription on hold (ACTIVE → ON_HOLD)
+ */
+export function useHoldPrescription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { reason: string } }) =>
+      prescriptionsApi.hold(id, data),
+    onSuccess: (heldPrescription) => {
+      // Update in cache
+      queryClient.setQueryData(prescriptionKeys.detail(heldPrescription.id), heldPrescription);
+
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.byPatient(heldPrescription.patient_id) });
+    },
+  });
+}
+
+/**
+ * Resume a prescription from hold (ON_HOLD → ACTIVE)
+ */
+export function useResumePrescription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => prescriptionsApi.resume(id),
+    onSuccess: (resumedPrescription) => {
+      // Update in cache
+      queryClient.setQueryData(prescriptionKeys.detail(resumedPrescription.id), resumedPrescription);
+
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.byPatient(resumedPrescription.patient_id) });
+    },
+  });
+}
+
+/**
+ * Mark a prescription as completed (ACTIVE → COMPLETED)
+ */
+export function useCompletePrescription() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => prescriptionsApi.complete(id),
+    onSuccess: (completedPrescription) => {
+      // Update in cache
+      queryClient.setQueryData(prescriptionKeys.detail(completedPrescription.id), completedPrescription);
+
+      // Invalidate lists
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: prescriptionKeys.byPatient(completedPrescription.patient_id) });
     },
   });
 }

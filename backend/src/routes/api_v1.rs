@@ -12,10 +12,10 @@ use axum::{
 
 use crate::handlers::auth::AppState;
 use crate::handlers::{
-    bulk_update_settings, cancel_appointment, check_availability, create_appointment,
-    create_diagnosis, create_patient, create_prescription, create_prescription_template,
-    create_visit, create_visit_template, delete_diagnosis, delete_patient, delete_prescription,
-    reactivate_patient,
+    bulk_update_settings, cancel_appointment, cancel_prescription, check_availability,
+    complete_prescription, create_appointment, create_custom_medication, create_diagnosis,
+    create_patient, create_prescription, create_prescription_template, create_visit,
+    create_visit_template, delete_diagnosis, delete_patient, delete_prescription,
     delete_prescription_template, delete_visit, delete_visit_template, discontinue_prescription,
     export_report, get_appointment, get_appointment_report, get_daily_schedule,
     get_dashboard_report, get_diagnosis, get_diagnosis_report, get_monthly_schedule, get_patient,
@@ -23,14 +23,17 @@ use crate::handlers::{
     get_patient_visits, get_prescription, get_prescription_template, get_productivity_report,
     get_revenue_report, get_setting, get_settings_by_group, get_visit, get_visit_diagnoses,
     get_visit_prescriptions, get_visit_statistics, get_visit_template, get_visit_version,
-    get_weekly_schedule, list_appointments, list_groups, list_patients, list_prescription_templates,
-    list_settings, list_visit_templates, list_visits, list_visit_versions, lock_visit,
-    login_handler, logout_handler, mfa_enroll_handler, mfa_setup_handler, refresh_token_handler,
-    reset_setting, restore_visit_version, search_icd10, search_medications, search_patients,
-    sign_visit, update_appointment, update_diagnosis, update_patient, update_prescription,
-    update_prescription_template, update_setting, update_visit, update_visit_template,
+    get_weekly_schedule, hold_prescription, list_appointments, list_groups, list_patients,
+    list_prescription_templates, list_prescriptions, list_settings, list_visit_templates,
+    list_visit_versions, list_visits, lock_visit, login_handler, logout_handler,
+    mfa_enroll_handler, mfa_setup_handler, reactivate_patient, refresh_token_handler,
+    reset_setting, restore_visit_version, resume_prescription, search_icd10, search_medications,
+    search_patients, sign_visit, update_appointment, update_diagnosis, update_patient,
+    update_prescription, update_prescription_template, update_setting, update_visit,
+    update_visit_template,
 };
 use crate::handlers::audit_logs;
+use crate::handlers::drug_interactions;
 use crate::handlers::files;
 use crate::handlers::holidays;
 use crate::handlers::system_health;
@@ -136,10 +139,15 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
 
     // Prescription management routes - requires authentication
     let prescription_routes = Router::new()
-        .route("/", post(create_prescription))
+        .route("/", get(list_prescriptions).post(create_prescription))
         .route("/medications/search", get(search_medications))
+        .route("/medications/custom", post(create_custom_medication))
         .route("/{id}", get(get_prescription).put(update_prescription).delete(delete_prescription))
         .route("/{id}/discontinue", post(discontinue_prescription))
+        .route("/{id}/cancel", post(cancel_prescription))
+        .route("/{id}/hold", post(hold_prescription))
+        .route("/{id}/resume", post(resume_prescription))
+        .route("/{id}/complete", post(complete_prescription))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             jwt_auth_middleware,
@@ -286,6 +294,18 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Drug interactions routes - requires authentication
+    let drug_interactions_routes = Router::new()
+        .route("/check", post(drug_interactions::check_interactions))
+        .route("/check-new", post(drug_interactions::check_new_medication))
+        .route("/check-new-for-patient", post(drug_interactions::check_new_medication_for_patient))
+        .route("/patient/{patient_id}", get(drug_interactions::check_patient_interactions))
+        .route("/statistics", get(drug_interactions::get_statistics))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
@@ -303,7 +323,8 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .nest("/holidays", holidays_routes)
         .nest("/audit-logs", audit_logs_routes)
         .nest("/system", system_routes)
-        .nest("/files", files_routes);
+        .nest("/files", files_routes)
+        .nest("/drug-interactions", drug_interactions_routes);
 
     #[cfg(feature = "rbac")]
     {

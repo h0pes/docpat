@@ -1265,6 +1265,15 @@ impl ReportService {
         .await
         .unwrap_or(0);
 
+        let visits_this_week: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::BIGINT FROM visits WHERE visit_date >= $1 AND visit_date <= $2",
+        )
+        .bind(week_start)
+        .bind(week_end)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap_or(0);
+
         let pending_visits: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)::BIGINT FROM visits WHERE status = 'DRAFT'",
         )
@@ -1274,6 +1283,13 @@ impl ReportService {
 
         let active_patients: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)::BIGINT FROM patients WHERE status = 'ACTIVE'",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap_or(0);
+
+        let active_prescriptions: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::BIGINT FROM prescriptions WHERE status = 'ACTIVE'",
         )
         .fetch_one(&mut *tx)
         .await
@@ -1290,8 +1306,10 @@ impl ReportService {
         let quick_stats = QuickStats {
             appointments_today,
             appointments_this_week,
+            visits_this_week,
             pending_visits,
             active_patients,
+            active_prescriptions,
             documents_this_month,
         };
 

@@ -7,18 +7,21 @@
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Pill, AlertTriangle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Pill, User, Calendar, Loader2, AlertTriangle } from 'lucide-react';
 
 import { useCreatePrescription } from '@/hooks/useVisits';
+import { usePatientDrugInteractions, useCheckNewMedicationForPatient } from '@/hooks/useDrugInteractions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { PrescriptionForm } from '@/components/visits/PrescriptionForm';
 import { PatientSearchCombobox } from '@/components/appointments/PatientSearchCombobox';
-import { CreatePrescriptionRequest } from '@/types/prescription';
+import { DrugInteractionWarning } from '@/components/prescriptions/DrugInteractionWarning';
+import { CreatePrescriptionRequest, DrugInteractionWarning as DrugInteractionWarningType } from '@/types/prescription';
 import { useAuth } from '@/store/authStore';
-import { useState } from 'react';
+import { patientsApi } from '@/services/api/patients';
+import { useState, useMemo, useCallback } from 'react';
 
 /**
  * NewPrescriptionPage Component
@@ -30,12 +33,79 @@ export function NewPrescriptionPage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Get patient ID from URL params (if navigated from patient selector)
+  // Get patient ID and visit ID from URL params (if navigated from visit or patient selector)
   const initialPatientId = searchParams.get('patientId');
+  const visitId = searchParams.get('visitId');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(initialPatientId);
 
   // Create mutation
   const createMutation = useCreatePrescription();
+
+  // Fetch patient data when patient is selected
+  const { data: patient, isLoading: isLoadingPatient } = useQuery({
+    queryKey: ['patients', selectedPatientId],
+    queryFn: () => patientsApi.getById(selectedPatientId!),
+    enabled: !!selectedPatientId,
+  });
+
+  // State for NEW interactions (caused by the medication being added)
+  const [newInteractionWarnings, setNewInteractionWarnings] = useState<DrugInteractionWarningType[]>([]);
+
+  // Fetch EXISTING drug interactions for the patient's active prescriptions (shown on page)
+  const { data: interactionsData } = usePatientDrugInteractions(
+    selectedPatientId || undefined,
+    undefined, // Show all severity levels
+    { enabled: !!selectedPatientId }
+  );
+
+  // Mutation for checking NEW interactions when medication is selected
+  const checkNewMedication = useCheckNewMedicationForPatient();
+
+  // Convert backend DrugInteraction format to frontend DrugInteractionWarning format (for existing)
+  const existingInteractionWarnings: DrugInteractionWarningType[] = useMemo(() => {
+    if (!interactionsData?.interactions) return [];
+    return interactionsData.interactions.map(interaction => ({
+      medication_name: `${interaction.drug_a_name || interaction.drug_a_atc_code} ↔ ${interaction.drug_b_name || interaction.drug_b_atc_code}`,
+      severity: interaction.severity,
+      description: interaction.effect || t('prescriptions.interactions.default_description', {
+        severity: t(`prescriptions.interactions.severity.${interaction.severity}`).toLowerCase()
+      }),
+    }));
+  }, [interactionsData, t]);
+
+  /**
+   * Check for NEW drug interactions when medication is selected in the form
+   * This is called by PrescriptionForm when a medication is chosen
+   */
+  const handleMedicationChange = useCallback(async (medicationName: string, genericName?: string) => {
+    if (!selectedPatientId || !medicationName) {
+      setNewInteractionWarnings([]);
+      return;
+    }
+
+    try {
+      const result = await checkNewMedication.mutateAsync({
+        new_medication_name: medicationName,
+        new_generic_name: genericName,
+        patient_id: selectedPatientId,
+        // No min_severity filter - show all interactions
+      });
+
+      // Convert to warning format
+      const warnings: DrugInteractionWarningType[] = result.interactions.map(interaction => ({
+        medication_name: `${interaction.drug_a_name || interaction.drug_a_atc_code} ↔ ${interaction.drug_b_name || interaction.drug_b_atc_code}`,
+        severity: interaction.severity,
+        description: interaction.effect || t('prescriptions.interactions.default_description', {
+          severity: t(`prescriptions.interactions.severity.${interaction.severity}`).toLowerCase()
+        }),
+      }));
+
+      setNewInteractionWarnings(warnings);
+    } catch {
+      // On error, clear warnings to avoid blocking prescription
+      setNewInteractionWarnings([]);
+    }
+  }, [selectedPatientId, checkNewMedication, t]);
 
   /**
    * Handle patient selection
@@ -46,10 +116,16 @@ export function NewPrescriptionPage() {
 
   /**
    * Handle form submission
+   * Includes interaction warnings so they're stored with the prescription for list display
    */
   const handleSubmit = async (data: CreatePrescriptionRequest) => {
     try {
-      const result = await createMutation.mutateAsync(data);
+      // Include interaction warnings in the create request so they're stored
+      const requestWithWarnings: CreatePrescriptionRequest = {
+        ...data,
+        interaction_warnings: newInteractionWarnings.length > 0 ? newInteractionWarnings : undefined,
+      };
+      const result = await createMutation.mutateAsync(requestWithWarnings);
       toast({
         title: t('prescriptions.create.success'),
         description: t('prescriptions.create.success_description', {
@@ -128,28 +204,68 @@ export function NewPrescriptionPage() {
         </div>
       </div>
 
-      {/* Change patient link */}
-      <Alert>
-        <AlertDescription className="flex items-center justify-between">
-          <span>{t('prescriptions.patient_selected')}</span>
-          <Button
-            variant="link"
-            size="sm"
-            className="p-0 h-auto"
-            onClick={() => setSelectedPatientId(null)}
-          >
-            {t('prescriptions.change_patient')}
-          </Button>
-        </AlertDescription>
-      </Alert>
+      {/* Patient Info Card */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {isLoadingPatient ? (
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              ) : patient ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" />
+                    <span className="font-semibold text-lg">
+                      {patient.first_name} {patient.last_name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {new Date(patient.date_of_birth).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {patient.medical_record_number && (
+                    <span className="text-sm text-muted-foreground">
+                      MRN: {patient.medical_record_number}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>{t('prescriptions.patient_selected')}</span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedPatientId(null)}
+            >
+              {t('prescriptions.change_patient')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Prescription Form */}
+      {/* Existing Drug Interactions Warning (between patient's current medications) */}
+      {existingInteractionWarnings.length > 0 && (
+        <DrugInteractionWarning
+          warnings={existingInteractionWarnings}
+          mode="full"
+          collapsible
+          defaultCollapsed={false}
+        />
+      )}
+
+      {/* Prescription Form - pass only NEW interactions for confirmation dialog */}
       <PrescriptionForm
         patientId={selectedPatientId}
         providerId={user?.id || ''}
+        visitId={visitId || undefined}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isSubmitting={createMutation.isPending}
+        interactionWarnings={newInteractionWarnings}
+        onMedicationChange={handleMedicationChange}
       />
     </div>
   );

@@ -122,6 +122,130 @@ impl VisitService {
         Ok(())
     }
 
+    /// Helper to decrypt a visit and enrich it with patient/provider names
+    async fn decrypt_with_names(&self, visit: &Visit) -> Result<VisitResponse> {
+        self.decrypt_with_names_using_pool(visit, &self.pool).await
+    }
+
+    /// Helper to decrypt a visit within a transaction context (for RLS)
+    async fn decrypt_with_names_in_tx<'a>(
+        &self,
+        visit: &Visit,
+        tx: &mut sqlx::Transaction<'a, sqlx::Postgres>,
+    ) -> Result<VisitResponse> {
+        // Fetch patient name (encrypted in patients table, need to decrypt)
+        let patient_names_encrypted: Option<(String, String)> = sqlx::query_as(
+            "SELECT first_name, last_name FROM patients WHERE id = $1"
+        )
+        .bind(visit.patient_id)
+        .fetch_optional(&mut **tx)
+        .await
+        .context("Failed to fetch patient name")?;
+
+        // Decrypt patient names using the encryption key
+        let patient_names = match patient_names_encrypted {
+            Some((enc_first, enc_last)) => {
+                let first = self.encryption_key.decrypt(&enc_first)
+                    .context("Failed to decrypt patient first name")?;
+                let last = self.encryption_key.decrypt(&enc_last)
+                    .context("Failed to decrypt patient last name")?;
+                Some((first, last))
+            }
+            None => None,
+        };
+
+        // Fetch provider name (from users table - NOT encrypted)
+        let provider_names: Option<(String, String)> = sqlx::query_as(
+            "SELECT first_name, last_name FROM users WHERE id = $1"
+        )
+        .bind(visit.provider_id)
+        .fetch_optional(&mut **tx)
+        .await
+        .context("Failed to fetch provider name")?;
+
+        // Fetch signed_by name if visit is signed (from users table - NOT encrypted)
+        let signed_by_name: Option<String> = if let Some(signed_by_id) = visit.signed_by {
+            let names: Option<(String, String)> = sqlx::query_as(
+                "SELECT first_name, last_name FROM users WHERE id = $1"
+            )
+            .bind(signed_by_id)
+            .fetch_optional(&mut **tx)
+            .await
+            .context("Failed to fetch signed_by name")?;
+            names.map(|(f, l)| format!("{} {}", f, l))
+        } else {
+            None
+        };
+
+        visit.decrypt(
+            &self.encryption_key,
+            patient_names.as_ref().map(|(f, _)| f.clone()),
+            patient_names.as_ref().map(|(_, l)| l.clone()),
+            provider_names.as_ref().map(|(f, _)| f.clone()),
+            provider_names.as_ref().map(|(_, l)| l.clone()),
+            signed_by_name,
+        )
+    }
+
+    /// Helper to decrypt using pool (for cases where RLS context is already handled)
+    async fn decrypt_with_names_using_pool<'e, E>(&self, visit: &Visit, _executor: E) -> Result<VisitResponse>
+    where
+        E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+    {
+        // Fetch patient name (encrypted in patients table, need to decrypt)
+        let patient_names_encrypted: Option<(String, String)> = sqlx::query_as(
+            "SELECT first_name, last_name FROM patients WHERE id = $1"
+        )
+        .bind(visit.patient_id)
+        .fetch_optional(&self.pool)
+        .await
+        .context("Failed to fetch patient name")?;
+
+        // Decrypt patient names using the encryption key
+        let patient_names = match patient_names_encrypted {
+            Some((enc_first, enc_last)) => {
+                let first = self.encryption_key.decrypt(&enc_first)
+                    .context("Failed to decrypt patient first name")?;
+                let last = self.encryption_key.decrypt(&enc_last)
+                    .context("Failed to decrypt patient last name")?;
+                Some((first, last))
+            }
+            None => None,
+        };
+
+        // Fetch provider name (from users table - NOT encrypted)
+        let provider_names: Option<(String, String)> = sqlx::query_as(
+            "SELECT first_name, last_name FROM users WHERE id = $1"
+        )
+        .bind(visit.provider_id)
+        .fetch_optional(&self.pool)
+        .await
+        .context("Failed to fetch provider name")?;
+
+        // Fetch signed_by name if visit is signed (from users table - NOT encrypted)
+        let signed_by_name: Option<String> = if let Some(signed_by_id) = visit.signed_by {
+            let names: Option<(String, String)> = sqlx::query_as(
+                "SELECT first_name, last_name FROM users WHERE id = $1"
+            )
+            .bind(signed_by_id)
+            .fetch_optional(&self.pool)
+            .await
+            .context("Failed to fetch signed_by name")?;
+            names.map(|(f, l)| format!("{} {}", f, l))
+        } else {
+            None
+        };
+
+        visit.decrypt(
+            &self.encryption_key,
+            patient_names.as_ref().map(|(f, _)| f.clone()),
+            patient_names.as_ref().map(|(_, l)| l.clone()),
+            provider_names.as_ref().map(|(f, _)| f.clone()),
+            provider_names.as_ref().map(|(_, l)| l.clone()),
+            signed_by_name,
+        )
+    }
+
     /// Create a new visit with encrypted clinical data
     pub async fn create_visit(
         &self,
@@ -284,8 +408,8 @@ impl VisitService {
         // Commit transaction
         tx.commit().await.context("Failed to commit transaction")?;
 
-        // Decrypt and return
-        visit.decrypt(&self.encryption_key)
+        // Decrypt and return with names
+        self.decrypt_with_names(&visit).await
     }
 
     /// Get visit by ID (decrypted)
@@ -312,31 +436,35 @@ impl VisitService {
         .await
         .context("Failed to fetch visit")?;
 
-        if let Some(ref v) = visit {
-            // Audit log for READ
-            let _ = AuditLog::create(
-                &self.pool,
-                CreateAuditLog {
-                    user_id: Some(user_id),
-                    action: AuditAction::Read,
-                    entity_type: EntityType::Visit,
-                    entity_id: Some(v.id.to_string()),
-                    changes: None,
-                    ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
-                    user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
-                    request_id: request_ctx.map(|c| c.request_id),
-                },
-            )
-            .await;
-        }
+        // Decrypt with names BEFORE committing (to maintain RLS context)
+        let result = match &visit {
+            Some(v) => {
+                // Audit log for READ
+                let _ = AuditLog::create(
+                    &self.pool,
+                    CreateAuditLog {
+                        user_id: Some(user_id),
+                        action: AuditAction::Read,
+                        entity_type: EntityType::Visit,
+                        entity_id: Some(v.id.to_string()),
+                        changes: None,
+                        ip_address: request_ctx.and_then(|c| c.ip_address.clone()),
+                        user_agent: request_ctx.and_then(|c| c.user_agent.clone()),
+                        request_id: request_ctx.map(|c| c.request_id),
+                    },
+                )
+                .await;
 
-        // Commit transaction
+                // Decrypt within transaction to maintain RLS context for patient name lookup
+                Some(self.decrypt_with_names_in_tx(v, &mut tx).await?)
+            }
+            None => None,
+        };
+
+        // Commit transaction after decryption
         tx.commit().await.context("Failed to commit transaction")?;
 
-        match visit {
-            Some(v) => Ok(Some(v.decrypt(&self.encryption_key)?)),
-            None => Ok(None),
-        }
+        Ok(result)
     }
 
     /// Update visit (only allowed for DRAFT status)
@@ -512,7 +640,7 @@ impl VisitService {
         // Commit transaction
         tx.commit().await.context("Failed to commit transaction")?;
 
-        visit.decrypt(&self.encryption_key)
+        self.decrypt_with_names(&visit).await
     }
 
     /// Delete visit (only DRAFT visits can be deleted)
@@ -612,14 +740,16 @@ impl VisitService {
             .await
             .context("Failed to list visits")?;
 
-        // Commit transaction
+        // Decrypt all visits with names WITHIN the transaction (for RLS)
+        let mut results = Vec::with_capacity(visits.len());
+        for visit in visits {
+            results.push(self.decrypt_with_names_in_tx(&visit, &mut tx).await?);
+        }
+
+        // Commit transaction after decryption
         tx.commit().await.context("Failed to commit transaction")?;
 
-        // Decrypt all visits
-        visits
-            .into_iter()
-            .map(|v| v.decrypt(&self.encryption_key))
-            .collect()
+        Ok(results)
     }
 
     /// Count visits matching the filter
@@ -746,13 +876,16 @@ impl VisitService {
         .await
         .context("Failed to fetch patient visits")?;
 
-        // Commit transaction
+        // Decrypt all visits with names WITHIN the transaction (for RLS)
+        let mut results = Vec::with_capacity(visits.len());
+        for visit in visits {
+            results.push(self.decrypt_with_names_in_tx(&visit, &mut tx).await?);
+        }
+
+        // Commit transaction after decryption
         tx.commit().await.context("Failed to commit transaction")?;
 
-        visits
-            .into_iter()
-            .map(|v| v.decrypt(&self.encryption_key))
-            .collect()
+        Ok(results)
     }
 
     /// Sign a visit (DRAFT → SIGNED)
@@ -833,7 +966,7 @@ impl VisitService {
         )
         .await;
 
-        signed_visit.decrypt(&self.encryption_key)
+        self.decrypt_with_names(&signed_visit).await
     }
 
     /// Lock a visit (SIGNED → LOCKED)
@@ -907,7 +1040,7 @@ impl VisitService {
         )
         .await;
 
-        locked_visit.decrypt(&self.encryption_key)
+        self.decrypt_with_names(&locked_visit).await
     }
 
     /// Generate signature hash from encrypted SOAP notes
@@ -1180,8 +1313,8 @@ impl VisitService {
         .await
         .context("Failed to restore visit")?;
 
-        // Decrypt and convert to response
-        Ok(restored.decrypt(&self.encryption_key)?)
+        // Decrypt and convert to response with names
+        self.decrypt_with_names(&restored).await
     }
 }
 

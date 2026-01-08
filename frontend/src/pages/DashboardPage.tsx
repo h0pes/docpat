@@ -6,133 +6,187 @@
  */
 
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
 import { useAuth } from '../store/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
+import { Skeleton } from '../components/ui/skeleton';
 import {
   Users,
   Calendar,
   FileText,
-  TrendingUp,
   Clock,
   Activity,
   Pill,
+  RefreshCw,
+  AlertCircle,
 } from 'lucide-react';
-import { ActivePrescriptionsWidget } from '@/components/prescriptions';
+import { useDashboardReport } from '@/hooks/useReports';
+
+/**
+ * Stat card loading skeleton
+ */
+function StatCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-4" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-16 mb-2" />
+        <Skeleton className="h-3 w-20" />
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Recent activity loading skeleton
+ */
+function RecentActivitySkeleton() {
+  return (
+    <div className="space-y-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="flex items-center justify-between pb-4 border-b border-border last:border-0 last:pb-0">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <div className="text-right space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * DashboardPage component - main authenticated view
  */
 export function DashboardPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Fetch dashboard data from API
+  const {
+    data: dashboardData,
+    isLoading,
+    isError,
+    refetch,
+  } = useDashboardReport();
+
+  const quickStats = dashboardData?.quick_stats;
+  const recentActivity = dashboardData?.recent_activity;
+
   /**
-   * Dashboard statistics - placeholder data
-   * Note: In a production app, these would be fetched from API
+   * Navigate to a specific page
+   */
+  const handleNavigate = (path: string) => {
+    navigate(path);
+  };
+
+  /**
+   * Dashboard statistics from API
    */
   const stats = [
     {
       title: t('nav.patients'),
-      value: '1,234',
-      change: '+12%',
+      value: quickStats?.active_patients?.toLocaleString() ?? '-',
+      subtitle: t('dashboard.active'),
       icon: Users,
-      trend: 'up' as const,
+      href: '/patients',
     },
     {
       title: t('nav.appointments'),
-      value: '18',
+      value: quickStats?.appointments_today?.toString() ?? '-',
       subtitle: t('dashboard.today'),
       icon: Calendar,
-      trend: 'neutral' as const,
+      href: '/appointments',
     },
     {
       title: t('nav.visits'),
-      value: '42',
+      value: quickStats?.visits_this_week?.toString() ?? '-',
       subtitle: t('dashboard.this_week'),
       icon: FileText,
-      trend: 'neutral' as const,
+      href: '/visits',
     },
     {
       title: t('prescriptions.title'),
-      value: '-',
+      value: quickStats?.active_prescriptions?.toString() ?? '-',
       subtitle: t('prescriptions.stats.active'),
       icon: Pill,
-      trend: 'neutral' as const,
-    },
-  ];
-
-  /**
-   * Recent activity - placeholder data
-   */
-  const recentActivity = [
-    {
-      id: '1',
-      type: 'appointment',
-      patient: 'Mario Rossi',
-      time: '10:00 AM',
-      status: 'scheduled',
-    },
-    {
-      id: '2',
-      type: 'appointment',
-      patient: 'Giulia Bianchi',
-      time: '11:30 AM',
-      status: 'scheduled',
-    },
-    {
-      id: '3',
-      type: 'visit',
-      patient: 'Luca Verdi',
-      time: '2:00 PM',
-      status: 'completed',
+      href: '/prescriptions',
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {t('nav.dashboard')}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Welcome back, {user?.firstName}! Here's what's happening today.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t('nav.dashboard')}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {t('dashboard.welcome', { name: user?.firstName })}
+          </p>
+        </div>
+        {isError && (
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {t('common.actions.retry')}
+          </Button>
+        )}
       </div>
+
+      {/* Error Alert */}
+      {isError && (
+        <Card className="border-destructive">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive">
+              {t('dashboard.error_loading')}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Statistics Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                  {stat.subtitle && <span>{stat.subtitle}</span>}
-                  {stat.change && (
-                    <Badge
-                      variant={
-                        stat.trend === 'up' ? 'default' : 'secondary'
-                      }
-                      className="text-xs"
-                    >
-                      {stat.change}
-                    </Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {isLoading
+          ? [1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)
+          : stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <Card
+                  key={index}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleNavigate(stat.href)}
+                >
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      {stat.title}
+                    </CardTitle>
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {stat.subtitle}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
       </div>
 
       {/* Main Content Grid */}
@@ -142,49 +196,103 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Recent Activity
+              {t('dashboard.recent_activity')}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Calendar className="h-5 w-5 text-primary" />
+            {isLoading ? (
+              <RecentActivitySkeleton />
+            ) : recentActivity?.recent_appointments?.length ||
+              recentActivity?.recent_visits?.length ? (
+              <div className="space-y-4">
+                {/* Recent Appointments */}
+                {recentActivity.recent_appointments?.slice(0, 3).map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0 cursor-pointer hover:bg-muted/50 -mx-2 px-2 rounded"
+                    onClick={() => handleNavigate(`/appointments/${appointment.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {appointment.patient_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {appointment.appointment_type}
+                        </p>
+                      </div>
                     </div>
-                    <div>
+                    <div className="text-right">
                       <p className="text-sm font-medium">
-                        {activity.patient}
+                        {format(new Date(appointment.scheduled_start), 'PP')}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.type === 'appointment'
-                          ? t('nav.appointments')
-                          : t('nav.visits')}
-                      </p>
+                      <Badge
+                        variant={
+                          appointment.status === 'COMPLETED'
+                            ? 'default'
+                            : 'secondary'
+                        }
+                        className="text-xs"
+                      >
+                        {t(`appointments.status.${appointment.status.toLowerCase()}`)}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{activity.time}</p>
-                    <Badge
-                      variant={
-                        activity.status === 'completed'
-                          ? 'default'
-                          : 'secondary'
-                      }
-                      className="text-xs"
-                    >
-                      {activity.status}
-                    </Badge>
+                ))}
+
+                {/* Recent Visits */}
+                {recentActivity.recent_visits?.slice(0, 2).map((visit) => (
+                  <div
+                    key={visit.id}
+                    className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0 cursor-pointer hover:bg-muted/50 -mx-2 px-2 rounded"
+                    onClick={() => handleNavigate(`/visits/${visit.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+                        <FileText className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {visit.patient_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {visit.visit_type}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">
+                        {format(new Date(visit.visit_date), 'PP')}
+                      </p>
+                      <Badge
+                        variant={
+                          visit.status === 'COMPLETED'
+                            ? 'default'
+                            : 'secondary'
+                        }
+                        className="text-xs"
+                      >
+                        {t(`visits.status.${visit.status.toLowerCase()}`)}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-            <Button className="w-full mt-4" variant="outline">
-              View All Activity
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">{t('dashboard.no_recent_activity')}</p>
+              </div>
+            )}
+            <Button
+              className="w-full mt-4"
+              variant="outline"
+              onClick={() => handleNavigate('/appointments')}
+            >
+              {t('dashboard.view_all_activity')}
             </Button>
           </CardContent>
         </Card>
@@ -199,30 +307,41 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={() => handleNavigate('/appointments/new')}
+              >
                 <Calendar className="mr-2 h-4 w-4" />
                 {t('dashboard.new_appointment')}
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={() => handleNavigate('/patients/new')}
+              >
                 <Users className="mr-2 h-4 w-4" />
                 {t('dashboard.new_patient')}
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={() => handleNavigate('/visits/new')}
+              >
                 <FileText className="mr-2 h-4 w-4" />
                 {t('dashboard.new_visit')}
               </Button>
-              <Button className="w-full justify-start" variant="outline">
+              <Button
+                className="w-full justify-start"
+                variant="outline"
+                onClick={() => handleNavigate('/prescriptions/new')}
+              >
                 <Pill className="mr-2 h-4 w-4" />
                 {t('dashboard.new_prescription')}
               </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Secondary Content Grid - Prescriptions Widget */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <ActivePrescriptionsWidget />
       </div>
 
       {/* System Info - Development only */}

@@ -130,10 +130,19 @@ export interface Visit {
   appointment_id?: string;
   patient_id: string;
   provider_id: string;
+
+  // Patient name (from JOIN)
+  patient_first_name?: string;
+  patient_last_name?: string;
+
+  // Provider name (from JOIN)
+  provider_first_name?: string;
+  provider_last_name?: string;
+
   visit_date: string; // ISO 8601 format
 
   // Visit details
-  type: VisitType;
+  visit_type: VisitType;
   status: VisitStatus;
 
   // Vital signs (encrypted)
@@ -153,6 +162,7 @@ export interface Visit {
   signature_hash?: string;
   signed_at?: string;
   signed_by?: string;
+  signed_by_name?: string;
 
   // Locking
   locked_at?: string;

@@ -47,7 +47,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   CreatePrescriptionRequest,
   MedicationForm,
@@ -72,29 +71,49 @@ interface PrescriptionFormProps {
   onCancel?: () => void;
   /** Whether the form is in a submitting state */
   isSubmitting?: boolean;
-  /** Drug interaction warnings to display */
+  /** Drug interaction warnings to display in confirmation dialog (NEW interactions only) */
   interactionWarnings?: DrugInteractionWarning[];
+  /** Callback when medication is selected - used to check for NEW drug interactions */
+  onMedicationChange?: (medicationName: string, genericName?: string) => void;
 }
 
 /**
  * Zod validation schema for prescription form
+ * All fields are required except: generic_name, quantity, pharmacy_notes, start_date, end_date
  */
 const createPrescriptionSchema = (t: (key: string) => string) => {
+  // Date regex for YYYY-MM-DD format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
   return z.object({
     medication_name: z.string().min(1, t('visits.prescription.validation.medication_required')).max(200),
-    generic_name: z.string().max(200).optional().or(z.literal('')),
+    generic_name: z.string().max(200).optional().or(z.literal('')).nullable().transform(v => v ?? ''),
     dosage: z.string().min(1, t('visits.prescription.validation.dosage_required')).max(100),
-    form: z.nativeEnum(MedicationForm).optional(),
-    route: z.nativeEnum(RouteOfAdministration).optional(),
+    form: z.nativeEnum(MedicationForm, {
+      errorMap: () => ({ message: t('visits.prescription.validation.form_required') }),
+    }),
+    route: z.nativeEnum(RouteOfAdministration, {
+      errorMap: () => ({ message: t('visits.prescription.validation.route_required') }),
+    }),
     frequency: z.string().min(1, t('visits.prescription.validation.frequency_required')).max(100),
-    duration: z.string().max(100).optional().or(z.literal('')),
-    quantity: z.number().min(1).max(9999).optional(),
+    duration: z.string().min(1, t('visits.prescription.validation.duration_required')).max(100),
+    quantity: z.number().min(1).max(9999).optional().nullable().transform(v => v ?? undefined),
     refills: z.number().min(0).max(99).default(0),
-    instructions: z.string().max(1000).optional().or(z.literal('')),
-    pharmacy_notes: z.string().max(1000).optional().or(z.literal('')),
-    prescribed_date: z.string(),
-    start_date: z.string().optional().or(z.literal('')),
-    end_date: z.string().optional().or(z.literal('')),
+    instructions: z.string().min(1, t('visits.prescription.validation.instructions_required')).max(1000),
+    pharmacy_notes: z.string().max(1000).optional().or(z.literal('')).nullable().transform(v => v ?? ''),
+    // prescribed_date is required and must be a valid date format
+    prescribed_date: z.string()
+      .min(1, t('visits.prescription.validation.prescribed_date_required'))
+      .regex(dateRegex, t('visits.prescription.validation.invalid_date_format')),
+    // Optional dates - allow empty string or valid date format
+    start_date: z.string().optional().nullable().transform(v => v ?? '').refine(
+      (val) => !val || val === '' || dateRegex.test(val),
+      { message: t('visits.prescription.validation.invalid_date_format') }
+    ),
+    end_date: z.string().optional().nullable().transform(v => v ?? '').refine(
+      (val) => !val || val === '' || dateRegex.test(val),
+      { message: t('visits.prescription.validation.invalid_date_format') }
+    ),
   });
 };
 
@@ -112,6 +131,7 @@ export function PrescriptionForm({
   onCancel,
   isSubmitting = false,
   interactionWarnings = [],
+  onMedicationChange,
 }: PrescriptionFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -200,6 +220,10 @@ export function PrescriptionForm({
     if (defaultRoute) {
       form.setValue('route', defaultRoute);
     }
+    // Check for NEW drug interactions with patient's existing medications
+    if (onMedicationChange) {
+      onMedicationChange(medicationName, genericName);
+    }
   };
 
   /**
@@ -245,6 +269,11 @@ export function PrescriptionForm({
         form.setValue('quantity', template.quantity);
       }
 
+      // Check for NEW drug interactions with patient's existing medications
+      if (onMedicationChange) {
+        onMedicationChange(template.medication_name, template.generic_name);
+      }
+
       setShowTemplateSelector(false);
 
       toast({
@@ -283,32 +312,13 @@ export function PrescriptionForm({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Drug Interaction Warnings */}
-            {interactionWarnings.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-2">
-                    <p className="font-semibold">{t('visits.prescription.interactions.title')}</p>
-                    {interactionWarnings.map((warning, index) => (
-                      <div key={index} className="text-sm">
-                        <span className="font-medium">{warning.medication_name}</span>
-                        {' - '}
-                        <span className="capitalize">{warning.severity}</span>: {warning.description}
-                      </div>
-                    ))}
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
-
             {/* Medication Search */}
             <FormField
               control={form.control}
               name="medication_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('visits.prescription.medication_name')}</FormLabel>
+                  <FormLabel>{t('visits.prescription.medication_name')} <span className="text-destructive">*</span></FormLabel>
                   <FormControl>
                     <MedicationSearch
                       value={selectedMedicationName}
@@ -346,7 +356,7 @@ export function PrescriptionForm({
                 name="dosage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('visits.prescription.dosage')}</FormLabel>
+                    <FormLabel>{t('visits.prescription.dosage')} <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Input placeholder="100mg" {...field} />
                     </FormControl>
@@ -360,7 +370,7 @@ export function PrescriptionForm({
                 name="form"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('visits.prescription.form')}</FormLabel>
+                    <FormLabel>{t('visits.prescription.form')} <span className="text-destructive">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -385,7 +395,7 @@ export function PrescriptionForm({
                 name="route"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('visits.prescription.route')}</FormLabel>
+                    <FormLabel>{t('visits.prescription.route')} <span className="text-destructive">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -413,7 +423,7 @@ export function PrescriptionForm({
                 name="frequency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('visits.prescription.frequency')}</FormLabel>
+                    <FormLabel>{t('visits.prescription.frequency')} <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Input placeholder={t('visits.prescription.frequency_placeholder')} {...field} />
                     </FormControl>
@@ -428,7 +438,7 @@ export function PrescriptionForm({
                 name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('visits.prescription.duration')}</FormLabel>
+                    <FormLabel>{t('visits.prescription.duration')} <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Input placeholder={t('visits.prescription.duration_placeholder')} {...field} />
                     </FormControl>
@@ -490,7 +500,7 @@ export function PrescriptionForm({
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      {t('visits.prescription.prescribed_date')}
+                      {t('visits.prescription.prescribed_date')} <span className="text-destructive">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
@@ -537,7 +547,7 @@ export function PrescriptionForm({
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    {t('visits.prescription.instructions')}
+                    {t('visits.prescription.instructions')} <span className="text-destructive">*</span>
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -607,29 +617,59 @@ export function PrescriptionForm({
                 <p>{t('prescriptions.interaction_confirmation.description')}</p>
 
                 <div className="space-y-2">
-                  {interactionWarnings.map((warning, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-2 p-3 rounded-md bg-muted"
-                    >
-                      <Badge
-                        variant={
-                          warning.severity === 'major'
-                            ? 'destructive'
-                            : warning.severity === 'moderate'
-                            ? 'default'
-                            : 'secondary'
-                        }
-                        className="mt-0.5"
+                  {interactionWarnings.map((warning, index) => {
+                    // Get severity-specific styling
+                    const getSeverityStyle = (severity: string) => {
+                      switch (severity) {
+                        case 'contraindicated':
+                          return {
+                            badge: 'bg-purple-600 text-white',
+                            bg: 'bg-purple-100 dark:bg-purple-900/50 border border-purple-300 dark:border-purple-700',
+                            text: 'text-purple-900 dark:text-purple-100',
+                          };
+                        case 'major':
+                          return {
+                            badge: 'bg-red-600 text-white',
+                            bg: 'bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700',
+                            text: 'text-red-900 dark:text-red-100',
+                          };
+                        case 'moderate':
+                          return {
+                            badge: 'bg-amber-500 text-white',
+                            bg: 'bg-amber-100 dark:bg-amber-900/50 border border-amber-300 dark:border-amber-700',
+                            text: 'text-amber-900 dark:text-amber-100',
+                          };
+                        case 'minor':
+                          return {
+                            badge: 'bg-blue-500 text-white',
+                            bg: 'bg-blue-100 dark:bg-blue-900/50 border border-blue-300 dark:border-blue-700',
+                            text: 'text-blue-900 dark:text-blue-100',
+                          };
+                        default:
+                          return {
+                            badge: 'bg-gray-500 text-white',
+                            bg: 'bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600',
+                            text: 'text-gray-900 dark:text-gray-100',
+                          };
+                      }
+                    };
+                    const style = getSeverityStyle(warning.severity);
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-start gap-2 p-3 rounded-md ${style.bg} ${style.text}`}
                       >
-                        {t(`prescriptions.interaction_confirmation.severity.${warning.severity}`)}
-                      </Badge>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{warning.medication_name}</p>
-                        <p className="text-sm text-muted-foreground">{warning.description}</p>
+                        <Badge className={`mt-0.5 ${style.badge}`}>
+                          {t(`prescriptions.interaction_confirmation.severity.${warning.severity}`)}
+                        </Badge>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{warning.medication_name}</p>
+                          <p className="text-sm opacity-80">{warning.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <p className="text-sm font-medium text-destructive">

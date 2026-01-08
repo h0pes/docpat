@@ -27,7 +27,10 @@ import {
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { PatientSearchCombobox } from '@/components/appointments/PatientSearchCombobox';
-import { PrescriptionStatus, PrescriptionSearchFilters } from '@/types/prescription';
+import { PrescriptionStatus, PrescriptionSearchFilters, isExpiredPrescription } from '@/types/prescription';
+
+/** Special filter value for expired prescriptions (not a real status) */
+export const EXPIRED_FILTER = 'EXPIRED' as const;
 
 interface PrescriptionFiltersProps {
   /** Current filter values */
@@ -36,6 +39,10 @@ interface PrescriptionFiltersProps {
   onFiltersChange: (filters: PrescriptionSearchFilters) => void;
   /** Whether filters are being applied (loading state) */
   isLoading?: boolean;
+  /** Current expired filter state (separate from status) */
+  expiredFilter?: boolean;
+  /** Callback when expired filter changes */
+  onExpiredFilterChange?: (expired: boolean) => void;
 }
 
 /**
@@ -45,6 +52,8 @@ export function PrescriptionFilters({
   filters,
   onFiltersChange,
   isLoading = false,
+  expiredFilter = false,
+  onExpiredFilterChange,
 }: PrescriptionFiltersProps) {
   const { t } = useTranslation();
   const [startDateOpen, setStartDateOpen] = useState(false);
@@ -58,16 +67,36 @@ export function PrescriptionFilters({
     filters.patient_id,
     filters.start_date,
     filters.end_date,
+    expiredFilter,
   ].filter(Boolean).length;
+
+  /**
+   * Get the current filter value for the dropdown
+   */
+  const getCurrentFilterValue = (): string => {
+    if (expiredFilter) return EXPIRED_FILTER;
+    return filters.status || 'all';
+  };
 
   /**
    * Handle status change
    */
   const handleStatusChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      status: value === 'all' ? undefined : (value as PrescriptionStatus),
-    });
+    if (value === EXPIRED_FILTER) {
+      // Set expired filter, clear status filter
+      onExpiredFilterChange?.(true);
+      onFiltersChange({
+        ...filters,
+        status: undefined, // Clear status when filtering by expired
+      });
+    } else {
+      // Clear expired filter, set status filter
+      onExpiredFilterChange?.(false);
+      onFiltersChange({
+        ...filters,
+        status: value === 'all' ? undefined : (value as PrescriptionStatus),
+      });
+    }
   };
 
   /**
@@ -106,6 +135,7 @@ export function PrescriptionFilters({
    * Clear all filters
    */
   const handleClearFilters = () => {
+    onExpiredFilterChange?.(false);
     onFiltersChange({
       limit: filters.limit,
       offset: 0,
@@ -125,13 +155,13 @@ export function PrescriptionFilters({
 
   return (
     <div className="space-y-4">
-      {/* Filter controls */}
+      {/* Filter controls - Row 1: Status and Patient */}
       <div className="flex flex-wrap gap-4 items-end">
         {/* Status filter */}
         <div className="space-y-2">
           <Label htmlFor="status-filter">{t('prescriptions.filters.status')}</Label>
           <Select
-            value={filters.status || 'all'}
+            value={getCurrentFilterValue()}
             onValueChange={handleStatusChange}
             disabled={isLoading}
           >
@@ -145,6 +175,10 @@ export function PrescriptionFilters({
                   {t(`prescriptions.status.${status.toLowerCase()}`)}
                 </SelectItem>
               ))}
+              {/* Expired is a computed state, not a real status */}
+              <SelectItem value={EXPIRED_FILTER} className="text-red-600">
+                {t('prescriptions.expired')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -152,7 +186,7 @@ export function PrescriptionFilters({
         {/* Patient filter */}
         <div className="space-y-2">
           <Label>{t('prescriptions.filters.patient')}</Label>
-          <div className="w-[250px]">
+          <div className="w-[280px] max-w-[280px] overflow-hidden">
             <PatientSearchCombobox
               value={filters.patient_id || ''}
               onSelect={handlePatientChange}
@@ -160,7 +194,10 @@ export function PrescriptionFilters({
             />
           </div>
         </div>
+      </div>
 
+      {/* Filter controls - Row 2: Date Range */}
+      <div className="flex flex-wrap gap-4 items-end">
         {/* Start date filter */}
         <div className="space-y-2">
           <Label>{t('prescriptions.filters.from_date')}</Label>
@@ -243,6 +280,18 @@ export function PrescriptionFilters({
               {t(`prescriptions.status.${filters.status.toLowerCase()}`)}
               <button
                 onClick={() => clearFilter('status')}
+                className="ml-1 hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+
+          {expiredFilter && (
+            <Badge variant="secondary" className="gap-1 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+              {t('prescriptions.expired')}
+              <button
+                onClick={() => onExpiredFilterChange?.(false)}
                 className="ml-1 hover:text-destructive"
               >
                 <X className="h-3 w-3" />

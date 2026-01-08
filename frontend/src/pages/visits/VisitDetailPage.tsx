@@ -34,7 +34,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useVisit, useVisitPrescriptions } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
 import { VisitStatus, getStatusColor, formatVitalSigns } from '@/types/visit';
-import { PrescriptionStatus, getStatusBadgeColor as getPrescriptionStatusColor } from '@/types/prescription';
+import { PrescriptionStatus, getStatusColor as getPrescriptionStatusColor } from '@/types/prescription';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DigitalSignatureDialog } from '@/components/visits/DigitalSignatureDialog';
 import { VisitLockDialog } from '@/components/visits/VisitLockDialog';
@@ -406,6 +406,12 @@ export function VisitDetailPage() {
               <CardTitle className="text-2xl print-card-title">
                 {t('visits.visit_detail_title')}
               </CardTitle>
+              {/* Patient Name */}
+              {(visit.patient_first_name || visit.patient_last_name) && (
+                <p className="text-lg text-muted-foreground mt-1">
+                  {t('visits.patient')}: <span className="font-medium text-foreground">{visit.patient_first_name} {visit.patient_last_name}</span>
+                </p>
+              )}
               <div className="flex items-center gap-2 mt-2">
                 <Badge className={`${getStatusColor(visit.status)} print-badge`}>
                   {t(`visits.status.${visit.status.toLowerCase()}`)}
@@ -432,7 +438,11 @@ export function VisitDetailPage() {
               <User className="h-4 w-4 text-muted-foreground print:hidden" />
               <div>
                 <p className="text-muted-foreground print-label">{t('visits.provider')}</p>
-                <p className="font-medium print-value">{visit.provider_id}</p>
+                <p className="font-medium print-value">
+                  {visit.provider_first_name && visit.provider_last_name
+                    ? `Dr. ${visit.provider_first_name} ${visit.provider_last_name}`
+                    : t('common.unknown')}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">

@@ -1,0 +1,193 @@
+{
+  "source_medication": {
+    "name": "Acido acetilsalicilico",
+    "aic_code": "024840074",
+    "brand_name": "CARDIOASPIRIN"
+  },
+  "extraction_date": "2026-01-06",
+  "interactions": [
+    {
+      "interacting_drug": "Metotrexato",
+      "drug_examples": ["metotrexato"],
+      "atc_codes": ["L01BA01"],
+      "severity": "contraindicated",
+      "condition": "a dosi >= 15 mg/settimana",
+      "effect": "Aumento della tossicità ematologica del metotrexato",
+      "mechanism": "Diminuzione della clearance renale del metotrexato e spiazzamento dal legame con le proteine plasmatiche",
+      "management": "Uso concomitante controindicato",
+      "description_it": "L'uso concomitante di acido acetilsalicilico con metotrexato a dosi >= 15 mg/settimana è controindicato"
+    },
+    {
+      "interacting_drug": "Anticoagulanti orali",
+      "drug_examples": ["warfarin", "acenocumarolo"],
+      "atc_codes": ["B01AA03", "B01AA07"],
+      "severity": "contraindicated",
+      "condition": null,
+      "effect": "Aumento del rischio di emorragia",
+      "mechanism": "Inibizione della funzionalità piastrinica, danno alla mucosa gastroduodenale, spiazzamento dai siti di legame proteico",
+      "management": "Uso concomitante controindicato",
+      "description_it": "Aumento del rischio di emorragia per inibizione della funzionalità piastrinica"
+    },
+    {
+      "interacting_drug": "FANS",
+      "drug_examples": ["COX-2 inibitori", "ibuprofene", "naprossene", "diclofenac"],
+      "atc_codes": ["M01A"],
+      "severity": "not_recommended",
+      "condition": null,
+      "effect": "Aumento del rischio di ulcera e sanguinamento gastrointestinale",
+      "mechanism": "Effetto sinergico",
+      "management": "Evitare l'uso concomitante",
+      "description_it": "Aumento del rischio di ulcera e sanguinamento gastrointestinale a causa di effetto sinergico"
+    },
+    {
+      "interacting_drug": "Uricosurici",
+      "drug_examples": ["probenecid", "sulfinpirazone"],
+      "atc_codes": ["M04AB01", "M04AB02"],
+      "severity": "not_recommended",
+      "condition": null,
+      "effect": "Diminuzione dell'effetto uricosurico",
+      "mechanism": "Competizione per l'eliminazione dell'acido urico a livello dei tubuli renali",
+      "management": "Evitare l'uso concomitante",
+      "description_it": "Diminuzione dell'effetto uricosurico per competizione tubulare renale"
+    },
+    {
+      "interacting_drug": "Antiaggreganti piastrinici",
+      "drug_examples": ["ticlopidina", "clopidogrel"],
+      "atc_codes": ["B01AC05", "B01AC04"],
+      "severity": "not_recommended",
+      "condition": null,
+      "effect": "Aumento del rischio di sanguinamento",
+      "mechanism": "Effetto sinergico sull'inibizione piastrinica",
+      "management": "Evitare l'uso concomitante se possibile",
+      "description_it": "Aumento del rischio di sanguinamento a causa dell'effetto sinergico sull'inibizione piastrinica"
+    },
+    {
+      "interacting_drug": "Metotrexato (basse dosi)",
+      "drug_examples": ["metotrexato"],
+      "atc_codes": ["L01BA01"],
+      "severity": "caution",
+      "condition": "a dosi < 15 mg/settimana",
+      "effect": "Aumento della tossicità ematologica del metotrexato",
+      "mechanism": "Riduzione clearance renale",
+      "management": "Controllo settimanale dell'emocromo durante le prime settimane. Aumentare la sorveglianza in caso di alterazione della funzione renale e negli anziani",
+      "description_it": "Aumento della tossicità ematologica del metotrexato a basse dosi"
+    },
+    {
+      "interacting_drug": "Antidiabetici",
+      "drug_examples": ["insulina", "sulfaniluree", "glibenclamide", "glimepiride"],
+      "atc_codes": ["A10A", "A10BB"],
+      "severity": "caution",
+      "condition": "per dosi elevate di acido acetilsalicilico",
+      "effect": "Aumento dell'effetto ipoglicemizzante",
+      "mechanism": "Azione ipoglicemizzante dell'acido acetilsalicilico e spiazzamento delle sulfaniluree dai siti di legame proteico",
+      "management": "Monitorare la glicemia",
+      "description_it": "Aumento dell'effetto ipoglicemizzante per dosi elevate di acido acetilsalicilico"
+    },
+    {
+      "interacting_drug": "Diuretici",
+      "drug_examples": ["furosemide", "idroclorotiazide"],
+      "atc_codes": ["C03"],
+      "severity": "caution",
+      "condition": null,
+      "effect": "Possibile riduzione dell'effetto diuretico; rischio di insufficienza renale acuta nei pazienti disidratati",
+      "mechanism": "Riduzione della filtrazione glomerulare per diminuzione della sintesi delle prostaglandine renali",
+      "management": "Idratare il paziente e controllare la funzionalità renale all'inizio del trattamento",
+      "description_it": "Possibile riduzione dell'effetto diuretico e rischio di insufficienza renale acuta"
+    },
+    {
+      "interacting_drug": "ACE-inibitori e sartani",
+      "drug_examples": ["enalapril", "ramipril", "losartan", "valsartan"],
+      "atc_codes": ["C09A", "C09C"],
+      "severity": "caution",
+      "condition": "per dosi di acido acetilsalicilico >= 3 g/die",
+      "effect": "Possibile riduzione dell'effetto antipertensivo; rischio di insufficienza renale acuta in pazienti disidratati",
+      "mechanism": "Interferenza con prostaglandine renali",
+      "management": "Monitorare pressione arteriosa e funzionalità renale",
+      "description_it": "Possibile riduzione dell'effetto antipertensivo e rischio renale ad alte dosi"
+    },
+    {
+      "interacting_drug": "Corticosteroidi",
+      "drug_examples": ["prednisone", "prednisolone", "desametasone"],
+      "atc_codes": ["H02AB"],
+      "severity": "caution",
+      "condition": null,
+      "effect": "Aumento del rischio di ulcerazione e sanguinamento gastrointestinale",
+      "mechanism": "Effetti additivi sulla mucosa gastrica",
+      "management": "Considerare gastroprotezione",
+      "description_it": "Aumento del rischio di ulcerazione e sanguinamento gastrointestinale"
+    },
+    {
+      "interacting_drug": "SSRI",
+      "drug_examples": ["sertralina", "fluoxetina", "paroxetina", "citalopram"],
+      "atc_codes": ["N06AB"],
+      "severity": "caution",
+      "condition": null,
+      "effect": "Aumento del rischio di sanguinamento gastrointestinale",
+      "mechanism": "Effetto sinergico (SSRI riducono serotonina piastrinica)",
+      "management": "Considerare gastroprotezione nei pazienti a rischio",
+      "description_it": "Aumento del rischio di sanguinamento gastrointestinale per effetto sinergico"
+    },
+    {
+      "interacting_drug": "Digossina",
+      "drug_examples": ["digossina"],
+      "atc_codes": ["C01AA05"],
+      "severity": "monitor",
+      "condition": null,
+      "effect": "Aumento della concentrazione plasmatica della digossina",
+      "mechanism": "Diminuzione dell'escrezione renale della digossina",
+      "management": "Monitorare i livelli di digossina",
+      "description_it": "Aumento della concentrazione plasmatica della digossina"
+    },
+    {
+      "interacting_drug": "Fenitoina",
+      "drug_examples": ["fenitoina"],
+      "atc_codes": ["N03AB02"],
+      "severity": "monitor",
+      "condition": null,
+      "effect": "Aumento dell'effetto della fenitoina",
+      "mechanism": "Spiazzamento della fenitoina dai siti di legame proteico",
+      "management": "Monitorare i livelli di fenitoina",
+      "description_it": "Aumento dell'effetto della fenitoina per spiazzamento proteico"
+    },
+    {
+      "interacting_drug": "Acido valproico",
+      "drug_examples": ["acido valproico", "valproato"],
+      "atc_codes": ["N03AG01"],
+      "severity": "monitor",
+      "condition": null,
+      "effect": "Aumento della tossicità dell'acido valproico",
+      "mechanism": "Spiazzamento dai siti di legame proteico",
+      "management": "Monitorare i livelli di acido valproico",
+      "description_it": "Aumento della tossicità dell'acido valproico"
+    },
+    {
+      "interacting_drug": "Alcol",
+      "drug_examples": ["etanolo", "bevande alcoliche"],
+      "atc_codes": null,
+      "severity": "caution",
+      "condition": null,
+      "effect": "Aumento del rischio di danno alla mucosa gastrointestinale e prolungamento del tempo di sanguinamento",
+      "mechanism": "Effetti additivi sulla mucosa gastrica e sulla coagulazione",
+      "management": "Evitare o limitare il consumo di alcol",
+      "description_it": "Aumento del rischio di danno gastrico e prolungamento del tempo di sanguinamento"
+    },
+    {
+      "interacting_drug": "Ibuprofene",
+      "drug_examples": ["ibuprofene"],
+      "atc_codes": ["M01AE01"],
+      "severity": "caution",
+      "condition": "uso regolare concomitante",
+      "effect": "Possibile inibizione dell'effetto antiaggregante dell'aspirina a basse dosi",
+      "mechanism": "Competizione per il sito di legame COX-1",
+      "management": "In caso di uso regolare di ibuprofene, considerare la tempistica di somministrazione (aspirina 30 min prima di ibuprofene)",
+      "description_it": "L'ibuprofene può inibire l'effetto antiaggregante dell'aspirina se somministrati contemporaneamente"
+    }
+  ],
+  "total_interactions": 16,
+  "by_severity": {
+    "contraindicated": 2,
+    "not_recommended": 3,
+    "caution": 8,
+    "monitor": 3
+  }
+}

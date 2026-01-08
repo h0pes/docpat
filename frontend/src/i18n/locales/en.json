@@ -61,6 +61,9 @@
     "description": "Description",
     "error": "Error",
     "print": "Print",
+    "processing": "Processing...",
+    "default": "Default",
+    "deleting": "Deleting...",
     "errors": {
       "generic": "An error occurred. Please try again."
     },
@@ -77,7 +80,12 @@
     "thursday": "Thursday",
     "friday": "Friday",
     "saturday": "Saturday",
-    "sunday": "Sunday"
+    "sunday": "Sunday",
+    "filters": "Filters",
+    "clear_all": "Clear All",
+    "from_date": "From Date",
+    "to_date": "To Date",
+    "select_date": "Select date"
   },
   "auth": {
     "login": "Login",
@@ -209,9 +217,13 @@
   "dashboard": {
     "today": "Today",
     "this_week": "This week",
+    "active": "Active",
+    "welcome": "Welcome back, {{name}}! Here's what's happening today.",
     "quick_actions": "Quick Actions",
     "recent_activity": "Recent Activity",
     "view_all_activity": "View All Activity",
+    "no_recent_activity": "No recent activity",
+    "error_loading": "Failed to load dashboard data. Please try again.",
     "new_appointment": "New Appointment",
     "new_patient": "New Patient",
     "new_visit": "New Visit",
@@ -679,6 +691,8 @@
       "post_operative": "Post-operative",
       "consultation": "Consultation",
       "procedure": "Procedure",
+      "routine_checkup": "Routine Checkup",
+      "acupuncture": "Acupuncture",
       "other": "Other"
     },
     "signed_by": "Signed by {{name}}",
@@ -694,6 +708,17 @@
     "chief_complaint": "Chief Complaint",
     "chief_complaint_placeholder": "Brief description of the main reason for this visit...",
     "save_draft": "Save Draft",
+    "patient": "Patient",
+    "filter_by_patient": "Filter by patient...",
+    "status_label": "Status",
+    "all_statuses": "All Statuses",
+    "no_visits": "No Visits Found",
+    "no_visits_description": "No visits match your current filters. Try adjusting your search criteria.",
+    "status": {
+      "draft": "Draft",
+      "signed": "Signed",
+      "locked": "Locked"
+    },
     "visit_types": {
       "new_patient": "New Patient",
       "follow_up": "Follow-up",
@@ -970,7 +995,13 @@
       "validation": {
         "medication_required": "Medication name is required",
         "dosage_required": "Dosage is required",
-        "frequency_required": "Frequency is required"
+        "form_required": "Medication form is required",
+        "route_required": "Route of administration is required",
+        "frequency_required": "Frequency is required",
+        "duration_required": "Duration is required",
+        "instructions_required": "Patient instructions are required",
+        "prescribed_date_required": "Prescribed date is required",
+        "invalid_date_format": "Invalid date format (YYYY-MM-DD expected)"
       },
       "forms": {
         "tablet": "Tablet",
@@ -1163,7 +1194,15 @@
     "prescribed_by": "Prescribed by {{name}}",
     "refills_count": "{{count}} refills",
     "needs_refill": "Needs Refill",
+    "expired": "Expired",
     "has_interactions": "Drug Interactions",
+    "card": {
+      "discontinued_on": "Discontinued on {{date}}",
+      "cancelled_on": "Cancelled on {{date}}",
+      "on_hold_since": "On hold since {{date}}",
+      "completed_on": "Completed on {{date}}",
+      "ends": "Ends"
+    },
     "no_prescriptions": "No prescriptions found",
     "no_prescriptions_description": "Create your first prescription to get started",
     "create_first": "Create First Prescription",
@@ -1178,8 +1217,9 @@
     "stats": {
       "total": "Total Prescriptions",
       "active": "Active",
-      "needs_refill": "{{count}} prescription needs refill soon",
-      "needs_refill_plural": "{{count}} prescriptions need refill soon",
+      "needs_refill": "Needs Refill Soon",
+      "needs_refill_count": "{{count}} prescription needs refill soon",
+      "needs_refill_count_plural": "{{count}} prescriptions need refill soon",
       "needs_refill_description": "Within next 7 days"
     },
     "list": {
@@ -1205,7 +1245,12 @@
     },
     "actions": {
       "discontinue": "Discontinue",
-      "renew": "Renew"
+      "renew": "Renew",
+      "print": "Print",
+      "cancel": "Cancel",
+      "hold": "Put on Hold",
+      "resume": "Resume",
+      "complete": "Mark Complete"
     },
     "details": {
       "medication": "Medication Details",
@@ -1222,6 +1267,11 @@
       "end_date": "End Date",
       "discontinued_date": "Discontinued Date",
       "discontinued_reason": "Discontinuation Reason",
+      "cancelled_date": "Cancelled Date",
+      "cancellation_reason": "Cancellation Reason",
+      "on_hold_since": "On Hold Since",
+      "hold_reason": "Hold Reason",
+      "completed_date": "Completed Date",
       "instructions_notes": "Instructions & Notes",
       "patient_instructions": "Patient Instructions",
       "pharmacy_notes": "Pharmacy Notes",
@@ -1238,16 +1288,19 @@
     "interactions": {
       "title": "Drug Interaction Warnings",
       "severity": {
-        "minor": "Minor",
+        "contraindicated": "Contraindicated",
+        "major": "Major",
         "moderate": "Moderate",
-        "major": "Major"
+        "minor": "Minor",
+        "unknown": "Unknown"
       },
       "one_warning": "1 Interaction",
       "count_warnings": "{{count}} Interactions",
       "single_interaction": "This prescription has a potential drug interaction.",
       "multiple_interactions": "This prescription has {{count}} potential drug interactions.",
       "show_details": "Show Details",
-      "hide_details": "Hide Details"
+      "hide_details": "Hide Details",
+      "default_description": "Potential {{severity}} interaction between these medications"
     },
     "print": {
       "title": "Print Prescription",
@@ -1306,6 +1359,82 @@
       "success_description": "A new prescription for {{medication}} has been created",
       "error": "Failed to renew prescription"
     },
+    "cancel": {
+      "title": "Cancel Prescription",
+      "description": "Cancel this prescription before it is dispensed",
+      "warning": "You are about to cancel {{medication}}. This action will void the prescription.",
+      "reason_label": "Reason for Cancellation",
+      "select_reason": "Select a reason...",
+      "custom_reason_label": "Specify Reason",
+      "custom_reason_placeholder": "Enter the reason for cancellation...",
+      "confirm": "Cancel Prescription",
+      "success": "Prescription Cancelled",
+      "success_description": "{{medication}} has been cancelled",
+      "error": "Failed to cancel prescription",
+      "reasons": {
+        "duplicate_order": "Duplicate order",
+        "wrong_medication": "Wrong medication selected",
+        "wrong_dosage": "Wrong dosage",
+        "wrong_patient": "Wrong patient",
+        "patient_declined": "Patient declined",
+        "insurance_issue": "Insurance issue",
+        "out_of_stock": "Medication out of stock",
+        "other": "Other reason"
+      }
+    },
+    "hold": {
+      "title": "Put Prescription on Hold",
+      "description": "Temporarily pause this prescription",
+      "info": "You are about to put {{medication}} on hold. The prescription can be resumed later.",
+      "reason_label": "Reason for Hold",
+      "select_reason": "Select a reason...",
+      "custom_reason_label": "Specify Reason",
+      "custom_reason_placeholder": "Enter the reason for putting on hold...",
+      "confirm": "Put on Hold",
+      "success": "Prescription on Hold",
+      "success_description": "{{medication}} has been put on hold",
+      "error": "Failed to put prescription on hold",
+      "reasons": {
+        "awaiting_lab_results": "Awaiting lab results",
+        "pending_consultation": "Pending specialist consultation",
+        "adverse_reaction_monitoring": "Monitoring for adverse reaction",
+        "surgery_preparation": "Surgery preparation",
+        "patient_hospitalized": "Patient hospitalized",
+        "dose_adjustment_needed": "Dose adjustment needed",
+        "supply_issue": "Supply/availability issue",
+        "other": "Other reason"
+      }
+    },
+    "resume": {
+      "title": "Resume Prescription",
+      "description": "Are you sure you want to resume {{medication}}? This will change the status from On Hold back to Active.",
+      "confirm": "Resume Prescription",
+      "success": "Prescription Resumed",
+      "success_description": "{{medication}} has been resumed",
+      "error": "Failed to resume prescription"
+    },
+    "complete": {
+      "title": "Mark as Completed",
+      "confirm": "Mark as Completed",
+      "success": "Prescription Completed",
+      "success_description": "{{medication}} has been marked as completed",
+      "error": "Failed to mark prescription as completed"
+    },
+    "status_legend": {
+      "title": "Status Guide",
+      "subtitle": "Understanding prescription statuses",
+      "active_description": "Prescription is currently active and patient is taking the medication",
+      "on_hold_description": "Prescription is temporarily paused and will be resumed later",
+      "completed_description": "Full course of medication has been taken as prescribed",
+      "discontinued_description": "Prescription was stopped early due to medical reasons",
+      "cancelled_description": "Prescription was voided before being dispensed",
+      "badges_title": "Indicators",
+      "expired_description": "The prescription's end date has passed. Remains active until reviewed by doctor (mark complete, renew, etc.)",
+      "needs_refill_description": "Ending within 7 days. Consider renewing if the patient needs to continue the medication",
+      "actions_title": "Available Actions",
+      "renew_description": "Create a new prescription based on an existing completed, discontinued, or cancelled prescription",
+      "resume_description": "Reactivate a prescription that was temporarily put on hold"
+    },
     "create": {
       "success": "Prescription Created",
       "success_description": "Prescription for {{medication}} has been created",
@@ -1333,12 +1462,34 @@
       "description": "The following drug interactions have been detected for this prescription:",
       "warning_prompt": "Are you sure you want to proceed with this prescription despite the interaction warnings?",
       "severity": {
-        "minor": "Minor",
+        "contraindicated": "Contraindicated",
+        "major": "Major",
         "moderate": "Moderate",
-        "major": "Major"
+        "minor": "Minor",
+        "unknown": "Unknown"
       },
       "confirm": "Proceed Anyway",
       "cancel": "Review Prescription"
+    },
+    "custom_medication": {
+      "title": "Create Custom Medication",
+      "description": "Add a medication not found in the AIFA database. It will appear in future medication searches.",
+      "name": "Medication Name",
+      "name_placeholder": "e.g., My Custom Medication",
+      "generic_name": "Generic Name",
+      "generic_name_placeholder": "e.g., Active ingredient name",
+      "dosage_strength": "Default Dosage Strength",
+      "dosage_strength_placeholder": "e.g., 100mg",
+      "common_dosages": "Common Dosages",
+      "common_dosages_placeholder": "e.g., 50mg, 100mg, 200mg (press Enter to add)",
+      "notes": "Notes",
+      "notes_placeholder": "Additional information about this medication...",
+      "select_form": "Select form...",
+      "select_route": "Select route...",
+      "create": "Create Medication",
+      "success": "Custom Medication Created",
+      "success_description": "{{name}} has been added and will appear in medication searches",
+      "error": "Failed to create custom medication"
     }
   },
   "documents": {

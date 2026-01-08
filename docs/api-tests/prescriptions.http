@@ -1,0 +1,1050 @@
+### 
+
+# Prescriptions and Drug Interactions API Tests
+# Kulala HTTP Client file for testing Milestone 14 Prescriptions APIs
+# # Prerequisites:
+# - Backend server running on http://localhost:8000
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+# - Existing patients and visits in the database
+# - AIFA medications database imported
+# - DDInter 2.0 drug interactions database imported
+# # Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+# # IMPORTANT: Requests in this file are ordered for sequential execution.
+# Many requests depend on responses from previous requests.
+# Execute in order from top to bottom.
+# ==============================================================================
+# STEP 1: AUTHENTICATION
+# ==============================================================================
+# Must run these first to get access tokens
+
+
+### login_doctor
+
+# @name login_doctor
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{DOCTOR_PASSWORD}}",
+  "username": "{{DOCTOR_USERNAME}}"
+}
+
+
+### 
+
+
+### login_admin
+
+# @name login_admin
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{ADMIN_PASSWORD}}",
+  "username": "{{ADMIN_USERNAME}}"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 2: GET BASE DATA (patients, visits)
+# ==============================================================================
+# Get patient and visit IDs needed for creating prescriptions
+
+
+### list_patients
+
+# @name list_patients
+
+# Get patients to use in prescription creation
+
+GET {{BASE_URL}}/api/v1/patients?limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_visits
+
+# @name list_visits
+
+# Get visits for linking prescriptions to visits
+
+GET {{BASE_URL}}/api/v1/visits?limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 3: MEDICATION SEARCH
+# ==============================================================================
+# Test medication search from AIFA database before creating prescriptions
+
+
+### search_medications_ibuprofen
+
+# Goal: Search for Ibuprofen in AIFA database
+# Expected: 200 OK with array of matching medications
+
+GET {{BASE_URL}}/api/v1/prescriptions/medications/search?query=ibuprofen&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### search_medications_warfarin
+
+# Goal: Search for Warfarin (important for interaction testing)
+
+GET {{BASE_URL}}/api/v1/prescriptions/medications/search?query=warfarin&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### search_medications_coumadin
+
+# Goal: Search for Coumadin (brand name for Warfarin)
+
+GET {{BASE_URL}}/api/v1/prescriptions/medications/search?query=coumadin&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### search_medications_metformin
+
+# Goal: Search for Metformin
+
+GET {{BASE_URL}}/api/v1/prescriptions/medications/search?query=metformin&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### search_medications_aspirin
+
+# Goal: Search for Aspirin
+
+GET {{BASE_URL}}/api/v1/prescriptions/medications/search?query=aspirin&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 4: CUSTOM MEDICATION
+# ==============================================================================
+# Create a custom medication not in AIFA database
+
+
+### create_custom_medication
+
+# @name create_custom_medication
+
+# Goal: Create a custom medication
+# Expected: 201 Created with { "id": "<uuid>", "message": "..." }
+
+POST {{BASE_URL}}/api/v1/prescriptions/medications/custom HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "common_dosages": [
+    "100mg once daily",
+    "100mg twice daily"
+  ],
+  "dosage_strength": "100mg",
+  "form": "TABLET",
+  "generic_name": "APItestcustomol",
+  "name": "API Test Custom Medication",
+  "notes": "Custom medication for testing purposes",
+  "route": "ORAL"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 5: LIST EXISTING PRESCRIPTIONS
+# ==============================================================================
+# Get existing prescriptions to test read operations
+
+
+### list_prescriptions
+
+# @name list_prescriptions
+
+# Goal: Get paginated list of prescriptions
+# Expected: 200 OK with { prescriptions: [], total, limit, offset }
+
+GET {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_active
+
+# Goal: Filter by ACTIVE status
+
+GET {{BASE_URL}}/api/v1/prescriptions?status=ACTIVE&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_discontinued
+
+# Goal: Filter by DISCONTINUED status
+
+GET {{BASE_URL}}/api/v1/prescriptions?status=DISCONTINUED&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_on_hold
+
+# Goal: Filter by ON_HOLD status
+
+GET {{BASE_URL}}/api/v1/prescriptions?status=ON_HOLD&limit=30 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_completed
+
+# Goal: Filter by COMPLETED status
+
+GET {{BASE_URL}}/api/v1/prescriptions?status=COMPLETED&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_cancelled
+
+# Goal: Filter by CANCELLED status
+
+GET {{BASE_URL}}/api/v1/prescriptions?status=CANCELLED&limit=10 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_prescriptions_date_range
+
+# Goal: Filter by date range
+
+GET {{BASE_URL}}/api/v1/prescriptions?start_date=2026-01-01&end_date=2026-01-10&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 6: GET SINGLE PRESCRIPTION
+# ==============================================================================
+# Requires list_prescriptions to have run first
+
+
+### get_prescription
+
+# Goal: Get single prescription by ID
+# Note: Uses first prescription from list_prescriptions
+# Expected: 200 OK with full prescription object
+
+GET {{BASE_URL}}/api/v1/prescriptions/{{list_prescriptions.response.body.$.prescriptions[0].id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 7: GET PATIENT PRESCRIPTIONS
+# ==============================================================================
+# Requires list_patients to have run first
+
+
+### get_patient_prescriptions
+
+# Goal: Get all prescriptions for a patient
+# Expected: 200 OK with array of prescriptions
+
+GET {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_patient_prescriptions_active_only
+
+# Goal: Get only active prescriptions for a patient
+
+GET {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[1].id}}/prescriptions?active_only=true HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 8: GET VISIT PRESCRIPTIONS
+# ==============================================================================
+# Requires list_visits to have run first
+
+
+### get_visit_prescriptions
+
+# Goal: Get prescriptions linked to a visit
+# Expected: 200 OK with array of prescriptions
+
+GET {{BASE_URL}}/api/v1/visits/{{list_visits.response.body.$.visits[7].id}}/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 9: DRUG INTERACTION STATISTICS
+# ==============================================================================
+# Check DDInter 2.0 database status
+
+
+### get_drug_interaction_statistics
+
+# Goal: Get DDInter 2.0 database statistics
+# Expected: 200 OK with total_interactions, by_severity breakdown
+
+GET {{BASE_URL}}/api/v1/drug-interactions/statistics HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 10: CHECK DRUG INTERACTIONS (by ATC codes)
+# ==============================================================================
+# Test interaction checking with known ATC codes
+# Common ATC codes:
+# - B01AA03: Warfarin
+# - B01AC06: Aspirin (acetylsalicylic acid)
+# - N02BE01: Paracetamol
+# - N02AX02: Tramadol
+# - C09AA05: Ramipril
+# - C10AA01: Simvastatin
+# - A10BA02: Metformin
+
+
+### check_interactions_warfarin_aspirin
+
+# Goal: Check known major interaction between Warfarin and Aspirin
+# Expected: 200 OK with interactions array showing major interaction
+
+POST {{BASE_URL}}/api/v1/drug-interactions/check HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "atc_codes": [
+    "J05AJ03",
+    "V04CC02"
+  ],
+  "min_severity": "major"
+}
+
+
+### 
+
+
+### check_interactions_multiple_drugs
+
+# Goal: Check interactions between multiple medications
+
+POST {{BASE_URL}}/api/v1/drug-interactions/check HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "atc_codes": [
+    "J05AF01",
+    "J02AC01",
+    "J04BA02"
+  ],
+  "min_severity": "moderate"
+}
+
+
+### 
+
+
+### check_new_medication_interaction
+
+# Goal: Check if adding Warfarin interacts with existing medications
+# Expected: 200 OK with interactions involving new medication only
+
+POST {{BASE_URL}}/api/v1/drug-interactions/check-new HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "existing_atc_codes": [
+    "J04BA02",
+    "J02AC01",
+    "C10AA05"
+  ],
+  "min_severity": "moderate",
+  "new_atc_code": "J05AF01"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 11: CHECK PATIENT DRUG INTERACTIONS
+# ==============================================================================
+# Check interactions for patient's active prescriptions
+# Requires list_patients to have run first
+
+
+### check_patient_interactions
+
+# Goal: Get all interactions between patient's active medications
+# Expected: 200 OK with interactions array
+
+GET {{BASE_URL}}/api/v1/drug-interactions/patient/{{list_patients.response.body.$.patients[1].id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_patient_interactions_major_only
+
+# Goal: Get only major interactions for patient
+
+GET {{BASE_URL}}/api/v1/drug-interactions/patient/{{list_patients.response.body.$.patients[0].id}}?min_severity=major HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### check_new_medication_for_patient
+
+# Goal: Check if adding Warfarin would interact with patient's current meds
+# Uses medication names with fuzzy matching
+
+POST {{BASE_URL}}/api/v1/drug-interactions/check-new-for-patient HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "min_severity": "moderate",
+  "new_generic_name": "warfarin",
+  "new_medication_name": "Warfarin",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}"
+}
+
+
+### 
+
+
+### check_new_medication_for_patient_coumadin
+
+# Goal: Check Coumadin (Warfarin brand name) interactions
+
+POST {{BASE_URL}}/api/v1/drug-interactions/check-new-for-patient HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "min_severity": "minor",
+  "new_medication_name": "COUMADIN",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 12: CREATE PRESCRIPTIONS
+# ==============================================================================
+# Create new prescriptions for testing status transitions
+
+
+### create_prescription_main
+
+# @name create_prescription_main
+
+# Goal: Create a main prescription for update/status tests
+# Expected: 201 Created with full prescription object
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "10mg",
+  "duration": "30 days",
+  "end_date": "2026-02-07",
+  "form": "TABLET",
+  "frequency": "Once daily",
+  "generic_name": "lisinopril",
+  "instructions": "Take one tablet by mouth once daily in the morning. Monitor blood pressure regularly.",
+  "medication_name": "Lisinopril",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "pharmacy_notes": "Generic substitution allowed",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "quantity": 30,
+  "refills": 3,
+  "route": "ORAL",
+  "start_date": "2026-01-08"
+}
+
+
+### 
+
+
+### create_prescription_for_hold
+
+# @name create_prescription_for_hold
+
+# Goal: Create prescription to test hold/resume workflow
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "5mg",
+  "frequency": "Once daily",
+  "medication_name": "Amlodipine",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 2
+}
+
+
+### 
+
+
+### create_prescription_for_discontinue
+
+# @name create_prescription_for_discontinue
+
+# Goal: Create prescription to test discontinue workflow
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "500mg",
+  "frequency": "Twice daily",
+  "medication_name": "Metformin",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 2
+}
+
+
+### 
+
+
+### create_prescription_for_cancel
+
+# @name create_prescription_for_cancel
+
+# Goal: Create prescription to test cancel workflow
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "20mg",
+  "frequency": "Once daily at bedtime",
+  "medication_name": "Atorvastatin",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 5
+}
+
+
+### 
+
+
+### create_prescription_for_complete
+
+# @name create_prescription_for_complete
+
+# Goal: Create prescription to test complete workflow
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "500mg",
+  "duration": "7 days",
+  "end_date": "2026-01-08",
+  "frequency": "Three times daily",
+  "medication_name": "Amoxicillin",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-01",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 0
+}
+
+
+### 
+
+
+### create_prescription_for_delete
+
+# @name create_prescription_for_delete
+
+# Goal: Create prescription to test delete workflow (admin only)
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "10mg",
+  "frequency": "Once daily",
+  "medication_name": "Test Medication To Delete",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 0
+}
+
+
+### 
+
+
+### create_prescription_with_visit
+
+# @name create_prescription_with_visit
+
+# Goal: Create prescription linked to a visit
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "20mg",
+  "duration": "14 days",
+  "form": "CAPSULE",
+  "frequency": "Once daily before breakfast",
+  "generic_name": "omeprazole",
+  "instructions": "Take one capsule 30 minutes before breakfast on an empty stomach.",
+  "medication_name": "Omeprazole",
+  "patient_id": "{{list_visits.response.body.$.visits[0].patient_id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "quantity": 14,
+  "refills": 1,
+  "route": "ORAL",
+  "visit_id": "{{list_visits.response.body.$.visits[0].id}}"
+}
+
+
+### 
+
+
+### create_prescription_minimal
+
+# Goal: Create prescription with only required fields
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "81mg",
+  "frequency": "Once daily",
+  "medication_name": "Aspirin",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "prescribed_date": "2026-01-08",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}",
+  "refills": 0
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 13: UPDATE PRESCRIPTION
+# ==============================================================================
+# Requires create_prescription_main to have run first
+
+
+### update_prescription
+
+# Goal: Update an existing prescription
+# Expected: 200 OK with updated prescription
+
+PUT {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_main.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "20mg",
+  "frequency": "Once daily in the evening",
+  "instructions": "Take one tablet by mouth once daily in the evening. Increased dose per patient request. Monitor blood pressure."
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 14: STATUS TRANSITIONS - HOLD/RESUME
+# ==============================================================================
+# Requires create_prescription_for_hold to have run first
+
+
+### hold_prescription
+
+# Goal: Put prescription on hold
+# Expected: 200 OK, status changes to ON_HOLD
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_hold.response.body.$.id}}/hold HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "reason": "Patient experiencing side effects. Holding until follow-up appointment."
+}
+
+
+### 
+
+
+### resume_prescription
+
+# Goal: Resume a held prescription
+# Expected: 200 OK, status changes back to ACTIVE
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_hold.response.body.$.id}}/resume HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 15: STATUS TRANSITIONS - DISCONTINUE
+# ==============================================================================
+# Requires create_prescription_for_discontinue to have run first
+
+
+### discontinue_prescription
+
+# Goal: Permanently discontinue a prescription
+# Expected: 200 OK, status changes to DISCONTINUED
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_discontinue.response.body.$.id}}/discontinue HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "reason": "Patient developed gastrointestinal intolerance. Switching to alternative medication."
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 16: STATUS TRANSITIONS - CANCEL
+# ==============================================================================
+# Requires create_prescription_for_cancel to have run first
+
+
+### cancel_prescription
+
+# Goal: Cancel a prescription (never filled)
+# Expected: 200 OK, status changes to CANCELLED
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_cancel.response.body.$.id}}/cancel HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "reason": "Prescription created in error. Patient already on different statin."
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 17: STATUS TRANSITIONS - COMPLETE
+# ==============================================================================
+# Requires create_prescription_for_complete to have run first
+
+
+### complete_prescription
+
+# Goal: Mark prescription as completed (course finished)
+# Expected: 200 OK, status changes to COMPLETED
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_complete.response.body.$.id}}/complete HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 18: PRESCRIPTION TEMPLATES
+# ==============================================================================
+
+
+### list_prescription_templates
+
+# @name list_prescription_templates
+
+# Goal: Get all prescription templates
+
+GET {{BASE_URL}}/api/v1/prescription-templates HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### create_prescription_template
+
+# @name create_prescription_template
+
+# Goal: Create a reusable prescription template
+# Expected: 201 Created with template object
+
+POST {{BASE_URL}}/api/v1/prescription-templates HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "description": "Standard starting dose for hypertension management",
+  "dosage": "10mg",
+  "duration": "30 days",
+  "form": "TABLET",
+  "frequency": "Once daily in the morning",
+  "generic_name": "lisinopril",
+  "instructions": "Take one tablet by mouth once daily in the morning. Monitor blood pressure regularly. Report any persistent cough.",
+  "medication_name": "Lisinopril",
+  "name": "Standard Hypertension - Lisinopril",
+  "pharmacy_notes": "Generic substitution allowed",
+  "quantity": 30,
+  "refills": 3,
+  "route": "ORAL"
+}
+
+
+### 
+
+
+### get_prescription_template
+
+# Goal: Get single template by ID
+# Requires create_prescription_template to have run first
+
+GET {{BASE_URL}}/api/v1/prescription-templates/{{create_prescription_template.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### update_prescription_template
+
+# Goal: Update a prescription template
+
+PUT {{BASE_URL}}/api/v1/prescription-templates/{{create_prescription_template.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "dosage": "20mg",
+  "instructions": "Take one tablet by mouth once daily in the morning. Increased from 10mg per protocol. Monitor blood pressure closely.",
+  "name": "Standard Hypertension - Lisinopril (Updated)"
+}
+
+
+### 
+
+
+### delete_prescription_template
+
+# Goal: Delete a prescription template (Admin only)
+# Requires login_admin to have run first
+
+DELETE {{BASE_URL}}/api/v1/prescription-templates/{{create_prescription_template.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 19: DELETE PRESCRIPTION (Admin Only)
+# ==============================================================================
+# Requires create_prescription_for_delete and login_admin to have run first
+
+
+### delete_prescription
+
+# Goal: Permanently delete a prescription
+# Expected: 204 No Content
+
+DELETE {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_delete.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 20: AUTHORIZATION TESTS
+# ==============================================================================
+
+
+### doctor_cannot_delete_prescription
+
+# Goal: Verify Doctor cannot delete prescriptions (Admin only)
+# Expected: 403 Forbidden
+
+DELETE {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_main.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### unauthenticated_access_denied
+
+# Goal: Verify unauthenticated requests are rejected
+# Expected: 401 Unauthorized
+
+GET {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+
+
+### 
+
+# ==============================================================================
+# STEP 21: ERROR HANDLING TESTS
+# ==============================================================================
+
+
+### get_nonexistent_prescription
+
+# Goal: Verify proper 404 for non-existent prescription
+# Expected: 404 Not Found
+
+GET {{BASE_URL}}/api/v1/prescriptions/00000000-0000-0000-0000-000000000000 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### invalid_status_transition
+
+# Goal: Verify cannot discontinue completed prescription
+# Expected: 400 Bad Request
+# Requires create_prescription_for_complete and complete_prescription to have run first
+
+POST {{BASE_URL}}/api/v1/prescriptions/{{create_prescription_for_complete.response.body.$.id}}/discontinue HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "reason": "Attempting to discontinue completed prescription - should fail"
+}
+
+
+### 
+
+
+### create_prescription_missing_fields
+
+# Goal: Verify validation errors for missing required fields
+# Expected: 400 Bad Request with validation error
+
+POST {{BASE_URL}}/api/v1/prescriptions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "provider_id": "{{login_doctor.response.body.$.user.id}}"
+}
+
+
+### 
+
+
+### check_interactions_invalid_patient
+
+# Goal: Verify proper error for non-existent patient
+# Expected: 404 Not Found or empty results
+
+GET {{BASE_URL}}/api/v1/drug-interactions/patient/00000000-0000-0000-0000-000000000000 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 

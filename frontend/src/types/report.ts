@@ -387,10 +387,14 @@ export interface QuickStats {
   appointments_today: number;
   /** Appointments this week */
   appointments_this_week: number;
+  /** Visits this week */
+  visits_this_week: number;
   /** Pending visits to document */
   pending_visits: number;
   /** Active patients */
   active_patients: number;
+  /** Active prescriptions */
+  active_prescriptions: number;
   /** Documents generated this month */
   documents_this_month: number;
 }

@@ -199,6 +199,9 @@ pub struct CreatePrescriptionRequest {
     pub prescribed_date: Option<NaiveDate>,
     pub start_date: Option<NaiveDate>,
     pub end_date: Option<NaiveDate>,
+
+    // Drug interaction warnings detected at creation time
+    pub interaction_warnings: Option<Vec<DrugInteractionWarning>>,
 }
 
 /// Prescription update request (API input with decrypted data)

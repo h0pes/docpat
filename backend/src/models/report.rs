@@ -364,10 +364,14 @@ pub struct QuickStats {
     pub appointments_today: i64,
     /// Appointments this week
     pub appointments_this_week: i64,
+    /// Visits this week
+    pub visits_this_week: i64,
     /// Pending visits to document
     pub pending_visits: i64,
     /// Active patients
     pub active_patients: i64,
+    /// Active prescriptions
+    pub active_prescriptions: i64,
     /// Documents generated this month
     pub documents_this_month: i64,
 }

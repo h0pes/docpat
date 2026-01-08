@@ -296,6 +296,7 @@ impl User {
 
 /// User data transfer object for safe serialization (without sensitive data)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserDto {
     pub id: Uuid,
     pub username: String,

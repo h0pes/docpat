@@ -201,8 +201,9 @@ impl PrescriptionTemplateService {
     }
 
     /// Delete prescription template (soft delete by setting is_active = false)
-    pub async fn delete_template(&self, id: Uuid, user_id: Uuid) -> Result<()> {
-        // Check template exists and user owns it
+    /// Admins can delete any template, doctors can only delete their own
+    pub async fn delete_template(&self, id: Uuid, user_id: Uuid, is_admin: bool) -> Result<()> {
+        // Check template exists
         let existing = sqlx::query!(
             "SELECT created_by FROM prescription_templates WHERE id = $1",
             id
@@ -212,8 +213,8 @@ impl PrescriptionTemplateService {
         .context("Failed to check template existence")?
         .ok_or_else(|| anyhow::anyhow!("Template not found"))?;
 
-        // Verify ownership
-        if existing.created_by != user_id {
+        // Verify ownership (admins can delete any template)
+        if !is_admin && existing.created_by != user_id {
             return Err(anyhow::anyhow!("Unauthorized: not template owner"));
         }
 

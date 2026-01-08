@@ -28,8 +28,9 @@ import { useState } from 'react';
 
 /**
  * Severity levels for drug interactions
+ * Extended to include contraindicated (most severe) and unknown from DDInter database
  */
-type InteractionSeverity = 'minor' | 'moderate' | 'major';
+type InteractionSeverity = 'unknown' | 'minor' | 'moderate' | 'major' | 'contraindicated';
 
 /**
  * Props for DrugInteractionWarning component
@@ -49,35 +50,61 @@ interface DrugInteractionWarningProps {
 
 /**
  * Get styling for severity level
+ * Colors are designed to be distinct and accessible in both light and dark modes
  */
 function getSeverityStyles(severity: InteractionSeverity): {
   badge: string;
   alert: 'default' | 'destructive';
   icon: typeof AlertTriangle;
   bgColor: string;
+  textColor: string;
 } {
   switch (severity) {
-    case 'major':
+    case 'contraindicated':
+      // Deep purple/crimson for most severe
       return {
-        badge: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300',
+        badge: 'bg-purple-600 text-white border-purple-700 dark:bg-purple-700 dark:text-white',
         alert: 'destructive',
         icon: ShieldAlert,
-        bgColor: 'bg-red-50 dark:bg-red-950 border-red-200',
+        bgColor: 'bg-purple-100 dark:bg-purple-900/50 border-purple-300 dark:border-purple-700',
+        textColor: 'text-purple-800 dark:text-purple-200',
+      };
+    case 'major':
+      // Red for major severity
+      return {
+        badge: 'bg-red-600 text-white border-red-700 dark:bg-red-700 dark:text-white',
+        alert: 'destructive',
+        icon: ShieldAlert,
+        bgColor: 'bg-red-100 dark:bg-red-900/50 border-red-300 dark:border-red-700',
+        textColor: 'text-red-800 dark:text-red-200',
       };
     case 'moderate':
+      // Amber/Yellow for moderate - clearly distinct from red
       return {
-        badge: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-300',
+        badge: 'bg-amber-500 text-white border-amber-600 dark:bg-amber-600 dark:text-white',
         alert: 'default',
         icon: AlertCircle,
-        bgColor: 'bg-orange-50 dark:bg-orange-950 border-orange-200',
+        bgColor: 'bg-amber-100 dark:bg-amber-900/50 border-amber-300 dark:border-amber-700',
+        textColor: 'text-amber-800 dark:text-amber-200',
       };
     case 'minor':
-    default:
+      // Blue for minor severity
       return {
-        badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300',
+        badge: 'bg-blue-500 text-white border-blue-600 dark:bg-blue-600 dark:text-white',
         alert: 'default',
         icon: Info,
-        bgColor: 'bg-yellow-50 dark:bg-yellow-950 border-yellow-200',
+        bgColor: 'bg-blue-100 dark:bg-blue-900/50 border-blue-300 dark:border-blue-700',
+        textColor: 'text-blue-800 dark:text-blue-200',
+      };
+    case 'unknown':
+    default:
+      // Gray for unknown
+      return {
+        badge: 'bg-gray-500 text-white border-gray-600 dark:bg-gray-600 dark:text-white',
+        alert: 'default',
+        icon: Info,
+        bgColor: 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600',
+        textColor: 'text-gray-700 dark:text-gray-300',
       };
   }
 }
@@ -86,8 +113,8 @@ function getSeverityStyles(severity: InteractionSeverity): {
  * Get the highest severity from warnings
  */
 function getHighestSeverity(warnings: DrugInteractionWarningType[]): InteractionSeverity {
-  const severityOrder: InteractionSeverity[] = ['minor', 'moderate', 'major'];
-  let highest: InteractionSeverity = 'minor';
+  const severityOrder: InteractionSeverity[] = ['unknown', 'minor', 'moderate', 'major', 'contraindicated'];
+  let highest: InteractionSeverity = 'unknown';
 
   for (const warning of warnings) {
     const severity = warning.severity as InteractionSeverity;
@@ -158,16 +185,16 @@ function InlineWarning({
   const Icon = styles.icon;
 
   return (
-    <div className={cn('flex items-start gap-2 text-sm', className)}>
+    <div className={cn('flex items-start gap-2 text-sm', styles.textColor, className)}>
       <Icon className="h-4 w-4 shrink-0 mt-0.5" />
       <div>
         <span className="font-medium">{warning.medication_name}</span>
         {' - '}
-        <Badge variant="outline" className={cn('text-xs py-0', styles.badge)}>
+        <Badge variant="secondary" className={cn('text-xs py-0', styles.badge)}>
           {t(`prescriptions.interactions.severity.${warning.severity}`)}
         </Badge>
         {warning.description && (
-          <p className="text-muted-foreground mt-0.5">{warning.description}</p>
+          <p className="opacity-80 mt-0.5">{warning.description}</p>
         )}
       </div>
     </div>
@@ -204,19 +231,20 @@ function FullWarningAlert({
             key={index}
             className={cn(
               'flex items-start gap-3 p-3 rounded-md border',
-              warningStyles.bgColor
+              warningStyles.bgColor,
+              warningStyles.textColor
             )}
           >
             <Icon className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium">{warning.medication_name}</span>
-                <Badge variant="outline" className={cn('text-xs', warningStyles.badge)}>
+                <Badge variant="secondary" className={cn('text-xs', warningStyles.badge)}>
                   {t(`prescriptions.interactions.severity.${warning.severity}`)}
                 </Badge>
               </div>
               {warning.description && (
-                <p className="text-sm mt-1 text-muted-foreground">
+                <p className="text-sm mt-1 opacity-80">
                   {warning.description}
                 </p>
               )}

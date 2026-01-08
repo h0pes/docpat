@@ -66,16 +66,87 @@ export enum RouteOfAdministration {
 
 /**
  * Drug interaction warning severity
+ * Extended to include contraindicated and unknown from DDInter database
  */
-export type DrugInteractionSeverity = 'minor' | 'moderate' | 'major';
+export type DrugInteractionSeverity = 'contraindicated' | 'major' | 'moderate' | 'minor' | 'unknown';
 
 /**
- * Drug interaction warning structure
+ * Drug interaction warning structure (simple format for display)
  */
 export interface DrugInteractionWarning {
   medication_name: string;
   severity: DrugInteractionSeverity;
   description: string;
+}
+
+/**
+ * Full drug interaction record from backend API
+ */
+export interface DrugInteraction {
+  id: string;
+  drug_a_atc_code: string;
+  drug_a_name?: string;
+  drug_b_atc_code: string;
+  drug_b_name?: string;
+  severity: DrugInteractionSeverity;
+  effect?: string;
+  mechanism?: string;
+  management?: string;
+  source: string;
+}
+
+/**
+ * Request to check interactions between multiple medications
+ */
+export interface CheckInteractionsRequest {
+  atc_codes: string[];
+  min_severity?: string;
+  include_inactive?: boolean;
+}
+
+/**
+ * Request to check interactions when adding a new medication (by ATC code)
+ */
+export interface CheckNewMedicationRequest {
+  new_atc_code: string;
+  existing_atc_codes: string[];
+  min_severity?: string;
+}
+
+/**
+ * Request to check interactions when adding a new medication for a patient
+ * Uses medication name with fuzzy matching instead of ATC codes
+ */
+export interface CheckNewMedicationForPatientRequest {
+  new_medication_name: string;
+  new_generic_name?: string;
+  patient_id: string;
+  min_severity?: string;
+}
+
+/**
+ * Response from drug interaction check endpoints
+ */
+export interface CheckInteractionsResponse {
+  interactions: DrugInteraction[];
+  total: number;
+  major_count: number;
+  moderate_count: number;
+  minor_count: number;
+  highest_severity?: DrugInteractionSeverity;
+}
+
+/**
+ * Statistics about the drug interaction database
+ */
+export interface InteractionStatistics {
+  total: number;
+  contraindicated: number;
+  major: number;
+  moderate: number;
+  minor: number;
+  unknown: number;
+  sources: number;
 }
 
 /**
@@ -109,8 +180,9 @@ export interface Prescription {
   prescribed_date: string; // ISO 8601 format
   start_date?: string;
   end_date?: string;
-  discontinued_date?: string;
-  discontinued_reason?: string;
+  discontinuation_reason?: string;
+  discontinued_at?: string;
+  discontinued_by?: string;
 
   // Drug interactions (stored as JSONB)
   interaction_warnings?: DrugInteractionWarning[];
@@ -141,6 +213,8 @@ export interface CreatePrescriptionRequest {
   prescribed_date: string; // ISO 8601 format
   start_date?: string;
   end_date?: string;
+  /** Drug interaction warnings detected at creation time (stored for display in lists) */
+  interaction_warnings?: DrugInteractionWarning[];
 }
 
 /**
@@ -163,7 +237,7 @@ export interface UpdatePrescriptionRequest {
  * Request to discontinue a prescription
  */
 export interface DiscontinuePrescriptionRequest {
-  discontinued_reason: string;
+  reason: string;
 }
 
 /**
@@ -175,6 +249,27 @@ export interface MedicationSearchResult {
   common_dosages?: string[];
   common_forms?: MedicationForm[];
   default_route?: RouteOfAdministration;
+}
+
+/**
+ * Request to create a custom medication
+ */
+export interface CreateCustomMedicationRequest {
+  name: string;
+  generic_name?: string;
+  form?: string;
+  dosage_strength?: string;
+  route?: string;
+  common_dosages?: string[];
+  notes?: string;
+}
+
+/**
+ * Response from creating a custom medication
+ */
+export interface CreateCustomMedicationResponse {
+  id: string;
+  message: string;
 }
 
 /**
@@ -280,18 +375,22 @@ export function getStatusColor(status: PrescriptionStatus): string {
 }
 
 /**
- * Get interaction severity display color for UI
+ * Get interaction severity display color for UI (badge style with solid background)
+ * Colors are consistent with DrugInteractionWarning component
  */
 export function getInteractionSeverityColor(severity: DrugInteractionSeverity): string {
   switch (severity) {
-    case 'minor':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-    case 'moderate':
-      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+    case 'contraindicated':
+      return 'bg-purple-600 text-white dark:bg-purple-700';
     case 'major':
-      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return 'bg-red-600 text-white dark:bg-red-700';
+    case 'moderate':
+      return 'bg-amber-500 text-white dark:bg-amber-600';
+    case 'minor':
+      return 'bg-blue-500 text-white dark:bg-blue-600';
+    case 'unknown':
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-500 text-white dark:bg-gray-600';
   }
 }
 
@@ -325,17 +424,85 @@ export function isExpired(prescription: Prescription): boolean {
 }
 
 /**
- * Check if prescription needs refill soon (within 7 days)
+ * Check if prescription is expired (end date has passed)
  */
-export function needsRefillSoon(prescription: Prescription): boolean {
+export function isExpiredPrescription(prescription: Prescription): boolean {
+  if (!prescription.end_date) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(prescription.end_date);
+  endDate.setHours(0, 0, 0, 0);
+  return endDate < today;
+}
+
+/**
+ * Check if prescription is ending soon (within 7 days) but not yet expired
+ */
+export function isEndingSoon(prescription: Prescription): boolean {
   if (!prescription.end_date || prescription.status !== PrescriptionStatus.ACTIVE) {
     return false;
   }
 
-  const sevenDaysFromNow = new Date();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(prescription.end_date);
+  endDate.setHours(0, 0, 0, 0);
+
+  // If already expired, not "ending soon"
+  if (endDate < today) return false;
+
+  const sevenDaysFromNow = new Date(today);
   sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
-  return new Date(prescription.end_date) <= sevenDaysFromNow;
+  return endDate <= sevenDaysFromNow;
+}
+
+/**
+ * Get refill status for a prescription
+ * Returns: 'can_refill' | 'needs_renewal' | 'expired' | null
+ * - 'can_refill': Has refills remaining and ending/ended soon
+ * - 'needs_renewal': No refills remaining and ending/ended soon (needs new prescription)
+ * - 'expired': Prescription has passed its end date
+ * - null: Not applicable (not ending soon, no end date, or not active)
+ */
+export function getRefillStatus(prescription: Prescription): 'can_refill' | 'needs_renewal' | 'expired' | null {
+  if (prescription.status !== PrescriptionStatus.ACTIVE) {
+    return null;
+  }
+
+  if (!prescription.end_date) {
+    return null;
+  }
+
+  const isExpired = isExpiredPrescription(prescription);
+  const endingSoon = isEndingSoon(prescription);
+
+  if (isExpired) {
+    // Prescription has expired
+    if (prescription.refills > 0) {
+      return 'can_refill'; // Can still refill even though expired
+    }
+    return 'expired'; // Expired and no refills - needs renewal
+  }
+
+  if (endingSoon) {
+    // Ending within 7 days
+    if (prescription.refills > 0) {
+      return 'can_refill';
+    }
+    return 'needs_renewal';
+  }
+
+  return null;
+}
+
+/**
+ * Check if prescription needs refill soon (within 7 days) - DEPRECATED
+ * Use getRefillStatus() instead for more detailed information
+ */
+export function needsRefillSoon(prescription: Prescription): boolean {
+  const status = getRefillStatus(prescription);
+  return status === 'can_refill' || status === 'needs_renewal' || status === 'expired';
 }
 
 /**

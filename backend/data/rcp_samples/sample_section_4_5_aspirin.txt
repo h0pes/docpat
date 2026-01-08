@@ -1,0 +1,57 @@
+4.5 Interazioni con altri medicinali ed altre forme d'interazione
+
+L'effetto dell'acido acetilsalicilico può essere modificato in seguito all'assunzione contemporanea di altri medicinali.
+
+ASSOCIAZIONI CONTROINDICATE
+
+Metotrexato (a dosi >= 15 mg/settimana):
+Aumento della tossicità ematologica del metotrexato (diminuzione della clearance renale del metotrexato da parte degli agenti antinfiammatori in generale e spiazzamento del metotrexato dal suo legame con le proteine plasmatiche da parte dei salicilati). Pertanto l'uso concomitante di acido acetilsalicilico con metotrexato a dosi >= 15 mg/settimana è controindicato (vedere sezione 4.3).
+
+Anticoagulanti orali (es. warfarin, acenocumarolo):
+Aumento del rischio di emorragia per inibizione della funzionalità piastrinica, danno alla mucosa gastroduodenale e spiazzamento degli anticoagulanti orali dai loro siti di legame con le proteine plasmatiche. L'uso concomitante è controindicato.
+
+ASSOCIAZIONI SCONSIGLIATE
+
+Altri FANS (inclusi inibitori selettivi della COX-2):
+Aumento del rischio di ulcera e sanguinamento gastrointestinale a causa di effetto sinergico.
+
+Uricosurici (es. probenecid, sulfinpirazone):
+Diminuzione dell'effetto uricosurico (competizione per l'eliminazione dell'acido urico a livello dei tubuli renali).
+
+Ticlopidina, clopidogrel:
+Aumento del rischio di sanguinamento a causa dell'effetto sinergico sull'inibizione piastrinica.
+
+ASSOCIAZIONI CHE RICHIEDONO PRECAUZIONI D'IMPIEGO O DA PRENDERE IN CONSIDERAZIONE
+
+Metotrexato (a dosi < 15 mg/settimana):
+Aumento della tossicità ematologica del metotrexato. Controllo settimanale dell'emocromo durante le prime settimane di associazione. Aumentare la sorveglianza in caso di alterazione anche lieve della funzione renale, così come negli anziani.
+
+Antidiabetici (es. insulina, sulfaniluree):
+Aumento dell'effetto ipoglicemizzante per dosi elevate di acido acetilsalicilico, a causa dell'azione ipoglicemizzante dell'acido acetilsalicilico e dello spiazzamento delle sulfaniluree dai siti di legame con le proteine plasmatiche. Monitorare la glicemia.
+
+Diuretici:
+Possibile riduzione dell'effetto diuretico. Nei pazienti disidratati, rischio di insufficienza renale acuta per riduzione della filtrazione glomerulare per diminuzione della sintesi delle prostaglandine renali. Idratare il paziente e controllare la funzionalità renale all'inizio del trattamento.
+
+ACE-inibitori, antagonisti del recettore dell'angiotensina II:
+Possibile riduzione dell'effetto antipertensivo. Inoltre, per dosi di acido acetilsalicilico >= 3 g/die, rischio di insufficienza renale acuta in pazienti disidratati.
+
+Corticosteroidi:
+Aumento del rischio di ulcerazione e sanguinamento gastrointestinale.
+
+Inibitori selettivi della ricaptazione della serotonina (SSRI):
+Aumento del rischio di sanguinamento gastrointestinale per effetto sinergico.
+
+Digossina:
+Aumento della concentrazione plasmatica della digossina a causa di una diminuzione dell'escrezione renale.
+
+Fenitoina:
+Aumento dell'effetto della fenitoina per spiazzamento della fenitoina dai siti di legame con le proteine plasmatiche.
+
+Acido valproico:
+Aumento della tossicità dell'acido valproico per spiazzamento dai siti di legame con le proteine plasmatiche.
+
+Alcol:
+Aumento del rischio di danno alla mucosa gastrointestinale e prolungamento del tempo di sanguinamento a causa degli effetti additivi dell'acido acetilsalicilico e dell'alcol.
+
+Ibuprofene:
+Dati sperimentali suggeriscono che l'ibuprofene può inibire l'effetto dell'acido acetilsalicilico a basse dosi sull'aggregazione piastrinica quando i due farmaci vengono somministrati contemporaneamente. Tuttavia, i limiti di questi dati e le incertezze riguardanti l'estrapolazione dei dati ex vivo alla situazione clinica non permettono di trarre conclusioni definitive per quanto riguarda l'uso regolare di ibuprofene; nessun effetto clinicamente rilevante è considerato probabile in caso di uso occasionale dell'ibuprofene (vedere sezione 5.1).

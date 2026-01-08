@@ -30,6 +30,8 @@ import type {
   PrescriptionTemplate,
   CreatePrescriptionTemplateRequest,
   MedicationSearchResult,
+  CreateCustomMedicationRequest,
+  CreateCustomMedicationResponse,
 } from '../../types/prescription';
 
 /**
@@ -299,6 +301,58 @@ export const prescriptionsApi = {
   },
 
   /**
+   * Cancel a prescription
+   * @param id - Prescription UUID
+   * @param data - Optional cancellation reason
+   * @returns The cancelled prescription
+   */
+  cancel: async (id: string, data?: { reason?: string }): Promise<Prescription> => {
+    const response = await apiClient.post<Prescription>(
+      `/api/v1/prescriptions/${id}/cancel`,
+      data || {}
+    );
+    return response.data;
+  },
+
+  /**
+   * Put a prescription on hold
+   * @param id - Prescription UUID
+   * @param data - Hold reason (required)
+   * @returns The prescription on hold
+   */
+  hold: async (id: string, data: { reason: string }): Promise<Prescription> => {
+    const response = await apiClient.post<Prescription>(
+      `/api/v1/prescriptions/${id}/hold`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Resume a prescription from hold
+   * @param id - Prescription UUID
+   * @returns The resumed prescription
+   */
+  resume: async (id: string): Promise<Prescription> => {
+    const response = await apiClient.post<Prescription>(
+      `/api/v1/prescriptions/${id}/resume`
+    );
+    return response.data;
+  },
+
+  /**
+   * Mark a prescription as completed
+   * @param id - Prescription UUID
+   * @returns The completed prescription
+   */
+  complete: async (id: string): Promise<Prescription> => {
+    const response = await apiClient.post<Prescription>(
+      `/api/v1/prescriptions/${id}/complete`
+    );
+    return response.data;
+  },
+
+  /**
    * Delete a prescription
    * @param id - Prescription UUID
    */
@@ -344,6 +398,22 @@ export const prescriptionsApi = {
       {
         params: { query, limit },
       }
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a custom medication
+   * Custom medications are stored in the database and appear in future medication searches.
+   * @param data - Custom medication data
+   * @returns The created medication ID and confirmation message
+   */
+  createCustomMedication: async (
+    data: CreateCustomMedicationRequest
+  ): Promise<CreateCustomMedicationResponse> => {
+    const response = await apiClient.post<CreateCustomMedicationResponse>(
+      '/api/v1/prescriptions/medications/custom',
+      data
     );
     return response.data;
   },

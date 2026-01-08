@@ -7,6 +7,7 @@
 pub mod appointments;
 pub mod audit_logs;
 pub mod auth;
+pub mod drug_interactions;
 pub mod files;
 pub mod system_health;
 pub mod diagnoses;
@@ -44,8 +45,10 @@ pub use patients::{
     list_patients, reactivate_patient, search_patients, update_patient,
 };
 pub use prescriptions::{
-    create_prescription, delete_prescription, discontinue_prescription, get_patient_prescriptions,
-    get_prescription, get_visit_prescriptions, search_medications, update_prescription,
+    cancel_prescription, complete_prescription, create_custom_medication, create_prescription,
+    delete_prescription, discontinue_prescription, get_patient_prescriptions, get_prescription,
+    get_visit_prescriptions, hold_prescription, list_prescriptions, resume_prescription,
+    search_medications, update_prescription,
 };
 pub use visits::{
     create_visit, delete_visit, get_patient_visits, get_visit, get_visit_statistics, list_visits,

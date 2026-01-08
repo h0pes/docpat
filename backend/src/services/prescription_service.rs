@@ -47,12 +47,41 @@ impl PrescriptionService {
         }
     }
 
+    /// Set RLS context variables for database connection
+    async fn set_rls_context(
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<()> {
+        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
+        let role_query = format!("SET LOCAL app.current_user_role = '{}'", role);
+
+        sqlx::query(&user_id_query)
+            .execute(&mut **tx)
+            .await
+            .context("Failed to set RLS user context")?;
+
+        sqlx::query(&role_query)
+            .execute(&mut **tx)
+            .await
+            .context("Failed to set RLS role context")?;
+
+        Ok(())
+    }
+
     /// Create a new prescription
     pub async fn create_prescription(
         &self,
         data: CreatePrescriptionRequest,
         created_by: Uuid,
+        role: &str,
     ) -> Result<PrescriptionResponse> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+
+        // Set RLS context variables
+        Self::set_rls_context(&mut tx, created_by, role).await?;
+
         // Use visit_id directly (it's already Option<Uuid>)
         let visit_id = data.visit_id;
 
@@ -62,7 +91,7 @@ impl PrescriptionService {
                 "SELECT patient_id, visit_date FROM visits WHERE id = $1",
                 vid
             )
-            .fetch_optional(&self.pool)
+            .fetch_optional(&mut *tx)
             .await
             .context("Failed to check visit existence")?
             .ok_or_else(|| anyhow::anyhow!("Visit not found"))?;
@@ -110,6 +139,11 @@ impl PrescriptionService {
         // Convert enums to strings for database
         let form_str = data.form.map(|f| format!("{:?}", f).to_uppercase());
         let route_str = data.route.map(|r| format!("{:?}", r).to_uppercase());
+
+        // Default prescribed_date to today if not provided (required by NOT NULL constraint)
+        let prescribed_date = data
+            .prescribed_date
+            .unwrap_or_else(|| chrono::Local::now().date_naive());
 
         // Insert prescription
         let prescription = sqlx::query_as!(
@@ -187,11 +221,11 @@ impl PrescriptionService {
             route_str,
             encrypted_frequency,
             encrypted_duration,
-            data.quantity.unwrap_or(0),
+            data.quantity, // Keep as Option - DB allows NULL
             data.refills.unwrap_or(0),
             encrypted_instructions,
             encrypted_pharmacy_notes,
-            data.prescribed_date,
+            prescribed_date, // Now guaranteed non-null
             data.start_date,
             data.end_date,
             PrescriptionStatus::Active as PrescriptionStatus,
@@ -199,14 +233,24 @@ impl PrescriptionService {
             false, // has_interactions - will be updated after checking
             created_by
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await
         .context("Failed to create prescription")?;
 
-        // Check for drug interactions (placeholder)
-        let interactions = self.check_drug_interactions(patient_id, &data.medication_name).await?;
+        // Use frontend-provided interaction warnings if available (user already confirmed these)
+        // Otherwise, do server-side check as fallback
+        let interactions = if let Some(ref warnings) = data.interaction_warnings {
+            if !warnings.is_empty() {
+                warnings.clone()
+            } else {
+                self.check_drug_interactions(patient_id, &data.medication_name).await?
+            }
+        } else {
+            self.check_drug_interactions(patient_id, &data.medication_name).await?
+        };
+
         if !interactions.is_empty() {
-            // Update prescription with interaction warnings
+            // Update prescription with interaction warnings - use transaction
             sqlx::query!(
                 r#"
                 UPDATE prescriptions
@@ -218,12 +262,15 @@ impl PrescriptionService {
                 prescription.id,
                 serde_json::to_value(&interactions)?
             )
-            .execute(&self.pool)
+            .execute(&mut *tx)
             .await
             .context("Failed to update interaction warnings")?;
         }
 
-        // Log audit entry
+        // Commit transaction before audit logging
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        // Log audit entry (outside transaction - doesn't need RLS context)
         self.log_audit(
             prescription.id,
             patient_id,
@@ -238,7 +285,16 @@ impl PrescriptionService {
     }
 
     /// Get prescription by ID
-    pub async fn get_prescription(&self, id: Uuid) -> Result<Option<PrescriptionResponse>> {
+    pub async fn get_prescription(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<Option<PrescriptionResponse>> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, user_id, role).await?;
+
         let prescription = sqlx::query_as!(
             Prescription,
             r#"
@@ -282,9 +338,11 @@ impl PrescriptionService {
             "#,
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await
         .context("Failed to fetch prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         match prescription {
             Some(p) => Ok(Some(self.prescription_to_response(p).await?)),
@@ -292,12 +350,140 @@ impl PrescriptionService {
         }
     }
 
+    /// List all prescriptions with optional filters
+    ///
+    /// # Arguments
+    /// * `status` - Optional status filter
+    /// * `patient_id` - Optional patient ID filter
+    /// * `start_date` - Optional start date filter (inclusive)
+    /// * `end_date` - Optional end date filter (inclusive)
+    /// * `limit` - Maximum number of results (default 50)
+    /// * `offset` - Pagination offset (default 0)
+    /// * `user_id` - Current user ID for RLS context
+    /// * `role` - Current user role for RLS context
+    pub async fn list_prescriptions(
+        &self,
+        status: Option<PrescriptionStatus>,
+        patient_id: Option<Uuid>,
+        start_date: Option<chrono::NaiveDate>,
+        end_date: Option<chrono::NaiveDate>,
+        limit: i64,
+        offset: i64,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<(Vec<PrescriptionResponse>, i64)> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, user_id, role).await?;
+
+        // Build dynamic WHERE clause
+        let mut conditions: Vec<String> = Vec::new();
+        let status_str = status.map(|s| format!("{:?}", s).to_uppercase());
+
+        if status_str.is_some() {
+            conditions.push("status = $1".to_string());
+        }
+        if patient_id.is_some() {
+            let idx = conditions.len() + 1;
+            conditions.push(format!("patient_id = ${}", idx));
+        }
+        if start_date.is_some() {
+            let idx = conditions.len() + 1;
+            conditions.push(format!("prescribed_date >= ${}", idx));
+        }
+        if end_date.is_some() {
+            let idx = conditions.len() + 1;
+            conditions.push(format!("prescribed_date <= ${}", idx));
+        }
+
+        let where_clause = if conditions.is_empty() {
+            String::new()
+        } else {
+            format!("WHERE {}", conditions.join(" AND "))
+        };
+
+        // Build the main query
+        let query = format!(
+            r#"
+            SELECT
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills,
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status,
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions, interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            FROM prescriptions
+            {}
+            ORDER BY prescribed_date DESC
+            LIMIT {} OFFSET {}
+            "#,
+            where_clause, limit, offset
+        );
+
+        let count_query = format!(
+            "SELECT COUNT(*) FROM prescriptions {}",
+            where_clause
+        );
+
+        // Build and execute query with dynamic parameters
+        let mut query_builder = sqlx::query_as::<_, Prescription>(&query);
+        let mut count_builder = sqlx::query_scalar::<_, i64>(&count_query);
+
+        // Bind parameters in order
+        if let Some(ref s) = status_str {
+            query_builder = query_builder.bind(s);
+            count_builder = count_builder.bind(s);
+        }
+        if let Some(pid) = patient_id {
+            query_builder = query_builder.bind(pid);
+            count_builder = count_builder.bind(pid);
+        }
+        if let Some(sd) = start_date {
+            query_builder = query_builder.bind(sd);
+            count_builder = count_builder.bind(sd);
+        }
+        if let Some(ed) = end_date {
+            query_builder = query_builder.bind(ed);
+            count_builder = count_builder.bind(ed);
+        }
+
+        let prescriptions = query_builder
+            .fetch_all(&mut *tx)
+            .await
+            .context("Failed to fetch prescriptions")?;
+
+        let total = count_builder
+            .fetch_one(&mut *tx)
+            .await
+            .context("Failed to count prescriptions")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        let mut responses = Vec::new();
+        for prescription in prescriptions {
+            responses.push(self.prescription_to_response(prescription).await?);
+        }
+
+        Ok((responses, total))
+    }
+
     /// Get all prescriptions for a patient
     pub async fn get_patient_prescriptions(
         &self,
         patient_id: Uuid,
         active_only: bool,
+        user_id: Uuid,
+        role: &str,
     ) -> Result<Vec<PrescriptionResponse>> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, user_id, role).await?;
+
         let prescriptions = if active_only {
             sqlx::query_as!(
                 Prescription,
@@ -320,7 +506,7 @@ impl PrescriptionService {
                 "#,
                 patient_id
             )
-            .fetch_all(&self.pool)
+            .fetch_all(&mut *tx)
             .await
             .context("Failed to fetch patient prescriptions")?
         } else {
@@ -345,10 +531,12 @@ impl PrescriptionService {
                 "#,
                 patient_id
             )
-            .fetch_all(&self.pool)
+            .fetch_all(&mut *tx)
             .await
             .context("Failed to fetch patient prescriptions")?
         };
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         let mut responses = Vec::new();
         for prescription in prescriptions {
@@ -359,7 +547,16 @@ impl PrescriptionService {
     }
 
     /// Get all prescriptions for a visit
-    pub async fn get_visit_prescriptions(&self, visit_id: Uuid) -> Result<Vec<PrescriptionResponse>> {
+    pub async fn get_visit_prescriptions(
+        &self,
+        visit_id: Uuid,
+        user_id: Uuid,
+        role: &str,
+    ) -> Result<Vec<PrescriptionResponse>> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, user_id, role).await?;
+
         let prescriptions = sqlx::query_as!(
             Prescription,
             r#"
@@ -381,9 +578,11 @@ impl PrescriptionService {
             "#,
             visit_id
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&mut *tx)
         .await
         .context("Failed to fetch visit prescriptions")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         let mut responses = Vec::new();
         for prescription in prescriptions {
@@ -399,13 +598,18 @@ impl PrescriptionService {
         id: Uuid,
         data: UpdatePrescriptionRequest,
         updated_by: Uuid,
+        role: &str,
     ) -> Result<PrescriptionResponse> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, updated_by, role).await?;
+
         // Get existing prescription
         let existing = sqlx::query!(
             "SELECT patient_id, status FROM prescriptions WHERE id = $1",
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await
         .context("Failed to check prescription existence")?
         .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
@@ -489,9 +693,11 @@ impl PrescriptionService {
             status_str,
             updated_by
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await
         .context("Failed to update prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         // Log audit entry
         self.log_audit(
@@ -513,7 +719,12 @@ impl PrescriptionService {
         id: Uuid,
         reason: String,
         discontinued_by: Uuid,
+        role: &str,
     ) -> Result<PrescriptionResponse> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, discontinued_by, role).await?;
+
         // Get existing prescription
         let existing = sqlx::query_as!(
             Prescription,
@@ -535,7 +746,7 @@ impl PrescriptionService {
             "#,
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await
         .context("Failed to check prescription existence")?
         .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
@@ -581,9 +792,11 @@ impl PrescriptionService {
             encrypted_reason,
             discontinued_by
         )
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await
         .context("Failed to discontinue prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         // Log audit entry
         self.log_audit(
@@ -599,23 +812,405 @@ impl PrescriptionService {
         self.prescription_to_response(prescription).await
     }
 
+    /// Cancel a prescription
+    ///
+    /// Changes status to CANCELLED. Only ACTIVE prescriptions can be cancelled.
+    pub async fn cancel_prescription(
+        &self,
+        id: Uuid,
+        reason: Option<String>,
+        cancelled_by: Uuid,
+        role: &str,
+    ) -> Result<PrescriptionResponse> {
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, cancelled_by, role).await?;
+
+        // Get existing prescription
+        let existing = sqlx::query_as!(
+            Prescription,
+            r#"
+            SELECT
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            FROM prescriptions
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&mut *tx)
+        .await
+        .context("Failed to check prescription existence")?
+        .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
+
+        // Check if can be cancelled (only ACTIVE)
+        if existing.status != PrescriptionStatus::Active {
+            return Err(anyhow::anyhow!(
+                "Cannot cancel prescription with status {:?}. Only ACTIVE prescriptions can be cancelled.",
+                existing.status
+            ));
+        }
+
+        // Encrypt reason if provided
+        let encrypted_reason = reason
+            .as_ref()
+            .map(|r| self.encryption_key.encrypt(r))
+            .transpose()?;
+
+        // Update prescription
+        let prescription = sqlx::query_as!(
+            Prescription,
+            r#"
+            UPDATE prescriptions
+            SET
+                status = 'CANCELLED',
+                discontinuation_reason = COALESCE($2, discontinuation_reason),
+                updated_at = NOW(),
+                updated_by = $3
+            WHERE id = $1
+            RETURNING
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            "#,
+            id,
+            encrypted_reason,
+            cancelled_by
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to cancel prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        self.log_audit(
+            prescription.id,
+            prescription.patient_id,
+            AuditAction::Update,
+            cancelled_by,
+            Some(format!("Cancelled prescription: {:?}", reason)),
+        )
+        .await?;
+
+        self.prescription_to_response(prescription).await
+    }
+
+    /// Put prescription on hold
+    ///
+    /// Changes status to ON_HOLD. Only ACTIVE prescriptions can be put on hold.
+    pub async fn hold_prescription(
+        &self,
+        id: Uuid,
+        reason: String,
+        updated_by: Uuid,
+        role: &str,
+    ) -> Result<PrescriptionResponse> {
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, updated_by, role).await?;
+
+        let existing = sqlx::query_as!(
+            Prescription,
+            r#"
+            SELECT
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            FROM prescriptions
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&mut *tx)
+        .await
+        .context("Failed to check prescription existence")?
+        .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
+
+        if existing.status != PrescriptionStatus::Active {
+            return Err(anyhow::anyhow!(
+                "Cannot put prescription on hold with status {:?}. Only ACTIVE prescriptions can be put on hold.",
+                existing.status
+            ));
+        }
+
+        let encrypted_reason = self.encryption_key.encrypt(&reason)?;
+
+        let prescription = sqlx::query_as!(
+            Prescription,
+            r#"
+            UPDATE prescriptions
+            SET
+                status = 'ON_HOLD',
+                discontinuation_reason = $2,
+                updated_at = NOW(),
+                updated_by = $3
+            WHERE id = $1
+            RETURNING
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            "#,
+            id,
+            encrypted_reason,
+            updated_by
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to put prescription on hold")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        self.log_audit(
+            prescription.id,
+            prescription.patient_id,
+            AuditAction::Update,
+            updated_by,
+            Some(format!("Put prescription on hold: {}", reason)),
+        )
+        .await?;
+
+        self.prescription_to_response(prescription).await
+    }
+
+    /// Resume prescription from hold
+    ///
+    /// Changes status from ON_HOLD back to ACTIVE.
+    pub async fn resume_prescription(
+        &self,
+        id: Uuid,
+        updated_by: Uuid,
+        role: &str,
+    ) -> Result<PrescriptionResponse> {
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, updated_by, role).await?;
+
+        let existing = sqlx::query_as!(
+            Prescription,
+            r#"
+            SELECT
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            FROM prescriptions
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&mut *tx)
+        .await
+        .context("Failed to check prescription existence")?
+        .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
+
+        if existing.status != PrescriptionStatus::OnHold {
+            return Err(anyhow::anyhow!(
+                "Cannot resume prescription with status {:?}. Only ON_HOLD prescriptions can be resumed.",
+                existing.status
+            ));
+        }
+
+        let prescription = sqlx::query_as!(
+            Prescription,
+            r#"
+            UPDATE prescriptions
+            SET
+                status = 'ACTIVE',
+                discontinuation_reason = NULL,
+                updated_at = NOW(),
+                updated_by = $2
+            WHERE id = $1
+            RETURNING
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            "#,
+            id,
+            updated_by
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to resume prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        self.log_audit(
+            prescription.id,
+            prescription.patient_id,
+            AuditAction::Update,
+            updated_by,
+            Some("Resumed prescription from hold".to_string()),
+        )
+        .await?;
+
+        self.prescription_to_response(prescription).await
+    }
+
+    /// Mark prescription as completed
+    ///
+    /// Changes status to COMPLETED. Only ACTIVE or ON_HOLD prescriptions can be marked complete.
+    pub async fn complete_prescription(
+        &self,
+        id: Uuid,
+        updated_by: Uuid,
+        role: &str,
+    ) -> Result<PrescriptionResponse> {
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, updated_by, role).await?;
+
+        let existing = sqlx::query_as!(
+            Prescription,
+            r#"
+            SELECT
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            FROM prescriptions
+            WHERE id = $1
+            "#,
+            id
+        )
+        .fetch_optional(&mut *tx)
+        .await
+        .context("Failed to check prescription existence")?
+        .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
+
+        if !matches!(existing.status, PrescriptionStatus::Active | PrescriptionStatus::OnHold) {
+            return Err(anyhow::anyhow!(
+                "Cannot complete prescription with status {:?}. Only ACTIVE or ON_HOLD prescriptions can be completed.",
+                existing.status
+            ));
+        }
+
+        let prescription = sqlx::query_as!(
+            Prescription,
+            r#"
+            UPDATE prescriptions
+            SET
+                status = 'COMPLETED',
+                updated_at = NOW(),
+                updated_by = $2
+            WHERE id = $1
+            RETURNING
+                id, visit_id, visit_date, patient_id, provider_id,
+                medication_name, generic_name, dosage, form, route,
+                frequency, duration, quantity, refills AS "refills!",
+                instructions, pharmacy_notes,
+                prescribed_date, start_date, end_date,
+                status AS "status: PrescriptionStatus",
+                discontinuation_reason, discontinued_at, discontinued_by,
+                refills_remaining, last_refill_date,
+                has_interactions AS "has_interactions!", interaction_warnings,
+                e_prescription_id, e_prescription_sent_at, e_prescription_status,
+                created_at, updated_at, created_by, updated_by
+            "#,
+            id,
+            updated_by
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to complete prescription")?;
+
+        tx.commit().await.context("Failed to commit transaction")?;
+
+        self.log_audit(
+            prescription.id,
+            prescription.patient_id,
+            AuditAction::Update,
+            updated_by,
+            Some("Marked prescription as completed".to_string()),
+        )
+        .await?;
+
+        self.prescription_to_response(prescription).await
+    }
+
     /// Delete prescription
-    pub async fn delete_prescription(&self, id: Uuid, deleted_by: Uuid) -> Result<()> {
+    pub async fn delete_prescription(
+        &self,
+        id: Uuid,
+        deleted_by: Uuid,
+        role: &str,
+    ) -> Result<()> {
+        // Start transaction for RLS context
+        let mut tx = self.pool.begin().await.context("Failed to begin transaction")?;
+        Self::set_rls_context(&mut tx, deleted_by, role).await?;
+
         // Get patient_id for audit logging
         let prescription = sqlx::query!(
             "SELECT patient_id FROM prescriptions WHERE id = $1",
             id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *tx)
         .await
         .context("Failed to check prescription existence")?
         .ok_or_else(|| anyhow::anyhow!("Prescription not found"))?;
 
         // Delete prescription
-        sqlx::query!("DELETE FROM prescriptions WHERE id = $1", id)
-            .execute(&self.pool)
+        let result = sqlx::query!("DELETE FROM prescriptions WHERE id = $1", id)
+            .execute(&mut *tx)
             .await
             .context("Failed to delete prescription")?;
+
+        // Verify the prescription was actually deleted
+        if result.rows_affected() == 0 {
+            return Err(anyhow::anyhow!("Prescription could not be deleted - permission denied"));
+        }
+
+        tx.commit().await.context("Failed to commit transaction")?;
 
         // Log audit entry
         self.log_audit(
@@ -630,39 +1225,148 @@ impl PrescriptionService {
         Ok(())
     }
 
-    /// Search medications
-    /// Note: This is a placeholder. In production, use a proper medication database or API
+    /// Search medications from the database
+    /// Searches both commercial names and generic names using fuzzy matching
     pub async fn search_medications(
         &self,
         query: &str,
         limit: i64,
     ) -> Result<Vec<MedicationSearchResult>> {
-        // This is a simplified search using hardcoded common medications
-        // In production, integrate with proper medication database or API (e.g., RxNorm, FDA database)
-        let results = self
-            .get_common_medications()
+        // Use trigram similarity search for fuzzy matching
+        let search_pattern = format!("%{}%", query.to_lowercase());
+
+        let rows = sqlx::query!(
+            r#"
+            SELECT
+                name,
+                generic_name,
+                form,
+                common_dosages
+            FROM medications
+            WHERE is_active = true
+              AND (
+                  LOWER(name) LIKE $1
+                  OR LOWER(generic_name) LIKE $1
+                  OR name % $2
+                  OR generic_name % $2
+              )
+            ORDER BY
+                CASE
+                    WHEN LOWER(name) = LOWER($2) THEN 0
+                    WHEN LOWER(generic_name) = LOWER($2) THEN 1
+                    WHEN LOWER(name) LIKE $1 THEN 2
+                    WHEN LOWER(generic_name) LIKE $1 THEN 3
+                    ELSE 4
+                END,
+                similarity(name, $2) DESC
+            LIMIT $3
+            "#,
+            search_pattern,
+            query,
+            limit
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to search medications")?;
+
+        let results = rows
             .into_iter()
-            .filter(|med| {
-                let query_lower = query.to_lowercase();
-                med.name.to_lowercase().contains(&query_lower)
-                    || med
-                        .generic_name
-                        .as_ref()
-                        .map(|g| g.to_lowercase().contains(&query_lower))
-                        .unwrap_or(false)
+            .map(|row| {
+                // Parse common_dosages from JSONB
+                let common_dosages: Vec<String> = row
+                    .common_dosages
+                    .and_then(|v| serde_json::from_value(v).ok())
+                    .unwrap_or_default();
+
+                // Convert form string to MedicationForm enum
+                let form = row.form.and_then(|f| match f.to_lowercase().as_str() {
+                    "tablet" => Some(MedicationForm::Tablet),
+                    "capsule" => Some(MedicationForm::Capsule),
+                    "liquid" | "solution" | "syrup" => Some(MedicationForm::Liquid),
+                    "injection" => Some(MedicationForm::Injection),
+                    "topical" | "cream" | "gel" | "ointment" => Some(MedicationForm::Topical),
+                    "inhaler" => Some(MedicationForm::Inhaler),
+                    "patch" | "transdermal" => Some(MedicationForm::Patch),
+                    "suppository" => Some(MedicationForm::Suppository),
+                    "drops" => Some(MedicationForm::Drops),
+                    _ => None,
+                });
+
+                MedicationSearchResult {
+                    name: row.name,
+                    generic_name: row.generic_name,
+                    form,
+                    common_dosages,
+                }
             })
-            .take(limit as usize)
             .collect();
 
         Ok(results)
+    }
+
+    /// Create a custom medication (added by doctor)
+    pub async fn create_custom_medication(
+        &self,
+        name: String,
+        generic_name: Option<String>,
+        form: Option<String>,
+        dosage_strength: Option<String>,
+        route: Option<String>,
+        common_dosages: Vec<String>,
+        notes: Option<String>,
+        created_by: Uuid,
+        role: &str,
+    ) -> Result<Uuid> {
+        let common_dosages_json = serde_json::to_value(&common_dosages)?;
+
+        // Start transaction and set RLS context
+        let mut tx = self.pool.begin().await?;
+        Self::set_rls_context(&mut tx, created_by, role).await?;
+
+        // Generate a unique ID and pseudo-AIC code for custom medications
+        // The unique_aic_code constraint has NULLS NOT DISTINCT, so we need a unique value
+        let medication_id = Uuid::new_v4();
+        let custom_aic = format!("CUST-{}", &medication_id.to_string()[..8]);
+
+        let id = sqlx::query_scalar!(
+            r#"
+            INSERT INTO medications (
+                id, aic_code, name, generic_name, form, dosage_strength, route,
+                common_dosages, notes, source, is_custom, created_by, is_active
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'CUSTOM', true, $10, true)
+            ON CONFLICT (name, generic_name, form, dosage_strength, is_custom)
+            DO UPDATE SET
+                updated_at = NOW(),
+                notes = COALESCE(EXCLUDED.notes, medications.notes)
+            RETURNING id
+            "#,
+            medication_id,
+            custom_aic,
+            name,
+            generic_name,
+            form,
+            dosage_strength,
+            route,
+            common_dosages_json,
+            notes,
+            created_by
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .context("Failed to create custom medication")?;
+
+        tx.commit().await?;
+
+        Ok(id)
     }
 
     /// Check for drug interactions (placeholder)
     /// In production, integrate with drug interaction database or API
     async fn check_drug_interactions(
         &self,
-        patient_id: Uuid,
-        medication_name: &str,
+        _patient_id: Uuid,
+        _medication_name: &str,
     ) -> Result<Vec<DrugInteractionWarning>> {
         // Placeholder: return empty list
         // In production, check against patient's current medications using:
@@ -671,59 +1375,6 @@ impl PrescriptionService {
         // - Third-party API (e.g., Medscape, Epocrates)
 
         Ok(vec![])
-    }
-
-    /// Get common medications (placeholder - in production use proper database)
-    fn get_common_medications(&self) -> Vec<MedicationSearchResult> {
-        vec![
-            // Blood pressure medications
-            MedicationSearchResult {
-                name: "Lisinopril".to_string(),
-                generic_name: Some("Lisinopril".to_string()),
-                form: Some(MedicationForm::Tablet),
-                common_dosages: vec!["5 mg".to_string(), "10 mg".to_string(), "20 mg".to_string()],
-            },
-            MedicationSearchResult {
-                name: "Amlodipine".to_string(),
-                generic_name: Some("Amlodipine besylate".to_string()),
-                form: Some(MedicationForm::Tablet),
-                common_dosages: vec!["2.5 mg".to_string(), "5 mg".to_string(), "10 mg".to_string()],
-            },
-            // Diabetes medications
-            MedicationSearchResult {
-                name: "Metformin".to_string(),
-                generic_name: Some("Metformin hydrochloride".to_string()),
-                form: Some(MedicationForm::Tablet),
-                common_dosages: vec!["500 mg".to_string(), "850 mg".to_string(), "1000 mg".to_string()],
-            },
-            // Pain relief
-            MedicationSearchResult {
-                name: "Ibuprofen".to_string(),
-                generic_name: Some("Ibuprofen".to_string()),
-                form: Some(MedicationForm::Tablet),
-                common_dosages: vec!["200 mg".to_string(), "400 mg".to_string(), "600 mg".to_string()],
-            },
-            MedicationSearchResult {
-                name: "Acetaminophen".to_string(),
-                generic_name: Some("Paracetamol".to_string()),
-                form: Some(MedicationForm::Tablet),
-                common_dosages: vec!["325 mg".to_string(), "500 mg".to_string(), "650 mg".to_string()],
-            },
-            // Antibiotics
-            MedicationSearchResult {
-                name: "Amoxicillin".to_string(),
-                generic_name: Some("Amoxicillin trihydrate".to_string()),
-                form: Some(MedicationForm::Capsule),
-                common_dosages: vec!["250 mg".to_string(), "500 mg".to_string()],
-            },
-            // Respiratory
-            MedicationSearchResult {
-                name: "Albuterol".to_string(),
-                generic_name: Some("Albuterol sulfate".to_string()),
-                form: Some(MedicationForm::Inhaler),
-                common_dosages: vec!["90 mcg/actuation".to_string()],
-            },
-        ]
     }
 
     /// Convert prescription model to response (decrypting fields)

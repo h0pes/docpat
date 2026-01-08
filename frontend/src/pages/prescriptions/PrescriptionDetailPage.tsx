@@ -23,9 +23,23 @@ import {
   Clock,
   Building,
   ExternalLink,
+  PauseCircle,
+  PlayCircle,
+  CheckCircle,
 } from 'lucide-react';
 
-import { usePrescription, useDiscontinuePrescription, useDeletePrescription } from '@/hooks/useVisits';
+import {
+  usePrescription,
+  useDiscontinuePrescription,
+  useDeletePrescription,
+  useCancelPrescription,
+  useHoldPrescription,
+  useResumePrescription,
+  useCompletePrescription,
+  useCreatePrescription,
+} from '@/hooks/useVisits';
+import { Copy } from 'lucide-react';
+import { CreatePrescriptionRequest } from '@/types/prescription';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,7 +57,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { DiscontinueDialog, PrintPrescriptionDialog } from '@/components/prescriptions';
+import {
+  DiscontinueDialog,
+  PrintPrescriptionDialog,
+  CancelDialog,
+  HoldDialog,
+  RenewDialog,
+  StatusLegend,
+} from '@/components/prescriptions';
 import {
   PrescriptionStatus,
   canDiscontinue,
@@ -92,6 +113,11 @@ export function PrescriptionDetailPage() {
   const [showDiscontinueDialog, setShowDiscontinueDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showHoldDialog, setShowHoldDialog] = useState(false);
+  const [showResumeConfirm, setShowResumeConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showRenewDialog, setShowRenewDialog] = useState(false);
 
   // Fetch prescription
   const { data: prescription, isLoading, isError, error } = usePrescription(id!);
@@ -99,6 +125,11 @@ export function PrescriptionDetailPage() {
   // Mutations
   const discontinueMutation = useDiscontinuePrescription();
   const deleteMutation = useDeletePrescription();
+  const cancelMutation = useCancelPrescription();
+  const holdMutation = useHoldPrescription();
+  const resumeMutation = useResumePrescription();
+  const completeMutation = useCompletePrescription();
+  const createMutation = useCreatePrescription();
 
   /**
    * Handle discontinue prescription
@@ -109,7 +140,7 @@ export function PrescriptionDetailPage() {
     try {
       await discontinueMutation.mutateAsync({
         id: prescription.id,
-        data: { discontinued_reason: reason },
+        data: { reason },
       });
       toast({
         title: t('prescriptions.discontinue.success'),
@@ -154,6 +185,134 @@ export function PrescriptionDetailPage() {
    */
   const handlePrint = () => {
     setShowPrintDialog(true);
+  };
+
+  /**
+   * Handle cancel prescription
+   */
+  const handleCancel = async (reason?: string) => {
+    if (!prescription) return;
+
+    try {
+      await cancelMutation.mutateAsync({
+        id: prescription.id,
+        data: reason ? { reason } : undefined,
+      });
+      toast({
+        title: t('prescriptions.cancel.success'),
+        description: t('prescriptions.cancel.success_description', {
+          medication: prescription.medication_name,
+        }),
+      });
+      setShowCancelDialog(false);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.cancel.error'),
+      });
+    }
+  };
+
+  /**
+   * Handle hold prescription
+   */
+  const handleHold = async (reason: string) => {
+    if (!prescription) return;
+
+    try {
+      await holdMutation.mutateAsync({
+        id: prescription.id,
+        data: { reason },
+      });
+      toast({
+        title: t('prescriptions.hold.success'),
+        description: t('prescriptions.hold.success_description', {
+          medication: prescription.medication_name,
+        }),
+      });
+      setShowHoldDialog(false);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.hold.error'),
+      });
+    }
+  };
+
+  /**
+   * Handle resume prescription
+   */
+  const handleResume = async () => {
+    if (!prescription) return;
+
+    try {
+      await resumeMutation.mutateAsync(prescription.id);
+      toast({
+        title: t('prescriptions.resume.success'),
+        description: t('prescriptions.resume.success_description', {
+          medication: prescription.medication_name,
+        }),
+      });
+      setShowResumeConfirm(false);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.resume.error'),
+      });
+    }
+  };
+
+  /**
+   * Handle complete prescription
+   */
+  const handleComplete = async () => {
+    if (!prescription) return;
+
+    try {
+      await completeMutation.mutateAsync(prescription.id);
+      toast({
+        title: t('prescriptions.complete.success'),
+        description: t('prescriptions.complete.success_description', {
+          medication: prescription.medication_name,
+        }),
+      });
+      setShowCompleteConfirm(false);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.complete.error'),
+      });
+    }
+  };
+
+  /**
+   * Handle renew prescription - creates a new prescription based on the existing one
+   */
+  const handleRenew = async (data: CreatePrescriptionRequest) => {
+    if (!prescription) return;
+
+    try {
+      const newPrescription = await createMutation.mutateAsync(data);
+      toast({
+        title: t('prescriptions.renew.success'),
+        description: t('prescriptions.renew.success_description', {
+          medication: prescription.medication_name,
+        }),
+      });
+      setShowRenewDialog(false);
+      // Navigate to the new prescription
+      navigate(`/prescriptions/${newPrescription.id}`);
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: t('common.error'),
+        description: t('prescriptions.renew.error'),
+      });
+    }
   };
 
   // Loading state
@@ -219,7 +378,7 @@ export function PrescriptionDetailPage() {
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             {t('common.print')}
@@ -233,13 +392,66 @@ export function PrescriptionDetailPage() {
               {t('common.edit')}
             </Button>
           )}
+          {/* Status Actions */}
+          {prescription.status === PrescriptionStatus.ACTIVE && (
+            <>
+              <Button
+                variant="outline"
+                className="text-yellow-600 border-yellow-300 hover:bg-yellow-50"
+                onClick={() => setShowHoldDialog(true)}
+              >
+                <PauseCircle className="mr-2 h-4 w-4" />
+                {t('prescriptions.actions.hold')}
+              </Button>
+              <Button
+                variant="outline"
+                className="text-green-600 border-green-300 hover:bg-green-50"
+                onClick={() => setShowCompleteConfirm(true)}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {t('prescriptions.actions.complete')}
+              </Button>
+              <Button
+                variant="outline"
+                className="text-red-600 border-red-300 hover:bg-red-50"
+                onClick={() => setShowCancelDialog(true)}
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                {t('prescriptions.actions.cancel')}
+              </Button>
+            </>
+          )}
+          {prescription.status === PrescriptionStatus.ON_HOLD && (
+            <Button
+              variant="outline"
+              className="text-green-600 border-green-300 hover:bg-green-50"
+              onClick={() => setShowResumeConfirm(true)}
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              {t('prescriptions.actions.resume')}
+            </Button>
+          )}
+          {/* Renew button - available for completed, discontinued, cancelled, or expired prescriptions */}
+          {(prescription.status === PrescriptionStatus.COMPLETED ||
+            prescription.status === PrescriptionStatus.DISCONTINUED ||
+            prescription.status === PrescriptionStatus.CANCELLED ||
+            isExpiredPrescription) && (
+            <Button
+              variant="outline"
+              className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              onClick={() => setShowRenewDialog(true)}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              {t('prescriptions.actions.renew')}
+            </Button>
+          )}
           {canDiscontinue(prescription.status) && (
             <Button
               variant="outline"
-              className="text-orange-600"
+              className="text-orange-600 border-orange-300 hover:bg-orange-50"
               onClick={() => setShowDiscontinueDialog(true)}
             >
-              <XCircle className="mr-2 h-4 w-4" />
+              <AlertTriangle className="mr-2 h-4 w-4" />
               {t('prescriptions.actions.discontinue')}
             </Button>
           )}
@@ -415,19 +627,77 @@ export function PrescriptionDetailPage() {
                     {t('prescriptions.details.discontinued_date')}
                   </p>
                   <p className="text-orange-600">
-                    {prescription.discontinued_date
-                      ? format(new Date(prescription.discontinued_date), 'PPP')
+                    {prescription.discontinued_at
+                      ? format(new Date(prescription.discontinued_at), 'PPP')
                       : '-'}
                   </p>
                 </div>
-                {prescription.discontinued_reason && (
+                {prescription.discontinuation_reason && (
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
                       {t('prescriptions.details.discontinued_reason')}
                     </p>
-                    <p className="text-sm">{prescription.discontinued_reason}</p>
+                    <p className="text-sm">{prescription.discontinuation_reason}</p>
                   </div>
                 )}
+              </>
+            )}
+
+            {prescription.status === PrescriptionStatus.CANCELLED && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t('prescriptions.details.cancelled_date')}
+                  </p>
+                  <p className="text-red-600">
+                    {format(new Date(prescription.updated_at), 'PPP')}
+                  </p>
+                </div>
+                {prescription.discontinuation_reason && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('prescriptions.details.cancellation_reason')}
+                    </p>
+                    <p className="text-sm">{prescription.discontinuation_reason}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {prescription.status === PrescriptionStatus.ON_HOLD && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t('prescriptions.details.on_hold_since')}
+                  </p>
+                  <p className="text-yellow-600">
+                    {format(new Date(prescription.updated_at), 'PPP')}
+                  </p>
+                </div>
+                {prescription.discontinuation_reason && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {t('prescriptions.details.hold_reason')}
+                    </p>
+                    <p className="text-sm">{prescription.discontinuation_reason}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {prescription.status === PrescriptionStatus.COMPLETED && (
+              <>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t('prescriptions.details.completed_date')}
+                  </p>
+                  <p className="text-gray-600">
+                    {format(new Date(prescription.updated_at), 'PPP')}
+                  </p>
+                </div>
               </>
             )}
           </CardContent>
@@ -563,6 +833,86 @@ export function PrescriptionDetailPage() {
           open={showPrintDialog}
           onOpenChange={setShowPrintDialog}
           prescription={prescription}
+        />
+      )}
+
+      {/* Cancel Dialog */}
+      {prescription && (
+        <CancelDialog
+          open={showCancelDialog}
+          onOpenChange={setShowCancelDialog}
+          prescription={prescription}
+          onConfirm={handleCancel}
+          isLoading={cancelMutation.isPending}
+        />
+      )}
+
+      {/* Hold Dialog */}
+      {prescription && (
+        <HoldDialog
+          open={showHoldDialog}
+          onOpenChange={setShowHoldDialog}
+          prescription={prescription}
+          onConfirm={handleHold}
+          isLoading={holdMutation.isPending}
+        />
+      )}
+
+      {/* Resume Confirmation Dialog */}
+      <AlertDialog open={showResumeConfirm} onOpenChange={setShowResumeConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('prescriptions.resume.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('prescriptions.hold.info', {
+                medication: prescription?.medication_name,
+              }).replace('put', 'resume').replace('on hold', 'from hold')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResume}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {resumeMutation.isPending ? t('common.processing') : t('prescriptions.resume.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={showCompleteConfirm} onOpenChange={setShowCompleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('prescriptions.complete.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('prescriptions.complete.success_description', {
+                medication: prescription?.medication_name,
+              }).replace('has been', 'will be')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleComplete}
+              className="bg-green-600 text-white hover:bg-green-700"
+            >
+              {completeMutation.isPending ? t('common.processing') : t('prescriptions.complete.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Renew Dialog */}
+      {prescription && user && (
+        <RenewDialog
+          open={showRenewDialog}
+          onOpenChange={setShowRenewDialog}
+          prescription={prescription}
+          providerId={user.id}
+          onConfirm={handleRenew}
+          isLoading={createMutation.isPending}
         />
       )}
     </div>

@@ -61,6 +61,9 @@
     "description": "Descrizione",
     "error": "Errore",
     "print": "Stampa",
+    "processing": "Elaborazione...",
+    "default": "Predefinito",
+    "deleting": "Eliminazione...",
     "errors": {
       "generic": "Si è verificato un errore. Riprova."
     },
@@ -77,7 +80,12 @@
     "thursday": "Giovedì",
     "friday": "Venerdì",
     "saturday": "Sabato",
-    "sunday": "Domenica"
+    "sunday": "Domenica",
+    "filters": "Filtri",
+    "clear_all": "Cancella Tutto",
+    "from_date": "Da Data",
+    "to_date": "A Data",
+    "select_date": "Seleziona data"
   },
   "auth": {
     "login": "Accedi",
@@ -209,9 +217,13 @@
   "dashboard": {
     "today": "Oggi",
     "this_week": "Questa settimana",
+    "active": "Attivi",
+    "welcome": "Bentornato, {{name}}! Ecco cosa sta succedendo oggi.",
     "quick_actions": "Azioni Rapide",
     "recent_activity": "Attività Recente",
     "view_all_activity": "Vedi Tutte le Attività",
+    "no_recent_activity": "Nessuna attività recente",
+    "error_loading": "Impossibile caricare i dati della dashboard. Riprova.",
     "new_appointment": "Nuovo Appuntamento",
     "new_patient": "Nuovo Paziente",
     "new_visit": "Nuova Visita",
@@ -679,6 +691,8 @@
       "post_operative": "Post-operatorio",
       "consultation": "Consulto",
       "procedure": "Procedura",
+      "routine_checkup": "Visita di Routine",
+      "acupuncture": "Agopuntura",
       "other": "Altro"
     },
     "signed_by": "Firmato da {{name}}",
@@ -694,6 +708,17 @@
     "chief_complaint": "Motivo della Visita",
     "chief_complaint_placeholder": "Breve descrizione del motivo principale di questa visita...",
     "save_draft": "Salva Bozza",
+    "patient": "Paziente",
+    "filter_by_patient": "Filtra per paziente...",
+    "status_label": "Stato",
+    "all_statuses": "Tutti gli Stati",
+    "no_visits": "Nessuna Visita Trovata",
+    "no_visits_description": "Nessuna visita corrisponde ai filtri correnti. Prova a modificare i criteri di ricerca.",
+    "status": {
+      "draft": "Bozza",
+      "signed": "Firmata",
+      "locked": "Bloccata"
+    },
     "visit_types": {
       "new_patient": "Nuovo Paziente",
       "follow_up": "Controllo",
@@ -970,7 +995,13 @@
       "validation": {
         "medication_required": "Il nome del farmaco è obbligatorio",
         "dosage_required": "Il dosaggio è obbligatorio",
-        "frequency_required": "La frequenza è obbligatoria"
+        "form_required": "La forma del farmaco è obbligatoria",
+        "route_required": "La via di somministrazione è obbligatoria",
+        "frequency_required": "La frequenza è obbligatoria",
+        "duration_required": "La durata è obbligatoria",
+        "instructions_required": "Le istruzioni per il paziente sono obbligatorie",
+        "prescribed_date_required": "La data di prescrizione è obbligatoria",
+        "invalid_date_format": "Formato data non valido (atteso AAAA-MM-GG)"
       },
       "forms": {
         "tablet": "Compressa",
@@ -1163,7 +1194,15 @@
     "prescribed_by": "Prescritto da {{name}}",
     "refills_count": "{{count}} ricariche",
     "needs_refill": "Ricarica Necessaria",
+    "expired": "Scaduta",
     "has_interactions": "Interazioni Farmacologiche",
+    "card": {
+      "discontinued_on": "Sospesa il {{date}}",
+      "cancelled_on": "Annullata il {{date}}",
+      "on_hold_since": "In pausa dal {{date}}",
+      "completed_on": "Completata il {{date}}",
+      "ends": "Scade"
+    },
     "no_prescriptions": "Nessuna prescrizione trovata",
     "no_prescriptions_description": "Crea la tua prima prescrizione per iniziare",
     "create_first": "Crea Prima Prescrizione",
@@ -1178,8 +1217,9 @@
     "stats": {
       "total": "Totale Prescrizioni",
       "active": "Attive",
-      "needs_refill": "{{count}} prescrizione necessita ricarica a breve",
-      "needs_refill_plural": "{{count}} prescrizioni necessitano ricarica a breve",
+      "needs_refill": "Ricarica Imminente",
+      "needs_refill_count": "{{count}} prescrizione necessita ricarica a breve",
+      "needs_refill_count_plural": "{{count}} prescrizioni necessitano ricarica a breve",
       "needs_refill_description": "Entro i prossimi 7 giorni"
     },
     "list": {
@@ -1205,7 +1245,12 @@
     },
     "actions": {
       "discontinue": "Sospendi",
-      "renew": "Rinnova"
+      "renew": "Rinnova",
+      "print": "Stampa",
+      "cancel": "Annulla",
+      "hold": "Metti in Pausa",
+      "resume": "Riprendi",
+      "complete": "Segna Completata"
     },
     "details": {
       "medication": "Dettagli Farmaco",
@@ -1222,6 +1267,11 @@
       "end_date": "Data Fine",
       "discontinued_date": "Data Sospensione",
       "discontinued_reason": "Motivo Sospensione",
+      "cancelled_date": "Data Annullamento",
+      "cancellation_reason": "Motivo Annullamento",
+      "on_hold_since": "In Pausa Dal",
+      "hold_reason": "Motivo Pausa",
+      "completed_date": "Data Completamento",
       "instructions_notes": "Istruzioni e Note",
       "patient_instructions": "Istruzioni per il Paziente",
       "pharmacy_notes": "Note per la Farmacia",
@@ -1238,16 +1288,19 @@
     "interactions": {
       "title": "Avvisi Interazioni Farmacologiche",
       "severity": {
-        "minor": "Minore",
+        "contraindicated": "Controindicata",
+        "major": "Maggiore",
         "moderate": "Moderata",
-        "major": "Maggiore"
+        "minor": "Minore",
+        "unknown": "Sconosciuta"
       },
       "one_warning": "1 Interazione",
       "count_warnings": "{{count}} Interazioni",
       "single_interaction": "Questa prescrizione presenta una potenziale interazione farmacologica.",
       "multiple_interactions": "Questa prescrizione presenta {{count}} potenziali interazioni farmacologiche.",
       "show_details": "Mostra Dettagli",
-      "hide_details": "Nascondi Dettagli"
+      "hide_details": "Nascondi Dettagli",
+      "default_description": "Potenziale interazione {{severity}} tra questi farmaci"
     },
     "print": {
       "title": "Stampa Prescrizione",
@@ -1306,6 +1359,82 @@
       "success_description": "È stata creata una nuova prescrizione per {{medication}}",
       "error": "Impossibile rinnovare la prescrizione"
     },
+    "cancel": {
+      "title": "Annulla Prescrizione",
+      "description": "Annulla questa prescrizione prima che venga dispensata",
+      "warning": "Stai per annullare {{medication}}. Questa azione invaliderà la prescrizione.",
+      "reason_label": "Motivo dell'Annullamento",
+      "select_reason": "Seleziona un motivo...",
+      "custom_reason_label": "Specifica Motivo",
+      "custom_reason_placeholder": "Inserisci il motivo dell'annullamento...",
+      "confirm": "Annulla Prescrizione",
+      "success": "Prescrizione Annullata",
+      "success_description": "{{medication}} è stata annullata",
+      "error": "Impossibile annullare la prescrizione",
+      "reasons": {
+        "duplicate_order": "Ordine duplicato",
+        "wrong_medication": "Farmaco errato selezionato",
+        "wrong_dosage": "Dosaggio errato",
+        "wrong_patient": "Paziente errato",
+        "patient_declined": "Paziente ha rifiutato",
+        "insurance_issue": "Problema assicurativo",
+        "out_of_stock": "Farmaco non disponibile",
+        "other": "Altro motivo"
+      }
+    },
+    "hold": {
+      "title": "Metti Prescrizione in Pausa",
+      "description": "Sospendi temporaneamente questa prescrizione",
+      "info": "Stai per mettere {{medication}} in pausa. La prescrizione potrà essere ripresa successivamente.",
+      "reason_label": "Motivo della Pausa",
+      "select_reason": "Seleziona un motivo...",
+      "custom_reason_label": "Specifica Motivo",
+      "custom_reason_placeholder": "Inserisci il motivo della pausa...",
+      "confirm": "Metti in Pausa",
+      "success": "Prescrizione in Pausa",
+      "success_description": "{{medication}} è stata messa in pausa",
+      "error": "Impossibile mettere la prescrizione in pausa",
+      "reasons": {
+        "awaiting_lab_results": "In attesa dei risultati di laboratorio",
+        "pending_consultation": "In attesa di consulto specialistico",
+        "adverse_reaction_monitoring": "Monitoraggio reazione avversa",
+        "surgery_preparation": "Preparazione chirurgica",
+        "patient_hospitalized": "Paziente ospedalizzato",
+        "dose_adjustment_needed": "Necessario aggiustamento dose",
+        "supply_issue": "Problema di disponibilità",
+        "other": "Altro motivo"
+      }
+    },
+    "resume": {
+      "title": "Riprendi Prescrizione",
+      "description": "Sei sicuro di voler riprendere {{medication}}? Questo cambierà lo stato da In Pausa ad Attiva.",
+      "confirm": "Riprendi Prescrizione",
+      "success": "Prescrizione Ripresa",
+      "success_description": "{{medication}} è stata ripresa",
+      "error": "Impossibile riprendere la prescrizione"
+    },
+    "complete": {
+      "title": "Segna come Completata",
+      "confirm": "Segna come Completata",
+      "success": "Prescrizione Completata",
+      "success_description": "{{medication}} è stata segnata come completata",
+      "error": "Impossibile segnare la prescrizione come completata"
+    },
+    "status_legend": {
+      "title": "Guida agli Stati",
+      "subtitle": "Comprendere gli stati delle prescrizioni",
+      "active_description": "La prescrizione è attualmente attiva e il paziente sta assumendo il farmaco",
+      "on_hold_description": "La prescrizione è temporaneamente in pausa e verrà ripresa successivamente",
+      "completed_description": "Il ciclo completo del farmaco è stato assunto come prescritto",
+      "discontinued_description": "La prescrizione è stata interrotta anticipatamente per motivi medici",
+      "cancelled_description": "La prescrizione è stata annullata prima di essere dispensata",
+      "badges_title": "Indicatori",
+      "expired_description": "La data di fine della prescrizione è passata. Rimane attiva fino alla revisione del medico (completare, rinnovare, ecc.)",
+      "needs_refill_description": "In scadenza entro 7 giorni. Considerare il rinnovo se il paziente deve continuare il farmaco",
+      "actions_title": "Azioni Disponibili",
+      "renew_description": "Crea una nuova prescrizione basata su una prescrizione completata, interrotta o annullata esistente",
+      "resume_description": "Riattiva una prescrizione temporaneamente messa in pausa"
+    },
     "create": {
       "success": "Prescrizione Creata",
       "success_description": "La prescrizione per {{medication}} è stata creata",
@@ -1333,12 +1462,34 @@
       "description": "Sono state rilevate le seguenti interazioni farmacologiche per questa prescrizione:",
       "warning_prompt": "Sei sicuro di voler procedere con questa prescrizione nonostante gli avvisi di interazione?",
       "severity": {
-        "minor": "Lieve",
+        "contraindicated": "Controindicata",
+        "major": "Grave",
         "moderate": "Moderata",
-        "major": "Grave"
+        "minor": "Lieve",
+        "unknown": "Sconosciuta"
       },
       "confirm": "Procedi Comunque",
       "cancel": "Rivedi Prescrizione"
+    },
+    "custom_medication": {
+      "title": "Crea Farmaco Personalizzato",
+      "description": "Aggiungi un farmaco non presente nel database AIFA. Apparirà nelle ricerche future.",
+      "name": "Nome Farmaco",
+      "name_placeholder": "es. Mio Farmaco Personalizzato",
+      "generic_name": "Nome Generico",
+      "generic_name_placeholder": "es. Nome del principio attivo",
+      "dosage_strength": "Dosaggio Predefinito",
+      "dosage_strength_placeholder": "es. 100mg",
+      "common_dosages": "Dosaggi Comuni",
+      "common_dosages_placeholder": "es. 50mg, 100mg, 200mg (premi Invio per aggiungere)",
+      "notes": "Note",
+      "notes_placeholder": "Informazioni aggiuntive su questo farmaco...",
+      "select_form": "Seleziona forma...",
+      "select_route": "Seleziona via...",
+      "create": "Crea Farmaco",
+      "success": "Farmaco Personalizzato Creato",
+      "success_description": "{{name}} è stato aggiunto e apparirà nelle ricerche dei farmaci",
+      "error": "Impossibile creare il farmaco personalizzato"
     }
   },
   "documents": {

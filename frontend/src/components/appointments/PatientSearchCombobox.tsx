@@ -88,6 +88,13 @@ export function PatientSearchCombobox({
     }
   }, [fetchedPatient, selectedPatient]);
 
+  // Clear selected patient when value is cleared externally
+  useEffect(() => {
+    if (!value && selectedPatient) {
+      setSelectedPatient(null);
+    }
+  }, [value, selectedPatient]);
+
   // Handle patient selection
   const handleSelect = useCallback(
     (patient: Patient) => {
@@ -133,10 +140,10 @@ export function PatientSearchCombobox({
             )}
           >
             {selectedPatient ? (
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                <span>{getPatientDisplayName(selectedPatient)}</span>
-                <Badge variant="secondary" className="ml-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                <User className="h-4 w-4 shrink-0" />
+                <span className="truncate">{getPatientDisplayName(selectedPatient)}</span>
+                <Badge variant="secondary" className="text-xs shrink-0">
                   {calculateAge(selectedPatient.date_of_birth)} {t('patients.years')}
                 </Badge>
               </div>

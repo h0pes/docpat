@@ -27,6 +27,9 @@ backend/target/
 backend/debug/
 backend/release/
 
+# Backend temp docs
+backend/docs/
+
 # Cargo lock file (keep for binaries, ignore for libraries)
 # backend/Cargo.lock
 

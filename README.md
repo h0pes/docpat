@@ -27,7 +27,9 @@ DocPat (Documentation for Patients) is a comprehensive medical practice manageme
 - **Smart Scheduling**: Conflict detection at database level, recurring appointments, availability management
 - **Clinical Documentation**: SOAP notes, vital signs, ICD-10 diagnoses with autocomplete, digital signatures
 - **Patient Management**: Fast search (<2s), duplicate detection, complete medical history, allergies tracking
-- **Prescription Management**: Full-featured prescription list with filters, create/edit/renew/discontinue workflows, print functionality, drug interaction warnings, active prescriptions widget
+- **Prescription Management**: Full-featured prescription list with filters, create/edit/renew/discontinue workflows, print functionality, active prescriptions widget
+- **Drug Interaction Checking**: Real-time drug-drug interaction warnings powered by DDInter 2.0 database with 170,000+ interactions, severity-based alerts (major/moderate/minor), automatic checking when prescribing, fuzzy name matching for Italian/English drug names (e.g., Ibuprofene↔Ibuprofen)
+- **Medications Database**: AIFA (Italian Medicines Agency) database with 2,600+ medications, ATC classification codes, fuzzy search with trigram matching, custom medication support for manual entries
 - **Visit Templates**: Reusable clinical note templates for common visit types
 - **Visit Version History**: Full audit trail with restore capability for visit modifications
 - **Document Generation**: Medical certificates, referral letters, visit summaries, custom templates
@@ -187,6 +189,64 @@ docker exec mpms-postgres pg_dump -U mpms_user mpms_prod > backup_$(date +%Y%m%d
 docker exec -i mpms-postgres psql -U mpms_user mpms_prod < backup_20251016.sql
 ```
 
+### Medications Database Import
+
+DocPat includes the AIFA (Italian Medicines Agency) medications database. To import medications:
+
+```bash
+# Import AIFA medications (run from backend directory)
+cd backend
+cargo run --bin import_medications
+
+# This imports:
+# - ~2,600+ Class A medications with brand/generic names
+# - ~7,000 ATC (Anatomical Therapeutic Chemical) classification codes
+# - Fuzzy search indexes using PostgreSQL trigram extension
+```
+
+The import tool downloads CSV data from AIFA Open Data and populates the `medications` and `atc_codes` tables. Custom medications can be added via the API for drugs not in the AIFA database.
+
+### Drug Interactions Database Import
+
+DocPat includes a comprehensive drug-drug interaction database powered by DDInter 2.0:
+
+```bash
+# Import DDInter 2.0 drug interactions (run from backend directory)
+cd backend
+
+# Download DDInter 2.0 data (manual step - visit https://ddinter2.scbdd.com/download/)
+# Place CSV files in backend/data/ddinter/
+
+# Import to development database
+cargo run --bin import-drug-interactions
+
+# Import to test database
+DATABASE_URL=$TEST_DATABASE_URL cargo run --bin import-drug-interactions
+
+# This imports:
+# - 170,449 drug-drug interactions with ATC code mapping
+# - Severity classifications: major, moderate, minor, unknown
+# - Effect descriptions and clinical management recommendations
+```
+
+**DDInter 2.0 Database Statistics:**
+| Metric | Count |
+|--------|-------|
+| Total Interactions | 170,449 |
+| Major Severity | 29,133 |
+| Moderate Severity | 97,683 |
+| Minor Severity | 6,331 |
+| Unknown Severity | 37,302 |
+
+The system automatically checks for drug interactions when:
+- Creating a new prescription (checks against patient's active medications)
+- Editing an existing prescription
+- Viewing prescription details
+
+Interactions are displayed with severity-based color coding and include clinical management recommendations where available.
+
+**Data Source**: [DDInter 2.0](https://ddinter2.scbdd.com/) - Xiangya School of Pharmaceutical Sciences
+
 ### Health Checks
 
 All services include health checks:
@@ -204,7 +264,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 
 ## Documentation
 
-- **[API Documentation](docs/API.md)** - Complete REST API reference (64 endpoints documented)
+- **[API Documentation](docs/API.md)** - Complete REST API reference (75 endpoints documented)
 - **[Product Requirements Document (PRD)](docs/PRD.md)** - Comprehensive requirements and specifications
 - **[Planning Document](docs/PLANNING.md)** - Architecture and development setup
 - **[Task Tracking](docs/TASKS.md)** - Milestone-based task breakdown
@@ -223,7 +283,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
                                      ▼
                     ┌─────────────────────────────────────┐
                     │      Rust/Axum Application          │
-                    │     (64 REST API Endpoints)         │
+                    │     (75 REST API Endpoints)         │
                     └─────────────────────────────────────┘
                                      │
                     ┌────────────────┼────────────────┐
@@ -264,7 +324,7 @@ docpat/
 
 ## API Overview
 
-DocPat exposes 64 REST API endpoints organized by resource:
+DocPat exposes 75 REST API endpoints organized by resource:
 
 | Resource | Endpoints | Description |
 |----------|-----------|-------------|
@@ -275,7 +335,8 @@ DocPat exposes 64 REST API endpoints organized by resource:
 | Appointments | 11 | Scheduling, availability, conflicts, statistics |
 | Visits | 12 | Clinical documentation, sign/lock workflow |
 | Diagnoses | 5 | ICD-10 codes, patient/visit diagnoses |
-| Prescriptions | 6 | Medication management, discontinuation |
+| Prescriptions | 12 | Medication management, status transitions, templates |
+| Drug Interactions | 5 | Interaction checking, patient interactions, statistics |
 | Visit Templates | 5 | Reusable clinical note templates |
 | Prescription Templates | 5 | Reusable prescription templates |
 | Visit Versions | 3 | Version history and restoration |
@@ -433,8 +494,12 @@ npm audit    # Frontend
 - Create, edit, view prescription workflows
 - Discontinue and renew prescription dialogs
 - Print prescription functionality
-- Drug interaction warnings
+- **Drug interaction checking with DDInter 2.0** (170,449 interactions)
+- Real-time interaction warnings when prescribing
 - Active prescriptions dashboard widget
+- AIFA medications database (2,600+ Italian medications with ATC codes)
+- Fuzzy medication search with trigram matching
+- Custom medication entry for unlisted medications
 - 156 unit tests for prescription components
 
 ### Future Enhancements (Milestones 17-21)

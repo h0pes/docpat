@@ -5,20 +5,24 @@
  * Only allows editing of ACTIVE prescriptions.
  */
 
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Pill, AlertTriangle } from 'lucide-react';
 
 import { usePrescription, useUpdatePrescription } from '@/hooks/useVisits';
+import { usePatientDrugInteractions } from '@/hooks/useDrugInteractions';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { PrescriptionForm } from '@/components/visits/PrescriptionForm';
+import { DrugInteractionWarning } from '@/components/prescriptions/DrugInteractionWarning';
 import {
   CreatePrescriptionRequest,
   UpdatePrescriptionRequest,
   PrescriptionStatus,
+  DrugInteractionWarning as DrugInteractionWarningType,
 } from '@/types/prescription';
 import { useAuth } from '@/store/authStore';
 
@@ -37,6 +41,25 @@ export function EditPrescriptionPage() {
 
   // Update mutation
   const updateMutation = useUpdatePrescription();
+
+  // Fetch drug interactions for the patient's active prescriptions
+  const { data: interactionsData } = usePatientDrugInteractions(
+    prescription?.patient_id,
+    undefined, // Show all severity levels
+    { enabled: !!prescription?.patient_id }
+  );
+
+  // Convert backend DrugInteraction format to frontend DrugInteractionWarning format
+  const interactionWarnings: DrugInteractionWarningType[] = useMemo(() => {
+    if (!interactionsData?.interactions) return [];
+    return interactionsData.interactions.map(interaction => ({
+      medication_name: `${interaction.drug_a_name || interaction.drug_a_atc_code} ↔ ${interaction.drug_b_name || interaction.drug_b_atc_code}`,
+      severity: interaction.severity,
+      description: interaction.effect || t('prescriptions.interactions.default_description', {
+        severity: t(`prescriptions.interactions.severity.${interaction.severity}`).toLowerCase()
+      }),
+    }));
+  }, [interactionsData, t]);
 
   /**
    * Handle form submission
@@ -161,18 +184,19 @@ export function EditPrescriptionPage() {
   }
 
   // Prepare initial values for the form
+  // Filter out null values to let form defaults or schema transforms handle them
   const initialValues: Partial<CreatePrescriptionRequest> = {
     medication_name: prescription.medication_name,
-    generic_name: prescription.generic_name,
+    generic_name: prescription.generic_name ?? undefined,
     dosage: prescription.dosage,
-    form: prescription.form,
-    route: prescription.route,
+    form: prescription.form ?? undefined,
+    route: prescription.route ?? undefined,
     frequency: prescription.frequency,
-    duration: prescription.duration,
-    quantity: prescription.quantity,
-    refills: prescription.refills,
-    instructions: prescription.instructions,
-    pharmacy_notes: prescription.pharmacy_notes,
+    duration: prescription.duration ?? undefined,
+    quantity: prescription.quantity ?? undefined,
+    refills: prescription.refills ?? 0,
+    instructions: prescription.instructions ?? undefined,
+    pharmacy_notes: prescription.pharmacy_notes ?? undefined,
     prescribed_date: prescription.prescribed_date.split('T')[0],
     start_date: prescription.start_date?.split('T')[0],
     end_date: prescription.end_date?.split('T')[0],
@@ -208,6 +232,16 @@ export function EditPrescriptionPage() {
         </AlertDescription>
       </Alert>
 
+      {/* Existing Drug Interactions Warning */}
+      {interactionWarnings.length > 0 && (
+        <DrugInteractionWarning
+          warnings={interactionWarnings}
+          mode="full"
+          collapsible
+          defaultCollapsed={false}
+        />
+      )}
+
       {/* Prescription Form */}
       <PrescriptionForm
         initialValues={initialValues}
@@ -217,6 +251,7 @@ export function EditPrescriptionPage() {
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isSubmitting={updateMutation.isPending}
+        interactionWarnings={interactionWarnings}
       />
     </div>
   );

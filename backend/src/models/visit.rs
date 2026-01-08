@@ -342,6 +342,14 @@ pub struct VisitResponse {
     pub patient_id: Uuid,
     pub provider_id: Uuid,
 
+    // Patient name (joined from patients table)
+    pub patient_first_name: Option<String>,
+    pub patient_last_name: Option<String>,
+
+    // Provider name (joined from users table)
+    pub provider_first_name: Option<String>,
+    pub provider_last_name: Option<String>,
+
     pub visit_date: NaiveDate,
     pub visit_time: DateTime<Utc>,
     pub visit_type: VisitType,
@@ -366,6 +374,7 @@ pub struct VisitResponse {
     pub status: VisitStatus,
     pub signed_at: Option<DateTime<Utc>>,
     pub signed_by: Option<Uuid>,
+    pub signed_by_name: Option<String>,
     pub signature_hash: Option<String>,
     pub locked_at: Option<DateTime<Utc>>,
 
@@ -391,7 +400,16 @@ pub struct VisitResponse {
 
 impl Visit {
     /// Decrypt all encrypted fields and convert to response
-    pub fn decrypt(&self, encryption_key: &EncryptionKey) -> Result<VisitResponse> {
+    /// Optionally accepts patient, provider, and signed_by names from JOIN queries
+    pub fn decrypt(
+        &self,
+        encryption_key: &EncryptionKey,
+        patient_first_name: Option<String>,
+        patient_last_name: Option<String>,
+        provider_first_name: Option<String>,
+        provider_last_name: Option<String>,
+        signed_by_name: Option<String>,
+    ) -> Result<VisitResponse> {
         // Decrypt vitals if present
         let vitals = if let Some(ref encrypted) = self.vitals {
             let decrypted = encryption_key
@@ -487,6 +505,10 @@ impl Visit {
             appointment_id: self.appointment_id,
             patient_id: self.patient_id,
             provider_id: self.provider_id,
+            patient_first_name,
+            patient_last_name,
+            provider_first_name,
+            provider_last_name,
             visit_date: self.visit_date,
             visit_time: self.visit_time,
             visit_type: self.visit_type,
@@ -503,6 +525,7 @@ impl Visit {
             status: self.status,
             signed_at: self.signed_at,
             signed_by: self.signed_by,
+            signed_by_name,
             signature_hash: self.signature_hash.clone(),
             locked_at: self.locked_at,
             version: self.version,

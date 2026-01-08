@@ -23,6 +23,7 @@ pub mod visit_service;
 pub mod visit_template_service;
 pub mod working_hours_service;
 pub mod health_service;
+pub mod drug_interaction_service;
 
 pub use appointment_service::AppointmentService;
 pub use auth_service::{AuthService, LoginRequest, LoginResponse};
@@ -48,3 +49,8 @@ pub use holiday_service::HolidayService;
 pub use audit_log_service::AuditLogService;
 pub use file_service::FileUploadService;
 pub use health_service::SystemHealthService;
+pub use drug_interaction_service::{
+    CheckInteractionsRequest, CheckInteractionsResponse, CheckNewMedicationRequest,
+    CheckNewMedicationForPatientRequest, DrugInteraction, DrugInteractionService,
+    InteractionSeverity, InteractionStatistics,
+};

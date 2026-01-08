@@ -186,7 +186,7 @@ export function PatientCard({ patient, onClick, onDelete, onReactivate, classNam
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">{t('common.actions')}</span>
+                  <span className="sr-only">{t('common.actionsTitle')}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

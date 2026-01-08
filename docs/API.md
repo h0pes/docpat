@@ -1,8 +1,8 @@
 # API Documentation - Medical Practice Management System
 
-**Version**: 1.2.0
+**Version**: 1.3.0
 **Base URL**: `/api/v1`
-**Last Updated**: December 2025
+**Last Updated**: January 2026
 
 ---
 
@@ -35,6 +35,7 @@
   - [Logo](#logo-endpoints)
   - [Document Templates](#document-templates-endpoints)
   - [Generated Documents](#generated-documents-endpoints)
+  - [Drug Interactions](#drug-interactions-endpoints)
 - [Appendix](#appendix)
 - [Changelog](#changelog)
 
@@ -1948,6 +1949,60 @@ Search medications database.
 ]
 ```
 
+**Notes**:
+- Searches the AIFA (Italian Medicines Agency) medications database
+- Supports fuzzy matching using trigram similarity
+- Results include both brand names and generic names
+- Database contains ~2,600+ Italian medications with ATC codes
+
+---
+
+### POST /api/v1/prescriptions/medications/custom
+
+Create a custom medication entry for medications not found in the AIFA database.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Request Body**
+
+```json
+{
+  "name": "Custom Medication Name",
+  "generic_name": "Generic Name (optional)",
+  "form": "Tablet",
+  "dosages": "10mg, 20mg, 50mg"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Medication brand/trade name |
+| `generic_name` | string | No | Generic/active ingredient name |
+| `form` | string | No | Pharmaceutical form (tablet, capsule, etc.) |
+| `dosages` | string | No | Common dosage strengths |
+
+**Response** `201 Created`
+
+```json
+{
+  "id": "uuid",
+  "name": "Custom Medication Name",
+  "generic_name": "Generic Name",
+  "form": "Tablet",
+  "dosages": "10mg, 20mg, 50mg",
+  "source": "CUSTOM",
+  "created_by": "uuid",
+  "created_at": "2026-01-05T12:00:00Z"
+}
+```
+
+**Notes**:
+- Custom medications are marked with `source = 'CUSTOM'` and linked to the creating user
+- Useful for compounding medications, foreign medications, or specialized preparations
+- Custom medications appear in search results alongside AIFA medications
+- Requires audit logging for compliance
+
 ---
 
 ### GET /api/v1/prescriptions/:id
@@ -1995,7 +2050,7 @@ Returns updated prescription object.
 
 ### POST /api/v1/prescriptions/:id/discontinue
 
-Discontinue a prescription.
+Discontinue a prescription. Used when stopping a prescription early for medical reasons.
 
 **Authentication**: Required
 **Authorization**: ADMIN, DOCTOR
@@ -2022,7 +2077,140 @@ Returns prescription with status `DISCONTINUED`.
 
 **Error Responses**
 
-- `400 Bad Request`: Cannot discontinue (already discontinued)
+- `400 Bad Request`: Cannot discontinue (invalid current status)
+
+---
+
+### POST /api/v1/prescriptions/:id/cancel
+
+Cancel a prescription. Used when voiding a prescription before it has been dispensed (e.g., wrong medication, duplicate order).
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Prescription ID
+
+**Request Body** (optional)
+
+```json
+{
+  "reason": "Duplicate order"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reason` | string | No | Optional cancellation reason |
+
+**Response** `200 OK`
+
+Returns prescription with status `CANCELLED`.
+
+**Valid Transitions**
+
+- ACTIVE → CANCELLED
+
+**Error Responses**
+
+- `400 Bad Request`: Cannot cancel (invalid current status - must be ACTIVE)
+- `404 Not Found`: Prescription not found
+
+---
+
+### POST /api/v1/prescriptions/:id/hold
+
+Put a prescription on hold. Used when temporarily pausing a prescription (e.g., awaiting lab results, surgery preparation).
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Prescription ID
+
+**Request Body**
+
+```json
+{
+  "reason": "Awaiting lab results before continuing medication"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `reason` | string | Yes | Reason for putting on hold (1-500 chars) |
+
+**Response** `200 OK`
+
+Returns prescription with status `ON_HOLD`.
+
+**Valid Transitions**
+
+- ACTIVE → ON_HOLD
+
+**Error Responses**
+
+- `400 Bad Request`: Cannot put on hold (invalid current status - must be ACTIVE)
+- `400 Bad Request`: Reason is required
+- `404 Not Found`: Prescription not found
+
+---
+
+### POST /api/v1/prescriptions/:id/resume
+
+Resume a prescription that was on hold. Returns the prescription to ACTIVE status.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Prescription ID
+
+**Request Body**: None required
+
+**Response** `200 OK`
+
+Returns prescription with status `ACTIVE`.
+
+**Valid Transitions**
+
+- ON_HOLD → ACTIVE
+
+**Error Responses**
+
+- `400 Bad Request`: Cannot resume (invalid current status - must be ON_HOLD)
+- `404 Not Found`: Prescription not found
+
+---
+
+### POST /api/v1/prescriptions/:id/complete
+
+Mark a prescription as completed. Used when the full course of medication has been taken as prescribed.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Prescription ID
+
+**Request Body**: None required
+
+**Response** `200 OK`
+
+Returns prescription with status `COMPLETED`.
+
+**Valid Transitions**
+
+- ACTIVE → COMPLETED
+
+**Error Responses**
+
+- `400 Bad Request`: Cannot complete (invalid current status - must be ACTIVE)
+- `404 Not Found`: Prescription not found
 
 ---
 
@@ -4786,6 +4974,185 @@ Record document delivery.
 
 ---
 
+## Drug Interactions Endpoints
+
+Drug-drug interaction checking using the DDInter 2.0 database with over 170,000 interactions mapped via WHO ATC classification codes.
+
+**Base Path**: `/api/v1/drug-interactions`
+**Required Permission**: `drug_interactions:read`
+
+---
+
+### Check Drug Interactions
+
+Check for interactions between multiple medications identified by ATC codes.
+
+**Endpoint**: `POST /api/v1/drug-interactions/check`
+
+**Request Body**
+
+```json
+{
+  "atc_codes": ["B01AA03", "A02BC01", "N02BE01"],
+  "min_severity": "moderate"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `atc_codes` | string[] | Yes | WHO ATC codes for medications to check |
+| `min_severity` | string | No | Minimum severity filter: "contraindicated", "major", "moderate", "minor" |
+
+**Response** `200 OK`
+
+```json
+{
+  "interactions": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "drug_a_atc_code": "A02BC01",
+      "drug_a_name": "Omeprazole",
+      "drug_b_atc_code": "B01AA03",
+      "drug_b_name": "Warfarin",
+      "severity": "moderate",
+      "effect": "May increase anticoagulant effect",
+      "mechanism": "CYP2C19 inhibition",
+      "management": "Monitor INR closely when starting or stopping PPI",
+      "source": "DDInter"
+    }
+  ],
+  "total": 1,
+  "major_count": 0,
+  "moderate_count": 1,
+  "minor_count": 0,
+  "highest_severity": "moderate"
+}
+```
+
+---
+
+### Check New Medication Interactions
+
+Check interactions when adding a new medication to existing prescriptions.
+
+**Endpoint**: `POST /api/v1/drug-interactions/check-new`
+
+**Request Body**
+
+```json
+{
+  "new_atc_code": "B01AA03",
+  "existing_atc_codes": ["A02BC01", "N02BE01"],
+  "min_severity": "moderate"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `new_atc_code` | string | Yes | ATC code of the medication being added |
+| `existing_atc_codes` | string[] | Yes | ATC codes of current medications |
+| `min_severity` | string | No | Minimum severity filter |
+
+**Response** `200 OK`
+
+Returns same format as Check Drug Interactions, filtered to only include interactions involving the new medication.
+
+---
+
+### Check New Medication for Patient
+
+Check interactions when adding a new medication for a specific patient. Uses medication names with fuzzy matching to check against the patient's existing active prescriptions.
+
+**Endpoint**: `POST /api/v1/drug-interactions/check-new-for-patient`
+
+**Request Body**
+
+```json
+{
+  "new_medication_name": "COUMADIN",
+  "new_generic_name": "Warfarin",
+  "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+  "min_severity": "moderate"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `new_medication_name` | string | Yes | Name of the new medication (from AIFA database or custom) |
+| `new_generic_name` | string | No | Generic name (improves matching accuracy) |
+| `patient_id` | UUID | Yes | Patient ID to check existing prescriptions against |
+| `min_severity` | string | No | Minimum severity filter |
+
+**Response** `200 OK`
+
+Returns same format as Check Drug Interactions, with interactions found between the new medication and the patient's active prescriptions.
+
+**Notes**:
+- Uses fuzzy matching to find ATC codes from medication names
+- Decrypts patient prescription data to access medication names
+- Checks interactions against all ACTIVE status prescriptions
+- Useful when prescribing from the UI before creating the prescription
+
+---
+
+### Check Patient Interactions
+
+Check interactions for a patient's active prescriptions.
+
+**Endpoint**: `GET /api/v1/drug-interactions/patient/{patient_id}`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `patient_id` | UUID | Patient ID |
+
+**Query Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `min_severity` | string | Optional: "contraindicated", "major", "moderate", "minor" |
+
+**Response** `200 OK`
+
+Returns same format as Check Drug Interactions, with interactions found between the patient's active prescriptions.
+
+---
+
+### Get Interaction Statistics
+
+Get statistics about the drug interaction database.
+
+**Endpoint**: `GET /api/v1/drug-interactions/statistics`
+
+**Response** `200 OK`
+
+```json
+{
+  "total": 170449,
+  "contraindicated": 0,
+  "major": 29133,
+  "moderate": 97683,
+  "minor": 6331,
+  "unknown": 37302,
+  "sources": 1
+}
+```
+
+---
+
+### Severity Levels
+
+| Level | Description |
+|-------|-------------|
+| `contraindicated` | Medications should never be used together |
+| `major` | Significant risk; may require alternative therapy |
+| `moderate` | May require dose adjustment or monitoring |
+| `minor` | Minimal clinical significance |
+| `unknown` | Interaction documented but severity not classified |
+
+---
+
 ## Appendix
 
 ### Enum Values Reference
@@ -4925,6 +5292,17 @@ Record document delivery.
 ---
 
 ## Changelog
+
+### Version 1.3.0 (January 2026)
+
+- Added Drug Interactions endpoints using DDInter 2.0 database:
+  - `POST /drug-interactions/check` - Check interactions between multiple medications
+  - `POST /drug-interactions/check-new` - Check interactions when adding new medication
+  - `GET /drug-interactions/patient/{id}` - Check patient's active prescription interactions
+  - `GET /drug-interactions/statistics` - Get drug interaction database statistics
+- Added RBAC policy for `drug_interactions:read` permission
+- Database includes 170,449+ drug-drug interactions with ATC code mapping
+- Supports severity filtering: contraindicated, major, moderate, minor, unknown
 
 ### Version 1.2.0 (December 2025)
 
