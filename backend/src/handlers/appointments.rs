@@ -20,11 +20,46 @@ use crate::{
     models::{
         AppointmentDto, AppointmentSearchFilter, AppointmentStatistics, AppointmentStatus,
         AppointmentType, AvailabilityResponse, CancelAppointmentRequest,
-        CreateAppointmentRequest, RequestContext, TimeSlot, UpdateAppointmentRequest, UserRole,
+        CreateAppointmentRequest, Patient, RequestContext, TimeSlot, UpdateAppointmentRequest, UserRole,
     },
-    services::AppointmentService,
+    services::{AppointmentService, NotificationService},
     utils::{AppError, Result},
 };
+
+/// Helper function to set RLS context in a transaction
+async fn set_rls_in_transaction(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    user_id: &Uuid,
+    user_role: &UserRole,
+) -> Result<()> {
+    let role_str = match user_role {
+        UserRole::Admin => "ADMIN",
+        UserRole::Doctor => "DOCTOR",
+    };
+
+    // Note: SET LOCAL doesn't support bind parameters, so we use string formatting
+    // This is safe because user_id is a UUID and role_str is from an enum
+    let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
+    let role_query = format!("SET LOCAL app.current_user_role = '{}'", role_str);
+
+    sqlx::query(&user_id_query)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to set RLS user context: {}", e);
+            AppError::Internal("Failed to set security context".to_string())
+        })?;
+
+    sqlx::query(&role_query)
+        .execute(&mut **tx)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to set RLS role context: {}", e);
+            AppError::Internal("Failed to set security context".to_string())
+        })?;
+
+    Ok(())
+}
 
 /// Check if user has permission for appointments
 #[cfg(feature = "rbac")]
@@ -142,6 +177,13 @@ pub async fn create_appointment(
         AppError::BadRequest(format!("Validation error: {}", e))
     })?;
 
+    // Extract notification flag before moving req
+    let send_notification = req.send_notification.unwrap_or(false);
+    let patient_id_str = req.patient_id.clone();
+    let provider_id_str = req.provider_id.clone();
+    let scheduled_start = req.scheduled_start;
+    let appointment_type = req.appointment_type.clone();
+
     let service = AppointmentService::new(state.pool.clone());
 
     let appointment = service
@@ -159,6 +201,100 @@ pub async fn create_appointment(
                 AppError::Internal(error_str)
             }
         })?;
+
+    // Send confirmation notification if requested and email service is available
+    if send_notification {
+        if let Some(ref email_service) = state.email_service {
+            let notification_service = NotificationService::new(state.pool.clone(), email_service.clone());
+
+            // Get patient details for email - use encryption key if available
+            let encryption_key = match &state.encryption_key {
+                Some(key) => key.clone(),
+                None => {
+                    tracing::warn!("Cannot send notification: encryption key not configured");
+                    return Ok((StatusCode::CREATED, Json(appointment)));
+                }
+            };
+
+            if let Ok(patient_id) = Uuid::parse_str(&patient_id_str) {
+                // CRITICAL: Check patient's email notification preference (backend enforcement)
+                // This is the authoritative check - even if frontend sends send_notification=true,
+                // we must respect the patient's preference
+                if !notification_service.can_patient_receive_email(patient_id, user_id).await {
+                    tracing::info!(
+                        "Skipping booking notification for appointment {} - patient {} has email notifications disabled",
+                        appointment.id, patient_id
+                    );
+                    return Ok((StatusCode::CREATED, Json(appointment)));
+                }
+
+                let provider_id = Uuid::parse_str(&provider_id_str).ok();
+
+                // Lookup patient and provider with RLS context set
+                let lookup_result = async {
+                    let mut tx = state.pool.begin().await?;
+                    set_rls_in_transaction(&mut tx, &user_id, &user_role).await?;
+
+                    let patient = sqlx::query_as::<_, Patient>(
+                        "SELECT * FROM patients WHERE id = $1"
+                    )
+                    .bind(patient_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch patient: {}", e)))?;
+
+                    // Fetch provider name from users table
+                    let provider_name: Option<String> = if let Some(pid) = provider_id {
+                        sqlx::query_scalar::<_, String>(
+                            "SELECT first_name || ' ' || last_name FROM users WHERE id = $1"
+                        )
+                        .bind(pid)
+                        .fetch_optional(&mut *tx)
+                        .await
+                        .map_err(|e| AppError::Internal(format!("Failed to fetch provider: {}", e)))?
+                    } else {
+                        None
+                    };
+
+                    tx.commit().await.map_err(|e| AppError::Internal(format!("Failed to commit: {}", e)))?;
+                    Ok::<(Option<Patient>, Option<String>), AppError>((patient, provider_name))
+                }.await;
+
+                if let Ok((Some(patient), provider_name)) = lookup_result {
+                    // Decrypt patient data
+                    if let Ok(decrypted_patient) = patient.decrypt(&encryption_key) {
+                        if let Some(email) = decrypted_patient.email {
+                            let patient_name = format!("{} {}", decrypted_patient.first_name, decrypted_patient.last_name);
+                            let appointment_type_str = format!("{:?}", appointment_type);
+                            let doctor_name = provider_name.unwrap_or_else(|| "Dr.".to_string());
+
+                            // Queue the booking notification (don't fail the request if notification fails)
+                            if let Err(e) = notification_service.queue_appointment_booked(
+                                patient_id,
+                                appointment.id,
+                                &email,
+                                &patient_name,
+                                scheduled_start,
+                                &doctor_name,
+                                &appointment_type_str,
+                                user_id,
+                            ).await {
+                                tracing::warn!("Failed to queue booking notification: {}", e);
+                            } else {
+                                tracing::info!("Queued booking notification for appointment {}", appointment.id);
+                            }
+                        } else {
+                            tracing::debug!("Patient {} has no email address, skipping notification", patient_id);
+                        }
+                    } else {
+                        tracing::warn!("Failed to decrypt patient {} data for notification", patient_id);
+                    }
+                } else {
+                    tracing::warn!("Failed to fetch patient {} for notification (RLS may have blocked)", patient_id);
+                }
+            }
+        }
+    }
 
     Ok((StatusCode::CREATED, Json(appointment)))
 }
@@ -203,7 +339,18 @@ pub async fn update_appointment(
         AppError::BadRequest(format!("Validation error: {}", e))
     })?;
 
+    // Extract notification flag and check if this is a confirmation
+    let send_notification = req.send_notification.unwrap_or(false);
+    let is_confirming = req.status == Some(AppointmentStatus::Confirmed);
+
     let service = AppointmentService::new(state.pool.clone());
+
+    // Get appointment details before update for notification (if confirming)
+    let existing_appointment = if send_notification && is_confirming {
+        service.get_appointment(id, Some(user_id), Some(&request_ctx)).await.ok().flatten()
+    } else {
+        None
+    };
 
     let appointment = service
         .update_appointment(id, req, user_id, Some(&request_ctx))
@@ -217,6 +364,94 @@ pub async fn update_appointment(
                 AppError::Internal(e.to_string())
             }
         })?;
+
+    // Send confirmation notification if requested and status is CONFIRMED
+    if send_notification && is_confirming {
+        if let Some(ref email_service) = state.email_service {
+            if let Some(existing) = existing_appointment {
+                let notification_service = NotificationService::new(state.pool.clone(), email_service.clone());
+
+                // CRITICAL: Check patient's email notification preference (backend enforcement)
+                // This is the authoritative check - even if frontend sends send_notification=true,
+                // we must respect the patient's preference
+                if !notification_service.can_patient_receive_email(existing.patient_id, user_id).await {
+                    tracing::info!(
+                        "Skipping confirmation notification for appointment {} - patient {} has email notifications disabled",
+                        id, existing.patient_id
+                    );
+                    return Ok((StatusCode::OK, Json(appointment)));
+                }
+
+                // Get encryption key for patient data decryption
+                let encryption_key = match &state.encryption_key {
+                    Some(key) => key.clone(),
+                    None => {
+                        tracing::warn!("Cannot send confirmation notification: encryption key not configured");
+                        return Ok((StatusCode::OK, Json(appointment)));
+                    }
+                };
+
+                // Lookup patient and provider with RLS context set
+                let lookup_result = async {
+                    let mut tx = state.pool.begin().await?;
+                    set_rls_in_transaction(&mut tx, &user_id, &user_role).await?;
+
+                    let patient = sqlx::query_as::<_, Patient>(
+                        "SELECT * FROM patients WHERE id = $1"
+                    )
+                    .bind(existing.patient_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch patient: {}", e)))?;
+
+                    // Fetch provider name from users table
+                    let provider_name: Option<String> = sqlx::query_scalar::<_, String>(
+                        "SELECT first_name || ' ' || last_name FROM users WHERE id = $1"
+                    )
+                    .bind(existing.provider_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch provider: {}", e)))?;
+
+                    tx.commit().await.map_err(|e| AppError::Internal(format!("Failed to commit: {}", e)))?;
+                    Ok::<(Option<Patient>, Option<String>), AppError>((patient, provider_name))
+                }.await;
+
+                if let Ok((Some(patient), provider_name)) = lookup_result {
+                    // Decrypt patient data
+                    if let Ok(decrypted_patient) = patient.decrypt(&encryption_key) {
+                        if let Some(email) = decrypted_patient.email {
+                            let patient_name = format!("{} {}", decrypted_patient.first_name, decrypted_patient.last_name);
+                            let appointment_type_str = format!("{:?}", existing.appointment_type);
+                            let doctor_name = provider_name.unwrap_or_else(|| "Dr.".to_string());
+
+                            // Queue the notification (don't fail the request if notification fails)
+                            if let Err(e) = notification_service.queue_appointment_confirmation(
+                                existing.patient_id,
+                                id,
+                                &email,
+                                &patient_name,
+                                existing.scheduled_start,
+                                &doctor_name,
+                                &appointment_type_str,
+                                user_id,
+                            ).await {
+                                tracing::warn!("Failed to queue confirmation notification: {}", e);
+                            } else {
+                                tracing::info!("Queued confirmation notification for appointment {}", id);
+                            }
+                        } else {
+                            tracing::debug!("Patient {} has no email address, skipping confirmation notification", existing.patient_id);
+                        }
+                    } else {
+                        tracing::warn!("Failed to decrypt patient {} data for confirmation notification", existing.patient_id);
+                    }
+                } else {
+                    tracing::warn!("Failed to fetch patient for confirmation notification");
+                }
+            }
+        }
+    }
 
     Ok((StatusCode::OK, Json(appointment)))
 }
@@ -238,7 +473,18 @@ pub async fn cancel_appointment(
         AppError::BadRequest(format!("Validation error: {}", e))
     })?;
 
+    // Extract notification flag and cancellation reason
+    let send_notification = req.send_notification.unwrap_or(false);
+    let cancellation_reason = req.cancellation_reason.clone();
+
     let service = AppointmentService::new(state.pool.clone());
+
+    // Get appointment details before cancellation for notification
+    let existing_appointment = if send_notification {
+        service.get_appointment(id, Some(user_id), Some(&request_ctx)).await.ok().flatten()
+    } else {
+        None
+    };
 
     let appointment = service
         .cancel_appointment(id, req.cancellation_reason, user_id, Some(&request_ctx))
@@ -250,6 +496,95 @@ pub async fn cancel_appointment(
                 AppError::Internal(e.to_string())
             }
         })?;
+
+    // Send cancellation notification if requested and email service is available
+    if send_notification {
+        if let Some(ref email_service) = state.email_service {
+            if let Some(existing) = existing_appointment {
+                let notification_service = NotificationService::new(state.pool.clone(), email_service.clone());
+
+                // CRITICAL: Check patient's email notification preference (backend enforcement)
+                // This is the authoritative check - even if frontend sends send_notification=true,
+                // we must respect the patient's preference
+                if !notification_service.can_patient_receive_email(existing.patient_id, user_id).await {
+                    tracing::info!(
+                        "Skipping cancellation notification for appointment {} - patient {} has email notifications disabled",
+                        id, existing.patient_id
+                    );
+                    return Ok((StatusCode::OK, Json(appointment)));
+                }
+
+                // Get encryption key for patient data decryption
+                let encryption_key = match &state.encryption_key {
+                    Some(key) => key.clone(),
+                    None => {
+                        tracing::warn!("Cannot send cancellation notification: encryption key not configured");
+                        return Ok((StatusCode::OK, Json(appointment)));
+                    }
+                };
+
+                // Lookup patient and provider with RLS context set
+                let lookup_result = async {
+                    let mut tx = state.pool.begin().await?;
+                    set_rls_in_transaction(&mut tx, &user_id, &user_role).await?;
+
+                    let patient = sqlx::query_as::<_, Patient>(
+                        "SELECT * FROM patients WHERE id = $1"
+                    )
+                    .bind(existing.patient_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch patient: {}", e)))?;
+
+                    // Fetch provider name from users table
+                    let provider_name: Option<String> = sqlx::query_scalar::<_, String>(
+                        "SELECT first_name || ' ' || last_name FROM users WHERE id = $1"
+                    )
+                    .bind(existing.provider_id)
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| AppError::Internal(format!("Failed to fetch provider: {}", e)))?;
+
+                    tx.commit().await.map_err(|e| AppError::Internal(format!("Failed to commit: {}", e)))?;
+                    Ok::<(Option<Patient>, Option<String>), AppError>((patient, provider_name))
+                }.await;
+
+                if let Ok((Some(patient), provider_name)) = lookup_result {
+                    // Decrypt patient data
+                    if let Ok(decrypted_patient) = patient.decrypt(&encryption_key) {
+                        if let Some(email) = decrypted_patient.email {
+                            let patient_name = format!("{} {}", decrypted_patient.first_name, decrypted_patient.last_name);
+                            let appointment_type_str = format!("{:?}", existing.appointment_type);
+                            let doctor_name = provider_name.unwrap_or_else(|| "Dr.".to_string());
+
+                            // Queue the notification (don't fail the request if notification fails)
+                            if let Err(e) = notification_service.queue_appointment_cancellation(
+                                existing.patient_id,
+                                id,
+                                &email,
+                                &patient_name,
+                                existing.scheduled_start,
+                                &doctor_name,
+                                &appointment_type_str,
+                                Some(&cancellation_reason),
+                                user_id,
+                            ).await {
+                                tracing::warn!("Failed to queue cancellation notification: {}", e);
+                            } else {
+                                tracing::info!("Queued cancellation notification for appointment {}", id);
+                            }
+                        } else {
+                            tracing::debug!("Patient {} has no email address, skipping cancellation notification", existing.patient_id);
+                        }
+                    } else {
+                        tracing::warn!("Failed to decrypt patient {} data for cancellation notification", existing.patient_id);
+                    }
+                } else {
+                    tracing::warn!("Failed to fetch patient {} for cancellation notification (RLS may have blocked)", existing.patient_id);
+                }
+            }
+        }
+    }
 
     Ok((StatusCode::OK, Json(appointment)))
 }

@@ -202,12 +202,19 @@ export function AppointmentCalendar({
         return;
       }
 
+      // Block selection on past time slots (including earlier times today)
+      if (slotInfo.start < new Date()) {
+        return;
+      }
+
       if (onSelectSlot) {
         onSelectSlot(slotInfo.start, slotInfo.end);
       } else {
-        // Default: navigate to new appointment page with selected time
-        const startTime = slotInfo.start.toISOString();
-        navigate(`/appointments/new?start=${startTime}`);
+        // Default: navigate to new appointment page with selected date and time
+        // Pass separate date and time params to match NewAppointmentPage expectations
+        const dateParam = format(slotInfo.start, 'yyyy-MM-dd');
+        const timeParam = format(slotInfo.start, 'HH:mm');
+        navigate(`/appointments/new?date=${dateParam}&time=${timeParam}`);
       }
     },
     [onSelectSlot, navigate, isDateDisabled]
@@ -392,14 +399,42 @@ export function AppointmentCalendar({
     [holidayDates]
   );
 
-  // Slot styling for time slots in holidays
+  // Slot styling for time slots in holidays and past slots
   const slotPropGetter = useCallback(
     (date: Date) => {
+      const now = new Date();
+      const isPast = date < now;
       const isHoliday = holidayDates.some((holidayDate) => isSameDay(date, holidayDate));
+
+      if (isPast) {
+        return {
+          className: 'past-slot',
+          style: {
+            // Diagonal stripes pattern for past slots - high contrast gray stripes
+            background: `repeating-linear-gradient(
+              -45deg,
+              rgba(120, 120, 120, 0.35),
+              rgba(120, 120, 120, 0.35) 2px,
+              transparent 2px,
+              transparent 5px
+            )`,
+            cursor: 'not-allowed', // Cannot schedule in the past
+          },
+        };
+      }
+
       if (isHoliday) {
         return {
+          className: 'holiday-slot',
           style: {
-            background: 'hsl(var(--muted) / 0.1)',
+            // Red stripes for holidays - high contrast
+            background: `repeating-linear-gradient(
+              -45deg,
+              rgba(220, 38, 38, 0.3),
+              rgba(220, 38, 38, 0.3) 2px,
+              transparent 2px,
+              transparent 5px
+            )`,
             cursor: 'not-allowed', // Cannot schedule on holidays
           },
         };
@@ -422,6 +457,18 @@ export function AppointmentCalendar({
       noEventsInRange: t('appointments.no_results'),
     }),
     [t]
+  );
+
+  // Custom formats for 24-hour time display
+  const formats = useMemo(
+    () => ({
+      timeGutterFormat: (date: Date) => format(date, 'HH:mm'),
+      eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+        `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
+      selectRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+        `${format(start, 'HH:mm')} - ${format(end, 'HH:mm')}`,
+    }),
+    []
   );
 
   if (isLoading) {
@@ -471,6 +518,7 @@ export function AppointmentCalendar({
             max={maxTime}
             step={15} // 15-minute time slots
             timeslots={4} // 4 slots per hour (every 15 minutes)
+            formats={formats}
           />
         </CardContent>
 

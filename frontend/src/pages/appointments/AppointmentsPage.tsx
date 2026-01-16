@@ -152,8 +152,11 @@ export function AppointmentsPage() {
   };
 
   // Handle slot selection (create new appointment)
-  const handleSelectSlot = (start: Date, end: Date) => {
-    navigate(`/appointments/new?start=${start.toISOString()}&end=${end.toISOString()}`);
+  const handleSelectSlot = (start: Date, _end: Date) => {
+    // Pass separate date and time params to match NewAppointmentPage expectations
+    const dateParam = format(start, 'yyyy-MM-dd');
+    const timeParam = format(start, 'HH:mm');
+    navigate(`/appointments/new?date=${dateParam}&time=${timeParam}`);
   };
 
   // Error state

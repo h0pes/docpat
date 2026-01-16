@@ -60,6 +60,7 @@ import {
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { useToast } from '../../hooks/use-toast';
+import { NotificationOptions } from '../../components/appointments';
 import { useState } from 'react';
 
 /**
@@ -73,6 +74,8 @@ export function AppointmentDetailPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [cancelReason, setCancelReason] = useState('');
+  const [sendCancelNotification, setSendCancelNotification] = useState(true);
+  const [sendConfirmNotification, setSendConfirmNotification] = useState(true);
 
   // Fetch appointment data
   const {
@@ -97,10 +100,12 @@ export function AppointmentDetailPage() {
     mutationFn: ({
       appointmentId,
       status,
+      sendNotification,
     }: {
       appointmentId: string;
       status: AppointmentStatus;
-    }) => appointmentsApi.update(appointmentId, { status }),
+      sendNotification?: boolean;
+    }) => appointmentsApi.update(appointmentId, { status, send_notification: sendNotification }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment', id] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -120,12 +125,13 @@ export function AppointmentDetailPage() {
 
   // Cancel appointment mutation
   const cancelMutation = useMutation({
-    mutationFn: ({ appointmentId, reason }: { appointmentId: string; reason: string }) =>
-      appointmentsApi.cancel(appointmentId, { reason }),
+    mutationFn: ({ appointmentId, reason, sendNotification }: { appointmentId: string; reason: string; sendNotification?: boolean }) =>
+      appointmentsApi.cancel(appointmentId, { cancellation_reason: reason, send_notification: sendNotification }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment', id] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       setCancelReason('');
+      setSendCancelNotification(true);
       toast({
         title: t('appointments.messages.cancelled'),
         variant: 'default',
@@ -142,12 +148,28 @@ export function AppointmentDetailPage() {
 
   /**
    * Handles status transition for the appointment.
+   * When confirming, also sends a confirmation notification.
    */
   const handleStatusChange = (newStatus: AppointmentStatus) => {
     if (!appointment) return;
+    // Send notification when confirming appointment
+    const sendNotification = newStatus === AppointmentStatus.CONFIRMED;
     updateStatusMutation.mutate({
       appointmentId: appointment.id,
       status: newStatus,
+      sendNotification,
+    });
+  };
+
+  /**
+   * Handles appointment confirmation with optional notification.
+   */
+  const handleConfirm = () => {
+    if (!appointment) return;
+    updateStatusMutation.mutate({
+      appointmentId: appointment.id,
+      status: AppointmentStatus.CONFIRMED,
+      sendNotification: sendConfirmNotification,
     });
   };
 
@@ -159,6 +181,7 @@ export function AppointmentDetailPage() {
     cancelMutation.mutate({
       appointmentId: appointment.id,
       reason: cancelReason.trim(),
+      sendNotification: sendCancelNotification,
     });
   };
 
@@ -447,20 +470,59 @@ export function AppointmentDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Confirm Button with Dialog */}
                 {appointment.status === AppointmentStatus.SCHEDULED &&
                   canTransitionStatus(
                     appointment.status,
                     AppointmentStatus.CONFIRMED
                   ) && (
-                    <Button
-                      className="w-full justify-start"
-                      variant="outline"
-                      onClick={() => handleStatusChange(AppointmentStatus.CONFIRMED)}
-                      disabled={updateStatusMutation.isPending}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                      {t('appointments.actions.confirm')}
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          className="w-full justify-start"
+                          variant="outline"
+                          disabled={updateStatusMutation.isPending}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                          {t('appointments.actions.confirm')}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {t('appointments.confirm_dialog.title')}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t('appointments.confirm_dialog.description', {
+                              patient: patient?.first_name + ' ' + patient?.last_name,
+                              date: format(parseISO(appointment.scheduled_start), 'PPp'),
+                            })}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-4">
+                          <NotificationOptions
+                            patientId={appointment.patient_id}
+                            sendNotification={sendConfirmNotification}
+                            onSendNotificationChange={setSendConfirmNotification}
+                            notificationType="confirmation"
+                          />
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleConfirm}
+                            className="bg-green-600 text-white hover:bg-green-700"
+                          >
+                            {updateStatusMutation.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                            )}
+                            {t('appointments.actions.confirm')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
 
                 {appointment.status === AppointmentStatus.CONFIRMED &&
@@ -518,16 +580,25 @@ export function AppointmentDetailPage() {
                         {t('appointments.cancel_dialog.description')}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="space-y-2 py-4">
-                      <Label htmlFor="cancel-reason">
-                        {t('appointments.cancel_dialog.reason_label')}
-                      </Label>
-                      <Textarea
-                        id="cancel-reason"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder={t('appointments.cancel_dialog.reason_placeholder')}
-                        rows={3}
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cancel-reason">
+                          {t('appointments.cancel_dialog.reason_label')}
+                        </Label>
+                        <Textarea
+                          id="cancel-reason"
+                          value={cancelReason}
+                          onChange={(e) => setCancelReason(e.target.value)}
+                          placeholder={t('appointments.cancel_dialog.reason_placeholder')}
+                          rows={3}
+                        />
+                      </div>
+                      {/* Notification Options */}
+                      <NotificationOptions
+                        patientId={appointment.patient_id}
+                        sendNotification={sendCancelNotification}
+                        onSendNotificationChange={setSendCancelNotification}
+                        notificationType="cancellation"
                       />
                     </div>
                     <AlertDialogFooter>

@@ -18,3 +18,4 @@ export * from './holidays';
 export * from './audit';
 export * from './system';
 export * from './drug-interactions';
+export * from './notifications';

@@ -18,6 +18,7 @@ import {
   Pill,
   FolderOpen,
   BarChart3,
+  Bell,
   Settings,
   UserCircle,
   HelpCircle,
@@ -112,6 +113,13 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       icon: BarChart3,
       label: t('nav.reports'),
       href: '/reports',
+      section: 'main',
+    },
+    {
+      key: 'notifications',
+      icon: Bell,
+      label: t('nav.notifications'),
+      href: '/notifications',
       section: 'main',
     },
     // Admin section - Administration features

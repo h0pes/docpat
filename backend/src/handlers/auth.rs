@@ -289,8 +289,16 @@ mod tests {
             access_token: None,
         };
 
+        // Create a mock request context for the test
+        let request_ctx = RequestContext {
+            request_id: uuid::Uuid::new_v4(),
+            ip_address: Some("127.0.0.1".to_string()),
+            user_agent: Some("test-agent".to_string()),
+        };
+
         let response = logout_handler(
             State(app_state),
+            Extension(request_ctx),
             Json(logout_req),
         ).await;
 

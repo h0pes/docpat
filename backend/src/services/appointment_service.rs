@@ -17,7 +17,8 @@ use crate::models::{
 };
 use crate::services::{HolidayService, WorkingHoursService};
 use anyhow::{anyhow, Context, Result};
-use chrono::{DateTime, Duration, NaiveTime, Utc};
+use chrono::{DateTime, Duration, NaiveTime, TimeZone, Utc};
+use chrono_tz::Europe::Rome;
 use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -832,9 +833,12 @@ impl AppointmentService {
             .and_then(|t| parse_time_str(t))
             .unwrap_or((FALLBACK_END_HOUR, 0));
 
-        // Get appointment times
-        let appt_start_time = scheduled_start.time();
-        let appt_end_time = scheduled_end.time();
+        // Get appointment times in local timezone (Europe/Rome)
+        // Working hours are defined in local time, so we must convert UTC to local for comparison
+        let local_start = scheduled_start.with_timezone(&Rome);
+        let local_end = scheduled_end.with_timezone(&Rome);
+        let appt_start_time = local_start.time();
+        let appt_end_time = local_end.time();
 
         let working_start = NaiveTime::from_hms_opt(start_time.0, start_time.1, 0)
             .unwrap_or(NaiveTime::from_hms_opt(8, 0, 0).unwrap());
@@ -1163,8 +1167,17 @@ impl AppointmentService {
         let day_end = date_naive.and_hms_opt(end_hour, end_min, 0)
             .ok_or_else(|| anyhow!("Invalid end time"))?;
 
-        let day_start_utc = DateTime::<Utc>::from_naive_utc_and_offset(day_start, Utc);
-        let day_end_utc = DateTime::<Utc>::from_naive_utc_and_offset(day_end, Utc);
+        // Convert local times (Europe/Rome) to UTC for database queries
+        // Working hours are in local time, but DB stores appointments in UTC
+        let day_start_local = Rome.from_local_datetime(&day_start)
+            .single()
+            .ok_or_else(|| anyhow!("Invalid local start time"))?;
+        let day_end_local = Rome.from_local_datetime(&day_end)
+            .single()
+            .ok_or_else(|| anyhow!("Invalid local end time"))?;
+
+        let day_start_utc = day_start_local.with_timezone(&Utc);
+        let day_end_utc = day_end_local.with_timezone(&Utc);
 
         // Get all appointments for this provider on this date
         let booked_appointments = sqlx::query_as::<_, Appointment>(
@@ -1193,13 +1206,14 @@ impl AppointmentService {
 
             // Check if this slot is during a break
             let is_during_break = if let (Some((break_start_h, break_start_m)), Some((break_end_h, break_end_m))) = (break_start, break_end) {
-                let slot_time = current_time.time();
+                // Convert slot time from UTC to local for break comparison (breaks are in local time)
+                let slot_time_local = current_time.with_timezone(&Rome).time();
                 let break_start_time = NaiveTime::from_hms_opt(break_start_h, break_start_m, 0)
                     .unwrap_or(NaiveTime::from_hms_opt(12, 0, 0).unwrap());
                 let break_end_time = NaiveTime::from_hms_opt(break_end_h, break_end_m, 0)
                     .unwrap_or(NaiveTime::from_hms_opt(13, 0, 0).unwrap());
 
-                slot_time >= break_start_time && slot_time < break_end_time
+                slot_time_local >= break_start_time && slot_time_local < break_end_time
             } else {
                 false
             };

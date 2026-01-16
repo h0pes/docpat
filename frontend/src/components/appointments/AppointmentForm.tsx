@@ -32,6 +32,7 @@ import {
 } from '../../types/appointment';
 import { PatientSearchCombobox } from './PatientSearchCombobox';
 import { AvailabilityIndicator } from './AvailabilityIndicator';
+import { NotificationOptions } from './NotificationOptions';
 import { useSchedulingConstraints, getDisabledReason } from '../../hooks/useSchedulingConstraints';
 import { appointmentsApi } from '../../services/api/appointments';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -93,6 +94,7 @@ const createAppointmentSchema = (t: (key: string) => string) => {
       recurring_interval: z.number().min(1).max(52).optional(),
       recurring_end_date: z.date().optional(),
       recurring_max_occurrences: z.number().min(1).max(100).optional(),
+      send_notification: z.boolean().optional(),
     })
     .refine(
       (data) => {
@@ -149,6 +151,7 @@ export function AppointmentForm({
         : undefined,
       recurring_max_occurrences:
         appointment?.recurring_pattern?.max_occurrences || undefined,
+      send_notification: true, // Default to sending notification
     },
   });
 
@@ -165,6 +168,8 @@ export function AppointmentForm({
   const selectedDate = watch('date');
   const selectedTime = watch('time');
   const selectedDuration = watch('duration_minutes');
+  const selectedPatientId = watch('patient_id');
+  const sendNotification = watch('send_notification');
 
   // Get scheduling constraints (working hours, holidays)
   const {
@@ -197,23 +202,42 @@ export function AppointmentForm({
     staleTime: 60 * 1000,
   });
 
-  // Check if current time slot is available
+  /**
+   * Check if current time slot is available.
+   *
+   * Note: The API returns slots in UTC format, but these represent the practice's
+   * local working hours. We compare using minutes from midnight to avoid timezone
+   * conversion issues between the user's local time selection and the UTC slot times.
+   */
   const isSlotAvailable = useMemo(() => {
     if (!availability?.slots || !selectedTime || !selectedDate) return true; // Assume available while loading
 
-    const [hours, minutes] = selectedTime.split(':').map(Number);
-    const selectedStart = setMinutes(setHours(selectedDate, hours), minutes);
-    const selectedEnd = addMinutes(selectedStart, selectedDuration);
+    const [selectedHours, selectedMinutes] = selectedTime.split(':').map(Number);
+    const selectedStartMinutes = selectedHours * 60 + selectedMinutes;
+    const selectedEndMinutes = selectedStartMinutes + selectedDuration;
 
     return availability.slots.some((slot) => {
-      const slotStart = new Date(slot.start);
-      const slotEnd = new Date(slot.end);
-      return selectedStart >= slotStart && selectedEnd <= slotEnd;
+      if (!slot.available) return false;
+
+      // Extract hours and minutes from slot times
+      const slotStartDate = new Date(slot.start);
+      const slotEndDate = new Date(slot.end);
+
+      // Use UTC hours/minutes since the backend stores working hours as "fake UTC"
+      // (the times represent local working hours but are sent with Z suffix)
+      const slotStartMinutes = slotStartDate.getUTCHours() * 60 + slotStartDate.getUTCMinutes();
+      const slotEndMinutes = slotEndDate.getUTCHours() * 60 + slotEndDate.getUTCMinutes();
+
+      return selectedStartMinutes >= slotStartMinutes && selectedEndMinutes <= slotEndMinutes;
     });
   }, [availability, selectedTime, selectedDate, selectedDuration]);
 
   // Track if submission should be blocked
   const [submissionBlocked, setSubmissionBlocked] = useState(false);
+
+  // Track date picker popover open states
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [endDatePickerOpen, setEndDatePickerOpen] = useState(false);
 
   // Update submission blocked state
   useEffect(() => {
@@ -230,6 +254,14 @@ export function AppointmentForm({
     }
   }, [selectedType, setValue, isEditing]);
 
+  // Update form values when defaultDate/defaultTime props change (e.g., from calendar slot selection)
+  useEffect(() => {
+    if (!isEditing) {
+      setValue('date', defaultDate);
+      setValue('time', defaultTime);
+    }
+  }, [defaultDate, defaultTime, setValue, isEditing]);
+
   // Auto-select first available time slot when date changes
   useEffect(() => {
     if (selectedDate && availableTimeSlots.length > 0 && !isEditing) {
@@ -240,17 +272,24 @@ export function AppointmentForm({
     }
   }, [selectedDate, availableTimeSlots, selectedTime, setValue, isEditing]);
 
-  // Handle form submission
+  /**
+   * Handle form submission.
+   *
+   * Note: We construct a local Date object from the user's selection and convert
+   * it to ISO string which includes the timezone offset. This ensures proper
+   * UTC conversion - when user selects 15:00 in Rome (UTC+1), it becomes 14:00Z.
+   */
   const onFormSubmit = (data: AppointmentFormData) => {
-    // Construct scheduled_start ISO string
+    // Create a Date object from the selected date and time (in local timezone)
     const [hours, minutes] = data.time.split(':').map(Number);
-    const scheduledStart = setMinutes(setHours(data.date, hours), minutes);
-    const scheduledEnd = addMinutes(scheduledStart, data.duration_minutes);
+    const localDateTime = setMinutes(setHours(startOfDay(data.date), hours), minutes);
+    // toISOString() converts local time to UTC automatically
+    const scheduledStartUtc = localDateTime.toISOString();
 
     const appointmentData: CreateAppointmentRequest = {
       patient_id: data.patient_id,
       provider_id: data.provider_id,
-      scheduled_start: scheduledStart.toISOString(),
+      scheduled_start: scheduledStartUtc,
       duration_minutes: data.duration_minutes,
       type: data.type,
       reason: data.reason || undefined,
@@ -265,6 +304,7 @@ export function AppointmentForm({
               max_occurrences: data.recurring_max_occurrences,
             }
           : undefined,
+      send_notification: data.send_notification,
     };
 
     onSubmit(appointmentData);
@@ -344,7 +384,7 @@ export function AppointmentForm({
                 name="date"
                 control={control}
                 render={({ field }) => (
-                  <Popover>
+                  <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -366,7 +406,10 @@ export function AppointmentForm({
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setDatePickerOpen(false);
+                        }}
                         disabled={(date) => isDateDisabled(date)}
                         initialFocus
                         modifiers={{
@@ -666,7 +709,7 @@ export function AppointmentForm({
                       name="recurring_end_date"
                       control={control}
                       render={({ field }) => (
-                        <Popover>
+                        <Popover open={endDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
@@ -687,7 +730,10 @@ export function AppointmentForm({
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                setEndDatePickerOpen(false);
+                              }}
                               disabled={(date) => date < new Date()}
                               initialFocus
                             />
@@ -699,6 +745,25 @@ export function AppointmentForm({
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Email Notification Options */}
+      {selectedPatientId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">
+              {t('notifications.emailNotifications')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationOptions
+              patientId={selectedPatientId}
+              sendNotification={sendNotification ?? true}
+              onSendNotificationChange={(value) => setValue('send_notification', value)}
+              notificationType="confirmation"
+            />
           </CardContent>
         </Card>
       )}
@@ -723,7 +788,7 @@ export function AppointmentForm({
       <div className="flex justify-end gap-2">
         <Button
           type="submit"
-          disabled={isSubmitting || submissionBlocked || isCheckingAvailability}
+          disabled={isSubmitting || submissionBlocked || isCheckingAvailability || !selectedPatientId}
         >
           {(isSubmitting || isCheckingAvailability) && (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />

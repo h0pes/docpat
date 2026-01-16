@@ -24,6 +24,7 @@
     "submit": "Invia",
     "refresh": "Aggiorna",
     "loading": "Caricamento...",
+    "sending": "Invio in corso...",
     "noResults": "Nessun risultato trovato",
     "comingSoon": "Prossimamente",
     "actionsTitle": "Azioni",
@@ -34,7 +35,10 @@
       "reactivating": "Riattivazione...",
       "cancel": "Annulla",
       "delete": "Elimina",
-      "viewAll": "Visualizza Tutto"
+      "viewAll": "Visualizza Tutto",
+      "refresh": "Aggiorna",
+      "reset": "Reimposta",
+      "save": "Salva"
     },
     "metadata": "Metadati",
     "created_at": "Creato il",
@@ -205,6 +209,7 @@
     "documents": "Documenti",
     "document_templates": "Modelli Documento",
     "reports": "Report",
+    "notifications": "Notifiche",
     "users": "Utenti",
     "settings": "Impostazioni",
     "audit_logs": "Log di Audit",
@@ -441,6 +446,29 @@
       "dobDesc": "Data di Nascita (Più Recente)",
       "statusAsc": "Stato (A-Z)",
       "statusDesc": "Stato (Z-A)"
+    },
+    "notification_preferences": {
+      "title": "Preferenze Notifiche",
+      "description": "Configura come questo paziente riceve le notifiche",
+      "saved": "Preferenze Salvate",
+      "saved_description": "Le preferenze di notifica sono state aggiornate",
+      "save_error": "Impossibile salvare le preferenze di notifica",
+      "load_error": "Impossibile caricare le preferenze di notifica",
+      "email_enabled": "Notifiche Email",
+      "email_enabled_hint": "Invia notifiche via email a questo paziente",
+      "reminder_enabled": "Promemoria Appuntamenti",
+      "reminder_enabled_hint": "Invia automaticamente promemoria prima degli appuntamenti",
+      "reminder_timing": "Tempistica Promemoria",
+      "reminder_timing_hint": "Quanti giorni prima dell'appuntamento inviare il promemoria",
+      "day_before": "giorno prima",
+      "days_before": "giorni prima"
+    },
+    "notification_history": {
+      "title": "Storico Notifiche",
+      "description": "Notifiche recenti inviate a questo paziente",
+      "no_notifications": "Nessuna notifica è stata ancora inviata a questo paziente",
+      "load_error": "Impossibile caricare lo storico delle notifiche",
+      "showing_of": "Visualizzate {{shown}} di {{total}} notifiche"
     }
   },
   "appointments": {
@@ -610,6 +638,10 @@
       "reason_label": "Motivo dell'Annullamento",
       "reason_placeholder": "Fornisci un motivo per l'annullamento di questo appuntamento..."
     },
+    "confirm_dialog": {
+      "title": "Conferma Appuntamento",
+      "description": "Confermare l'appuntamento per {{patient}} il {{date}}?"
+    },
     "filters": {
       "title": "Filtri",
       "date_range": "Intervallo di Date",
@@ -663,6 +695,18 @@
       "generated_on": "Generato il",
       "title": "Stampa Programma",
       "description": "Stampa la vista del programma corrente"
+    },
+    "notifications": {
+      "send_confirmation": "Invia conferma via email al paziente",
+      "send_cancellation": "Invia avviso di cancellazione via email al paziente",
+      "confirmation_tooltip": "Verrà inviata un'email al paziente con i dettagli dell'appuntamento",
+      "cancellation_tooltip": "Verrà inviata un'email per notificare al paziente la cancellazione",
+      "email_service_disabled": "Il servizio email non è configurato o è disabilitato",
+      "no_email": "Il paziente non ha un indirizzo email registrato",
+      "email_disabled_for_patient": "Le notifiche email sono disabilitate per questo paziente",
+      "reminders_enabled": "Promemoria automatici abilitati ({{days}} giorno/i prima)",
+      "notification_sent": "Notifica inviata con successo",
+      "notification_failed": "Impossibile inviare la notifica"
     }
   },
   "visits": {
@@ -2178,7 +2222,10 @@
       "localization": "Localizzazione",
       "security": "Sicurezza",
       "working_hours": "Orari di Lavoro",
-      "holidays": "Festività"
+      "holidays": "Festività",
+      "email": "Email",
+      "scheduler": "Scheduler",
+      "backup": "Backup"
     },
     "errors": {
       "admin_only": "Le impostazioni sono accessibili solo agli amministratori"
@@ -2277,6 +2324,90 @@
       "password_lowercase": "Almeno una lettera minuscola",
       "password_number": "Almeno un numero",
       "password_special": "Almeno un carattere speciale"
+    },
+    "email": {
+      "title": "Email e Notifiche",
+      "description": "Configura il servizio email e le impostazioni delle notifiche",
+      "status": "Stato Servizio Email",
+      "status_description": "Stato attuale del servizio email",
+      "enabled": "Abilitato",
+      "disabled": "Disabilitato",
+      "not_configured": "Non Configurato",
+      "test_email": "Email di Test",
+      "test_description": "Invia un'email di test per verificare la configurazione",
+      "send_test": "Invia Test",
+      "test_success": "Email di Test Inviata",
+      "test_failed": "Invio Email di Test Fallito",
+      "test_error": "Impossibile inviare l'email di test",
+      "test_dialog_title": "Invia Email di Test",
+      "test_dialog_description": "Invia un'email di test per verificare che la configurazione SMTP funzioni correttamente.",
+      "recipient_email": "Email Destinatario",
+      "recipient_name": "Nome Destinatario",
+      "recipient_name_placeholder": "Utente Test",
+      "recipient_name_hint": "Opzionale - il nome da mostrare nell'email",
+      "configure_hint": "Il servizio email non è configurato. Imposta le credenziali SMTP nel file .env per abilitare le notifiche.",
+      "statistics": "Statistiche",
+      "stats": {
+        "total": "Notifiche Totali",
+        "total_description": "Conteggio totale delle notifiche",
+        "sent_today": "Inviate Oggi",
+        "sent_today_description": "Notifiche inviate oggi",
+        "pending": "In Attesa",
+        "pending_description": "In attesa di invio",
+        "failed": "Fallite",
+        "failed_description": "Richiedono attenzione"
+      },
+      "configuration": "Configurazione",
+      "env_config_hint": "La configurazione email è gestita tramite variabili d'ambiente (SMTP_HOST, SMTP_PORT, ecc.). Contatta l'amministratore per modificare queste impostazioni."
+    },
+    "backup": {
+      "title": "Configurazione Backup",
+      "description": "Visualizza lo stato e la configurazione dei backup",
+      "load_error": "Impossibile caricare lo stato del backup",
+      "config_notice_title": "Configurazione in Sola Lettura",
+      "config_notice_description": "Le impostazioni di backup sono configurate tramite variabili d'ambiente e lo script di backup. Contatta l'amministratore per modificare queste impostazioni.",
+      "status_section": "Panoramica Stato",
+      "backup_status": "Stato Backup",
+      "backup_enabled": "Backup Abilitati",
+      "disabled": "Disabilitato",
+      "no_backup_yet": "Nessun Backup",
+      "status_ok": "OK",
+      "status_error": "Errore",
+      "last_backup_section": "Ultimo Backup",
+      "last_backup_time": "Data Ultimo Backup",
+      "backup_size": "Dimensione Backup",
+      "backup_duration": "Durata",
+      "backup_file": "Nome File",
+      "configuration_section": "Configurazione",
+      "backup_location": "Posizione Backup",
+      "not_configured": "Non configurato",
+      "retention_days": "Periodo di Conservazione",
+      "next_scheduled": "Prossimo Pianificato"
+    },
+    "scheduler": {
+      "title": "Scheduler Notifiche",
+      "description": "Configura la pianificazione automatica di notifiche e promemoria",
+      "save_success": "Impostazioni Scheduler Salvate",
+      "save_success_description": "Le impostazioni dello scheduler sono state aggiornate con successo",
+      "save_error": "Impossibile salvare le impostazioni dello scheduler",
+      "status": "Stato Scheduler",
+      "status_description": "Stato attuale dello scheduler delle notifiche",
+      "enabled": "Attivo",
+      "disabled": "In Pausa",
+      "next_run": "Prossima Esecuzione",
+      "next_run_description": "Quando verranno elaborati i prossimi promemoria",
+      "next_run_at": "Giornalmente alle {{time}}",
+      "scheduler_paused": "Lo scheduler è in pausa",
+      "configuration": "Configurazione",
+      "enable_scheduler": "Abilita Scheduler",
+      "enable_scheduler_description": "Attiva la pianificazione automatica delle notifiche",
+      "reminder_time": "Orario Promemoria",
+      "reminder_time_description": "Ora del giorno per inviare i promemoria degli appuntamenti (formato 24 ore)",
+      "batch_size": "Dimensione Batch",
+      "batch_size_description": "Numero massimo di notifiche da elaborare per esecuzione (1-200)",
+      "auto_retry": "Riprova Automaticamente",
+      "auto_retry_description": "Riprova automaticamente le notifiche fallite",
+      "info_hint": "Lo scheduler viene eseguito giornalmente all'orario configurato per inviare promemoria degli appuntamenti in base alle preferenze dei pazienti. Assicurati che le impostazioni email siano configurate correttamente per la consegna delle notifiche."
     },
     "working_hours": {
       "title": "Orari di Lavoro",
@@ -2599,6 +2730,77 @@
         },
         "disableNotImplemented": "La funzionalità di disabilitazione MFA non è ancora disponibile. Contatta un amministratore."
       }
+    }
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "description": "Visualizza e gestisci le notifiche email",
+    "emailNotifications": "Notifica Email",
+    "empty": {
+      "title": "Nessuna Notifica",
+      "description": "Non ci sono notifiche da visualizzare"
+    },
+    "list": {
+      "title": "Notifiche Recenti",
+      "showing": "Mostrando {{count}} di {{total}}"
+    },
+    "stats": {
+      "total": "Totale",
+      "all_time": "Tutti i tempi",
+      "pending": "In Attesa",
+      "awaiting_delivery": "In attesa di invio",
+      "sent_today": "Inviate Oggi",
+      "delivered_today": "Consegnate oggi",
+      "failed": "Fallite",
+      "require_attention": "Richiedono attenzione"
+    },
+    "status": {
+      "pending": "In Attesa",
+      "processing": "In Elaborazione",
+      "sent": "Inviata",
+      "failed": "Fallita",
+      "cancelled": "Annullata",
+      "unknown": "Sconosciuto"
+    },
+    "types": {
+      "appointment_reminder": "Promemoria Appuntamento",
+      "appointment_booked": "Appuntamento Prenotato",
+      "appointment_confirmation": "Conferma Appuntamento",
+      "appointment_cancellation": "Cancellazione Appuntamento",
+      "custom": "Personalizzata",
+      "unknown": "Sconosciuto"
+    },
+    "filters": {
+      "title": "Filtri",
+      "status": "Stato",
+      "type": "Tipo",
+      "all_statuses": "Tutti gli Stati",
+      "all_types": "Tutti i Tipi",
+      "from_date": "Data Inizio",
+      "to_date": "Data Fine",
+      "clear": "Cancella Filtri",
+      "active_filters": "Filtri attivi"
+    },
+    "actions": {
+      "retry": "Riprova",
+      "cancel": "Annulla",
+      "retry_success": "Notifica Accodata",
+      "retry_success_description": "La notifica è stata accodata per un nuovo tentativo",
+      "cancel_success": "Notifica Annullata",
+      "cancel_success_description": "La notifica è stata annullata",
+      "action_failed": "Azione fallita. Riprova."
+    },
+    "dialogs": {
+      "retry_title": "Riprova Notifica",
+      "retry_description": "Sei sicuro di voler riprovare ad inviare questa notifica?",
+      "cancel_title": "Annulla Notifica",
+      "cancel_description": "Sei sicuro di voler annullare questa notifica in attesa? Questa azione non può essere annullata."
+    },
+    "scheduled_for": "Programmata per",
+    "sent_at": "Inviata il",
+    "retry_count": "Ritentata {{count}} volta/e",
+    "errors": {
+      "load_failed": "Impossibile caricare le notifiche"
     }
   }
 }

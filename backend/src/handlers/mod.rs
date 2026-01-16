@@ -13,6 +13,7 @@ pub mod system_health;
 pub mod diagnoses;
 pub mod holidays;
 pub mod mfa;
+pub mod notifications;
 pub mod patients;
 pub mod prescriptions;
 pub mod prescription_templates;
@@ -95,6 +96,11 @@ pub use system_health::{
 pub use files::{
     delete_file, delete_logo, download_file, get_file_metadata, get_logo, list_files,
     serve_file, serve_logo, update_file, upload_file, upload_logo,
+};
+pub use notifications::{
+    cancel_notification, create_notification, get_email_status, get_notification,
+    get_notification_statistics, get_patient_preferences, list_notifications, retry_notification,
+    send_test_email, update_patient_preferences,
 };
 
 #[cfg(feature = "pdf-export")]

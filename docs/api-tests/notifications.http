@@ -1,0 +1,794 @@
+### 
+
+# Notifications and Email API Tests
+# Kulala HTTP Client file for testing Milestone 15 Notification APIs
+# # Prerequisites:
+# - Backend server running on http://localhost:8000
+# - Test users available: testadmin (Admin) and testdoctor (Doctor)
+# - SMTP email service configured (check .env for SMTP settings)
+# - Existing patients and appointments in the database
+# # Usage with Kulala:
+# 1. Place cursor on a request
+# 2. Run :lua require('kulala').run()
+# 3. For chained requests, run them in order (login first, then others)
+# # IMPORTANT: Requests in this file are ordered for sequential execution.
+# Many requests depend on responses from previous requests.
+# Execute in order from top to bottom.
+# ==============================================================================
+# STEP 1: AUTHENTICATION
+# ==============================================================================
+# Must run these first to get access tokens
+
+
+### login_doctor
+
+# @name login_doctor
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{DOCTOR_PASSWORD}}",
+  "username": "{{DOCTOR_USERNAME}}"
+}
+
+
+### 
+
+
+### login_admin
+
+# @name login_admin
+
+POST {{BASE_URL}}/api/v1/auth/login HTTP/1.1
+Content-Type: application/json
+
+{
+  "password": "{{ADMIN_PASSWORD}}",
+  "username": "{{ADMIN_USERNAME}}"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 2: GET BASE DATA (patients, appointments)
+# ==============================================================================
+# Get patient and appointment IDs needed for notification testing
+
+
+### list_patients
+
+# @name list_patients
+
+# Get patients to use in notification testing
+
+GET {{BASE_URL}}/api/v1/patients?limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_appointments
+
+# @name list_appointments
+
+# Get appointments for notification testing
+
+GET {{BASE_URL}}/api/v1/appointments?limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 3: EMAIL SERVICE STATUS
+# ==============================================================================
+# Check if email service is configured and enabled
+
+
+### get_email_status
+
+# Goal: Check email service status
+# Expected: 200 OK with { enabled: bool, configured: bool }
+
+GET {{BASE_URL}}/api/v1/notifications/email-status HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 4: NOTIFICATION STATISTICS
+# ==============================================================================
+# Get current notification statistics
+
+
+### get_notification_statistics
+
+# Goal: Get notification statistics for dashboard
+# Expected: 200 OK with counts for pending, sent, failed
+
+GET {{BASE_URL}}/api/v1/notifications/statistics HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 5: LIST NOTIFICATIONS
+# ==============================================================================
+# Test notification listing with various filters
+
+
+### list_notifications
+
+# @name list_notifications
+
+# Goal: Get paginated list of all notifications
+# Expected: 200 OK with { notifications: [], total, limit, offset }
+
+GET {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_pending
+
+# Goal: Filter by PENDING status
+
+GET {{BASE_URL}}/api/v1/notifications?status=PENDING&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_sent
+
+# Goal: Filter by SENT status
+
+GET {{BASE_URL}}/api/v1/notifications?status=SENT&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_failed
+
+# Goal: Filter by FAILED status
+
+GET {{BASE_URL}}/api/v1/notifications?status=FAILED&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_cancelled
+
+# Goal: Filter by CANCELLED status
+
+GET {{BASE_URL}}/api/v1/notifications?status=CANCELLED&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_reminders
+
+# Goal: Filter by notification type APPOINTMENT_REMINDER
+
+GET {{BASE_URL}}/api/v1/notifications?notification_type=APPOINTMENT_REMINDER&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_confirmations
+
+# Goal: Filter by notification type APPOINTMENT_BOOKED
+
+GET {{BASE_URL}}/api/v1/notifications?notification_type=APPOINTMENT_BOOKED&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_cancellations
+
+# Goal: Filter by notification type APPOINTMENT_CANCELLATION
+
+GET {{BASE_URL}}/api/v1/notifications?notification_type=APPOINTMENT_CANCELLATION&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_date_range
+
+# Goal: Filter by date range
+# Note: Dates must be in full ISO 8601 datetime format (DateTime<Utc>)
+
+GET {{BASE_URL}}/api/v1/notifications?from_date=2026-01-01T00:00:00Z&to_date=2026-01-31T23:59:59Z&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_by_patient
+
+# Goal: Filter by patient ID
+# Requires list_patients to have run first
+
+GET {{BASE_URL}}/api/v1/notifications?patient_id={{list_patients.response.body.$.patients[0].id}}&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_by_appointment
+
+# Goal: Filter by appointment ID
+# Requires list_appointments to have run first
+
+GET {{BASE_URL}}/api/v1/notifications?appointment_id={{list_appointments.response.body.$.appointments[0].id}}&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_combined_filters
+
+# Goal: Combine multiple filters (type + status + date)
+# Note: from_date must be in full ISO 8601 datetime format
+
+GET {{BASE_URL}}/api/v1/notifications?notification_type=APPOINTMENT_REMINDER&status=SENT&from_date=2026-01-01T00:00:00Z&limit=20 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 6: GET SINGLE NOTIFICATION
+# ==============================================================================
+# Requires list_notifications to have run first
+
+
+### get_notification
+
+# Goal: Get single notification by ID
+# Note: Uses first notification from list_notifications
+# Expected: 200 OK with full notification object
+
+GET {{BASE_URL}}/api/v1/notifications/{{list_notifications.response.body.$.notifications[0].id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 7: PATIENT NOTIFICATION PREFERENCES
+# ==============================================================================
+# Test patient notification preferences CRUD
+
+
+### get_patient_preferences
+
+# @name get_patient_preferences
+
+# Goal: Get notification preferences for a patient
+# Requires list_patients to have run first
+# Expected: 200 OK with preferences object
+
+GET {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### update_patient_preferences_disable_email
+
+# Goal: Disable email notifications for patient
+# Expected: 200 OK with updated preferences
+
+PUT {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "email_enabled": false,
+  "reminder_days_before": 1,
+  "reminder_enabled": true
+}
+
+
+### 
+
+
+### update_patient_preferences_enable_all
+
+# Goal: Enable all notifications and set reminder days to 3
+# Expected: 200 OK with updated preferences
+
+PUT {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "email_enabled": true,
+  "reminder_days_before": 3,
+  "reminder_enabled": true
+}
+
+
+### 
+
+
+### update_patient_preferences_disable_reminders
+
+# Goal: Disable appointment reminders but keep confirmations
+# Expected: 200 OK with updated preferences
+
+PUT {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "email_enabled": true,
+  "reminder_days_before": 1,
+  "reminder_enabled": false
+}
+
+
+### 
+
+
+### update_patient_preferences_custom_days
+
+# Goal: Set custom reminder days (7 days before)
+# Expected: 200 OK with updated preferences
+
+PUT {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "email_enabled": true,
+  "reminder_days_before": 7,
+  "reminder_enabled": true
+}
+
+
+### 
+
+
+### get_patient_preferences_second_patient
+
+# Goal: Get preferences for second patient (may have defaults)
+# Requires list_patients to have run first
+
+GET {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[1].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 8: CREATE NOTIFICATIONS
+# ==============================================================================
+# Create new notifications manually
+
+
+### create_notification_reminder
+
+# @name create_notification_reminder
+
+# Goal: Create an appointment reminder notification
+# Expected: 201 Created with notification object
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "appointment_id": "{{list_appointments.response.body.$.appointments[0].id}}",
+  "delivery_method": "EMAIL",
+  "message_body": "This is a reminder for your upcoming appointment. Please arrive 10 minutes early.",
+  "notification_type": "APPOINTMENT_REMINDER",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "priority": 5,
+  "recipient_email": "test@example.com",
+  "recipient_name": "Test Patient",
+  "subject": "Appointment Reminder - Tomorrow"
+}
+
+
+### 
+
+
+### create_notification_confirmation
+
+# @name create_notification_confirmation
+
+# Goal: Create an appointment confirmation notification
+# Expected: 201 Created with notification object
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "appointment_id": "{{list_appointments.response.body.$.appointments[0].id}}",
+  "delivery_method": "EMAIL",
+  "message_body": "Your appointment has been confirmed. Thank you for booking with us.",
+  "notification_type": "APPOINTMENT_BOOKED",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "priority": 3,
+  "recipient_email": "test@example.com",
+  "recipient_name": "Test Patient",
+  "subject": "Appointment Confirmed"
+}
+
+
+### 
+
+
+### create_notification_cancellation
+
+# @name create_notification_cancellation
+
+# Goal: Create an appointment cancellation notification
+# Expected: 201 Created with notification object
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "appointment_id": "{{list_appointments.response.body.$.appointments[0].id}}",
+  "delivery_method": "EMAIL",
+  "message_body": "We regret to inform you that your appointment has been cancelled. Please contact us to reschedule.",
+  "notification_type": "APPOINTMENT_CANCELLATION",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "priority": 2,
+  "recipient_email": "test@example.com",
+  "recipient_name": "Test Patient",
+  "subject": "Appointment Cancelled"
+}
+
+
+### 
+
+
+### create_notification_high_priority
+
+# Goal: Create high priority notification (priority=1)
+# Expected: 201 Created with notification object
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "delivery_method": "EMAIL",
+  "message_body": "URGENT: Please contact our office immediately regarding your appointment.",
+  "notification_type": "APPOINTMENT_REMINDER",
+  "patient_id": "{{list_patients.response.body.$.patients[0].id}}",
+  "priority": 1,
+  "recipient_email": "test@example.com",
+  "recipient_name": "Test Patient",
+  "subject": "URGENT - Please Contact Us"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 9: RETRY AND CANCEL NOTIFICATIONS
+# ==============================================================================
+# Test retry and cancel operations
+
+
+### cancel_notification
+
+# Goal: Cancel a pending notification
+# Requires create_notification_reminder to have run first
+# Expected: 200 OK with notification status = CANCELLED
+
+DELETE {{BASE_URL}}/api/v1/notifications/{{create_notification_reminder.response.body.$.id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### retry_notification
+
+# Goal: Retry a failed notification
+# Note: This will fail if the notification is not in FAILED status
+# Expected: 200 OK with notification status = PENDING
+
+POST {{BASE_URL}}/api/v1/notifications/{{create_notification_confirmation.response.body.$.id}}/retry HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 10: SEND TEST EMAIL (ADMIN ONLY)
+# ==============================================================================
+# Test email functionality - requires admin authentication
+
+
+### send_test_email
+
+# Goal: Send test email to verify SMTP configuration
+# Expected: 200 OK with { success: true, message: "..." }
+# Note: Only ADMIN users can send test emails
+
+POST {{BASE_URL}}/api/v1/notifications/send-test HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_admin.response.body.$.tokens.access_token}}
+
+{
+  "to_email": "admin@example.com",
+  "to_name": "Test Admin"
+}
+
+
+### 
+
+
+### send_test_email_doctor_forbidden
+
+# Goal: Verify Doctor cannot send test emails
+# Expected: 403 Forbidden
+
+POST {{BASE_URL}}/api/v1/notifications/send-test HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "to_email": "doctor@example.com",
+  "to_name": "Test Doctor"
+}
+
+
+### 
+
+# ==============================================================================
+# STEP 11: AUTHORIZATION TESTS
+# ==============================================================================
+
+
+### unauthenticated_access_denied
+
+# Goal: Verify unauthenticated requests are rejected
+# Expected: 401 Unauthorized
+
+GET {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+
+
+### 
+
+
+### unauthenticated_preferences_denied
+
+# Goal: Verify unauthenticated access to preferences is rejected
+# Expected: 401 Unauthorized
+
+GET {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+
+
+### 
+
+# ==============================================================================
+# STEP 12: ERROR HANDLING TESTS
+# ==============================================================================
+
+
+### get_nonexistent_notification
+
+# Goal: Verify proper 404 for non-existent notification
+# Expected: 404 Not Found
+
+GET {{BASE_URL}}/api/v1/notifications/00000000-0000-0000-0000-000000000000 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### get_preferences_nonexistent_patient
+
+# Goal: Verify proper error for non-existent patient
+# Expected: 404 Not Found (security: prevents patient enumeration)
+
+GET {{BASE_URL}}/api/v1/patients/00000000-0000-0000-0000-000000000000/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### create_notification_missing_fields
+
+# Goal: Verify validation errors for missing required fields
+# Expected: 422 Unprocessable Entity (JSON valid but missing required fields)
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "notification_type": "APPOINTMENT_REMINDER"
+}
+
+
+### 
+
+
+### create_notification_invalid_type
+
+# Goal: Verify validation for invalid notification type
+# Expected: 400 Bad Request
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "delivery_method": "EMAIL",
+  "message_body": "Test message",
+  "notification_type": "INVALID_TYPE",
+  "recipient_email": "test@example.com"
+}
+
+
+### 
+
+
+### create_notification_invalid_email
+
+# Goal: Verify validation for invalid email format
+# Expected: 400 Bad Request with validation error
+
+POST {{BASE_URL}}/api/v1/notifications HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "delivery_method": "EMAIL",
+  "message_body": "Test message",
+  "notification_type": "APPOINTMENT_REMINDER",
+  "recipient_email": "not-a-valid-email"
+}
+
+
+### 
+
+
+### update_preferences_invalid_days
+
+# Goal: Verify validation for invalid reminder_days_before
+# Expected: 400 Bad Request (if days out of range)
+
+PUT {{BASE_URL}}/api/v1/patients/{{list_patients.response.body.$.patients[0].id}}/notification-preferences HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+{
+  "email_enabled": true,
+  "reminder_days_before": 100,
+  "reminder_enabled": true
+}
+
+
+### 
+
+
+### retry_already_sent_notification
+
+# Goal: Verify cannot retry a sent notification
+# Note: This may fail depending on notification state
+# Expected: 400 Bad Request
+
+POST {{BASE_URL}}/api/v1/notifications/{{list_notifications.response.body.$.notifications[0].id}}/retry HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### cancel_already_sent_notification
+
+# Goal: Verify cannot cancel a non-PENDING notification (SENT, CANCELLED, etc.)
+# Note: First run may return 200 if notifications[0] is PENDING (gets cancelled)
+# Subsequent runs return 400 since it's now CANCELLED
+# Expected: 400 Bad Request with "Cannot cancel notification with status: X"
+
+DELETE {{BASE_URL}}/api/v1/notifications/{{list_notifications.response.body.$.notifications[2].id}} HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+# ==============================================================================
+# STEP 13: PAGINATION TESTS
+# ==============================================================================
+
+
+### list_notifications_pagination_first_page
+
+# Goal: Get first page of notifications
+
+GET {{BASE_URL}}/api/v1/notifications?offset=0&limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_pagination_second_page
+
+# Goal: Get second page of notifications
+
+GET {{BASE_URL}}/api/v1/notifications?offset=5&limit=5 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 
+
+
+### list_notifications_max_limit
+
+# Goal: Test maximum limit (100)
+
+GET {{BASE_URL}}/api/v1/notifications?limit=100 HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{login_doctor.response.body.$.tokens.access_token}}
+
+
+### 

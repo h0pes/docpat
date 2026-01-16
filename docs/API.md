@@ -36,6 +36,7 @@
   - [Document Templates](#document-templates-endpoints)
   - [Generated Documents](#generated-documents-endpoints)
   - [Drug Interactions](#drug-interactions-endpoints)
+  - [Notifications](#notifications-endpoints)
 - [Appendix](#appendix)
 - [Changelog](#changelog)
 
@@ -5150,6 +5151,372 @@ Get statistics about the drug interaction database.
 | `moderate` | May require dose adjustment or monitoring |
 | `minor` | Minimal clinical significance |
 | `unknown` | Interaction documented but severity not classified |
+
+---
+
+## Notifications Endpoints
+
+Email-based notification system for appointment reminders, confirmations, and cancellations.
+
+**Base Path**: `/api/v1/notifications`
+**Required Permission**: `notifications:read`, `notifications:create`, `notifications:update`
+
+---
+
+### List Notifications
+
+List all notifications with optional filtering.
+
+**Endpoint**: `GET /api/v1/notifications`
+
+**Query Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `patient_id` | UUID | Filter by patient |
+| `appointment_id` | UUID | Filter by appointment |
+| `notification_type` | string | Filter by type (see Notification Types) |
+| `status` | string | Filter by status (PENDING, SENT, FAILED, CANCELLED) |
+| `from_date` | DateTime | Filter from date (ISO 8601 datetime, e.g., `2026-01-01T00:00:00Z`) |
+| `to_date` | DateTime | Filter to date (ISO 8601 datetime, e.g., `2026-01-31T23:59:59Z`) |
+| `offset` | integer | Pagination offset (default 0) |
+| `limit` | integer | Pagination limit (default 50, max 100) |
+
+**Response** `200 OK`
+
+```json
+{
+  "notifications": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+      "patient_name": "Mario Rossi",
+      "appointment_id": "550e8400-e29b-41d4-a716-446655440020",
+      "notification_type": "APPOINTMENT_REMINDER",
+      "delivery_method": "EMAIL",
+      "recipient_email": "mario.rossi@example.com",
+      "recipient_name": "Mario Rossi",
+      "subject": "Appointment Reminder - January 15, 2026",
+      "scheduled_for": "2026-01-14T08:00:00Z",
+      "priority": 5,
+      "status": "SENT",
+      "retry_count": 0,
+      "max_retries": 3,
+      "sent_at": "2026-01-14T08:01:23Z",
+      "error_message": null,
+      "created_at": "2026-01-13T10:30:00Z"
+    }
+  ],
+  "total": 150,
+  "offset": 0,
+  "limit": 50
+}
+```
+
+---
+
+### Get Notification
+
+Get a single notification by ID.
+
+**Endpoint**: `GET /api/v1/notifications/{id}`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Notification ID |
+
+**Response** `200 OK`
+
+Returns a single notification object (same structure as list item).
+
+**Error Responses**
+
+| Status | Description |
+|--------|-------------|
+| 404 | Notification not found |
+
+---
+
+### Create Notification
+
+Create a new notification to be queued for delivery.
+
+**Endpoint**: `POST /api/v1/notifications`
+
+**Request Body**
+
+```json
+{
+  "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+  "appointment_id": "550e8400-e29b-41d4-a716-446655440020",
+  "notification_type": "APPOINTMENT_REMINDER",
+  "delivery_method": "EMAIL",
+  "recipient_email": "patient@example.com",
+  "recipient_name": "Mario Rossi",
+  "subject": "Appointment Reminder",
+  "message_body": "Your appointment is scheduled for tomorrow...",
+  "scheduled_for": "2026-01-14T08:00:00Z",
+  "priority": 5,
+  "metadata": {
+    "appointment_type": "Check-up"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `patient_id` | UUID | No | Associated patient |
+| `appointment_id` | UUID | No | Associated appointment |
+| `notification_type` | string | Yes | Type of notification (see enum) |
+| `delivery_method` | string | No | Delivery channel (default: EMAIL) |
+| `recipient_email` | string | No* | Recipient email (*required for EMAIL) |
+| `recipient_name` | string | No | Recipient display name |
+| `subject` | string | No | Email subject line |
+| `message_body` | string | Yes | Notification content (1-10000 chars) |
+| `scheduled_for` | ISO 8601 | No | When to send (default: now) |
+| `priority` | integer | No | 1-10, lower=higher priority (default: 5) |
+| `metadata` | object | No | Additional JSON metadata |
+
+**Response** `201 Created`
+
+Returns the created notification object.
+
+---
+
+### Retry Notification
+
+Retry a failed notification.
+
+**Endpoint**: `POST /api/v1/notifications/{id}/retry`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Notification ID |
+
+**Response** `200 OK`
+
+Returns the updated notification object with status reset to PENDING.
+
+**Error Responses**
+
+| Status | Description |
+|--------|-------------|
+| 400 | Notification cannot be retried (not in FAILED status or max retries reached) |
+| 404 | Notification not found |
+
+---
+
+### Cancel Notification
+
+Cancel a pending notification.
+
+**Endpoint**: `DELETE /api/v1/notifications/{id}`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | UUID | Notification ID |
+
+**Response** `200 OK`
+
+Returns the notification object with status set to CANCELLED.
+
+**Notes**:
+- Only PENDING or FAILED notifications can be cancelled
+- SENT or PROCESSING notifications cannot be cancelled
+
+**Error Responses**
+
+| Status | Description |
+|--------|-------------|
+| 400 | Notification cannot be cancelled |
+| 404 | Notification not found |
+
+---
+
+### Get Notification Statistics
+
+Get notification statistics for the dashboard.
+
+**Endpoint**: `GET /api/v1/notifications/statistics`
+
+**Response** `200 OK`
+
+```json
+{
+  "total_pending": 12,
+  "total_sent_today": 45,
+  "total_failed_today": 2,
+  "email_sent_today": 45
+}
+```
+
+---
+
+### Get Email Service Status
+
+Check if email service is configured and enabled.
+
+**Endpoint**: `GET /api/v1/notifications/email-status`
+
+**Response** `200 OK`
+
+```json
+{
+  "enabled": true,
+  "configured": true
+}
+```
+
+---
+
+### Send Test Email
+
+Send a test email to verify SMTP configuration.
+
+**Endpoint**: `POST /api/v1/notifications/send-test`
+
+**Required Role**: ADMIN only
+
+**Request Body**
+
+```json
+{
+  "to_email": "admin@example.com",
+  "to_name": "Admin User"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `to_email` | string | Yes | Test email recipient |
+| `to_name` | string | No | Recipient display name |
+
+**Response** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Test email sent successfully"
+}
+```
+
+**Error Response** `400 Bad Request`
+
+```json
+{
+  "success": false,
+  "message": "Failed to send: SMTP connection error"
+}
+```
+
+---
+
+### Get Patient Notification Preferences
+
+Get notification preferences for a specific patient.
+
+**Endpoint**: `GET /api/v1/patients/{patient_id}/notification-preferences`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `patient_id` | UUID | Patient ID |
+
+**Response** `200 OK`
+
+```json
+{
+  "patient_id": "550e8400-e29b-41d4-a716-446655440010",
+  "email_enabled": true,
+  "email_address_override": null,
+  "reminder_enabled": true,
+  "reminder_days_before": 1,
+  "confirmation_enabled": true,
+  "updated_at": "2026-01-13T10:30:00Z"
+}
+```
+
+**Notes**:
+- If preferences don't exist for the patient, returns default values
+- Default: email_enabled=true, reminder_enabled=true, reminder_days_before=1, confirmation_enabled=true
+
+---
+
+### Update Patient Notification Preferences
+
+Update notification preferences for a specific patient.
+
+**Endpoint**: `PUT /api/v1/patients/{patient_id}/notification-preferences`
+
+**Path Parameters**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `patient_id` | UUID | Patient ID |
+
+**Request Body**
+
+```json
+{
+  "email_enabled": true,
+  "email_address_override": "alternate@example.com",
+  "reminder_enabled": true,
+  "reminder_days_before": 2,
+  "confirmation_enabled": false
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `email_enabled` | boolean | No | Enable/disable email notifications |
+| `email_address_override` | string | No | Override patient's primary email |
+| `reminder_enabled` | boolean | No | Enable appointment reminders |
+| `reminder_days_before` | integer | No | Days before appointment to send reminder (0-7) |
+| `confirmation_enabled` | boolean | No | Enable appointment confirmations |
+
+**Response** `200 OK`
+
+Returns the updated preferences object.
+
+---
+
+### Notification Types
+
+| Type | Description |
+|------|-------------|
+| `APPOINTMENT_REMINDER` | Reminder before scheduled appointment (sent by scheduler based on patient's reminder_days_before preference) |
+| `APPOINTMENT_BOOKED` | Confirmation when appointment is created |
+| `APPOINTMENT_CONFIRMATION` | Alternative confirmation type (legacy) |
+| `APPOINTMENT_CANCELLATION` | Notice when appointment is cancelled |
+| `CUSTOM` | Custom notification |
+
+**Note**: The scheduler automatically generates `APPOINTMENT_REMINDER` notifications based on each patient's `reminder_days_before` preference setting.
+
+### Notification Status
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Queued for delivery |
+| `PROCESSING` | Currently being sent |
+| `SENT` | Successfully delivered |
+| `FAILED` | Delivery failed (may be retried) |
+| `CANCELLED` | Cancelled before delivery |
+
+### Delivery Methods
+
+| Method | Description |
+|--------|-------------|
+| `EMAIL` | Email delivery (currently supported) |
+| `SMS` | SMS text message (future) |
+| `WHATSAPP` | WhatsApp message (future) |
+| `PUSH` | Push notification (future) |
 
 ---
 

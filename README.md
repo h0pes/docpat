@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-462%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-491%2B%20passing-brightgreen.svg)]()
 
 > A secure, self-hosted Medical Practice Management System designed for individual practitioners prioritizing simplicity, data sovereignty, and military-grade security.
 
@@ -35,6 +35,8 @@ DocPat (Documentation for Patients) is a comprehensive medical practice manageme
 - **Document Generation**: Medical certificates, referral letters, visit summaries, custom templates
 - **Reporting & Analytics**: Appointment utilization, patient demographics, provider productivity dashboards
 - **Administration**: User management, system settings, audit logs, system health monitoring
+- **Email Notifications**: Appointment confirmations, reminders, and cancellation notices with SMTP integration
+- **Notification Scheduler**: Automatic reminder emails based on patient preferences
 - **Internationalization**: Full Italian/English support with runtime switching
 - **Theme Support**: Light/Dark themes with user preferences persistence
 - **Role-Based Access Control**: RBAC with Casbin (ADMIN/DOCTOR roles)
@@ -283,7 +285,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
                                      ▼
                     ┌─────────────────────────────────────┐
                     │      Rust/Axum Application          │
-                    │     (75 REST API Endpoints)         │
+                    │     (83 REST API Endpoints)         │
                     └─────────────────────────────────────┘
                                      │
                     ┌────────────────┼────────────────┐
@@ -324,7 +326,7 @@ docpat/
 
 ## API Overview
 
-DocPat exposes 75 REST API endpoints organized by resource:
+DocPat exposes 83 REST API endpoints organized by resource:
 
 | Resource | Endpoints | Description |
 |----------|-----------|-------------|
@@ -337,6 +339,7 @@ DocPat exposes 75 REST API endpoints organized by resource:
 | Diagnoses | 5 | ICD-10 codes, patient/visit diagnoses |
 | Prescriptions | 12 | Medication management, status transitions, templates |
 | Drug Interactions | 5 | Interaction checking, patient interactions, statistics |
+| Notifications | 8 | Email notifications, reminders, preferences, statistics |
 | Visit Templates | 5 | Reusable clinical note templates |
 | Prescription Templates | 5 | Reusable prescription templates |
 | Visit Versions | 3 | Version history and restoration |
@@ -391,9 +394,10 @@ DocPat maintains comprehensive test coverage:
 | Category | Tests | Status |
 |----------|-------|--------|
 | Backend Integration | 85+ | Passing |
+| Backend Unit (Notifications) | 29 | Passing |
 | Frontend Component | 378+ | Passing |
 | E2E (Playwright) | 19 | Passing |
-| **Total** | **462+** | **All Passing** |
+| **Total** | **491+** | **All Passing** |
 
 ### Running Tests
 
@@ -502,7 +506,20 @@ npm audit    # Frontend
 - Custom medication entry for unlisted medications
 - 156 unit tests for prescription components
 
-### Future Enhancements (Milestones 17-21)
+### Phase 8: Notification System (Milestone 15) - COMPLETE
+- **Email notification service** with SMTP integration (Gmail, custom SMTP)
+- **Appointment confirmation emails** sent automatically when booking
+- **Appointment reminder scheduler** with configurable run time
+- **Patient notification preferences** (per-patient email/reminder settings)
+- **Notification queue management** with status tracking (PENDING, SENT, FAILED)
+- **Failed notification retry** mechanism with configurable max retries
+- **Test email functionality** for SMTP verification (Admin only)
+- **Notification history** and statistics dashboard
+- **Scheduler settings** via Admin UI (time, batch size, auto-retry)
+- Comprehensive i18n support (English/Italian)
+- 29 unit tests for notification scheduler and service
+
+### Future Enhancements (Milestones 16-21)
 - Automated appointment reminders (email/SMS/WhatsApp)
 - Patient portal (self-service)
 - Mobile app (Android)

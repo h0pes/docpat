@@ -36,6 +36,7 @@ use crate::handlers::audit_logs;
 use crate::handlers::drug_interactions;
 use crate::handlers::files;
 use crate::handlers::holidays;
+use crate::handlers::notifications;
 use crate::handlers::system_health;
 use crate::handlers::working_hours;
 use crate::middleware::auth::jwt_auth_middleware;
@@ -90,6 +91,10 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .route("/{id}/visits", get(get_patient_visits))
         .route("/{id}/diagnoses", get(get_patient_diagnoses))
         .route("/{id}/prescriptions", get(get_patient_prescriptions))
+        .route(
+            "/{id}/notification-preferences",
+            get(notifications::get_patient_preferences).put(notifications::update_patient_preferences),
+        )
         .layer(middleware::from_fn_with_state(
             state.clone(),
             jwt_auth_middleware,
@@ -306,6 +311,23 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             jwt_auth_middleware,
         ));
 
+    // Notification routes - requires authentication
+    let notification_routes = Router::new()
+        .route("/", post(notifications::create_notification).get(notifications::list_notifications))
+        .route("/statistics", get(notifications::get_notification_statistics))
+        .route("/email-status", get(notifications::get_email_status))
+        .route("/send-test", post(notifications::send_test_email))
+        .route("/{id}", get(notifications::get_notification).delete(notifications::cancel_notification))
+        .route("/{id}/retry", post(notifications::retry_notification))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
+
+    // Patient notification preferences routes (nested under patients)
+    // These are handled as separate routes to add to patient_routes
+    // GET/PUT /patients/{id}/notification-preferences
+
     // Combine all v1 routes
     let mut router = Router::new()
         .nest("/auth", auth_routes)
@@ -324,7 +346,8 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
         .nest("/audit-logs", audit_logs_routes)
         .nest("/system", system_routes)
         .nest("/files", files_routes)
-        .nest("/drug-interactions", drug_interactions_routes);
+        .nest("/drug-interactions", drug_interactions_routes)
+        .nest("/notifications", notification_routes);
 
     #[cfg(feature = "rbac")]
     {

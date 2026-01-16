@@ -12,6 +12,8 @@ pub mod email_service;
 pub mod file_service;
 pub mod holiday_service;
 pub mod jwt_service;
+pub mod notification_scheduler;
+pub mod notification_service;
 pub mod patient_service;
 pub mod prescription_service;
 pub mod prescription_template_service;
@@ -54,3 +56,8 @@ pub use drug_interaction_service::{
     CheckNewMedicationForPatientRequest, DrugInteraction, DrugInteractionService,
     InteractionSeverity, InteractionStatistics,
 };
+pub use notification_service::{
+    generate_appointment_cancellation_email, generate_appointment_confirmation_email,
+    generate_appointment_reminder_email, NotificationService,
+};
+pub use notification_scheduler::spawn_notification_scheduler;

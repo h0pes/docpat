@@ -13,3 +13,4 @@ export * from './ConflictWarningDialog';
 export * from './QuickRescheduleDialog';
 export * from './AvailabilityIndicator';
 export * from './PrintScheduleButton';
+export * from './NotificationOptions';

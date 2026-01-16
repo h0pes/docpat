@@ -10,6 +10,7 @@ pub mod request_context;
 pub mod document_template;
 pub mod generated_document;
 pub mod holiday;
+pub mod notification;
 pub mod patient;
 pub mod system_health;
 pub mod report;
@@ -122,4 +123,10 @@ pub use uploaded_file::{
     UpdateFileRequest, UploadedFile, UploadedFileResponse, UploadFileRequest,
     ALLOWED_DOCUMENT_MIME_TYPES, ALLOWED_IMAGE_MIME_TYPES, ALLOWED_LOGO_MIME_TYPES,
     MAX_FILE_SIZE, MAX_FILENAME_LENGTH,
+};
+pub use notification::{
+    CreateNotificationRequest, DeliveryMethod, ListNotificationsResponse, Notification,
+    NotificationFilter, NotificationResponse, NotificationStatistics, NotificationStatus,
+    NotificationType, PatientNotificationPreferences, PatientNotificationPreferencesResponse,
+    SendTestEmailRequest, SendTestEmailResponse, UpdateNotificationPreferencesRequest,
 };

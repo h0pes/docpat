@@ -36,7 +36,7 @@ use handlers::auth::AppState;
 use middleware::cors::cors_from_env;
 use middleware::session_timeout::SessionManager;
 use routes::create_api_v1_routes;
-use services::{AuthService, EmailService, SettingsService};
+use services::{AuthService, EmailService, NotificationService, SettingsService, spawn_notification_scheduler};
 use std::sync::Arc;
 use utils::EncryptionKey;
 
@@ -171,6 +171,22 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "rbac")]
         enforcer,
     };
+
+    // Spawn notification scheduler background task (if email and encryption are enabled)
+    if let (Some(ref email_svc), Some(ref enc_key)) = (&app_state.email_service, &app_state.encryption_key) {
+        let notification_service = NotificationService::new(pool.clone(), email_svc.clone());
+        spawn_notification_scheduler(
+            pool.clone(),
+            notification_service,
+            app_state.settings_service.clone(),
+            enc_key.clone(),
+        );
+        tracing::info!("Notification scheduler started");
+    } else if app_state.email_service.is_none() {
+        tracing::info!("Notification scheduler not started - email service not configured");
+    } else {
+        tracing::info!("Notification scheduler not started - encryption key not configured");
+    }
 
     // Build application router
     let app = create_app(app_state, start_time);

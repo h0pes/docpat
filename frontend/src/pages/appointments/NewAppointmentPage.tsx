@@ -9,7 +9,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Calendar, CheckCircle } from 'lucide-react';
-import { parseISO } from 'date-fns';
+import { parse, isValid } from 'date-fns';
 
 import { appointmentsApi } from '../../services/api/appointments';
 import { AppointmentForm } from '../../components/appointments';
@@ -34,7 +34,12 @@ export function NewAppointmentPage() {
   // Extract default date/time from URL params (set by calendar slot selection)
   const defaultDateParam = searchParams.get('date');
   const defaultTimeParam = searchParams.get('time');
-  const defaultDate = defaultDateParam ? parseISO(defaultDateParam) : new Date();
+
+  // Parse date from URL param (format: yyyy-MM-dd)
+  const parsedDate = defaultDateParam
+    ? parse(defaultDateParam, 'yyyy-MM-dd', new Date())
+    : null;
+  const defaultDate = parsedDate && isValid(parsedDate) ? parsedDate : new Date();
   const defaultTime = defaultTimeParam || '09:00';
 
   // Create appointment mutation

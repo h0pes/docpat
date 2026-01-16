@@ -337,6 +337,10 @@ pub struct CreateAppointmentRequest {
 
     #[validate(nested)]
     pub recurring_pattern: Option<RecurringPattern>,
+
+    /// Whether to send email confirmation notification to patient
+    #[serde(default)]
+    pub send_notification: Option<bool>,
 }
 
 impl CreateAppointmentRequest {
@@ -377,6 +381,9 @@ pub struct UpdateAppointmentRequest {
 
     #[validate(length(max = 2000, message = "Cancellation reason must not exceed 2000 characters"))]
     pub cancellation_reason: Option<String>,
+
+    /// Whether to send notification on status change (e.g., confirmation)
+    pub send_notification: Option<bool>,
 }
 
 /// Request to cancel an appointment
@@ -384,6 +391,10 @@ pub struct UpdateAppointmentRequest {
 pub struct CancelAppointmentRequest {
     #[validate(length(min = 1, max = 2000, message = "Cancellation reason is required and must not exceed 2000 characters"))]
     pub cancellation_reason: String,
+
+    /// Whether to send email cancellation notification to patient
+    #[serde(default)]
+    pub send_notification: Option<bool>,
 }
 
 /// Request to check appointment availability

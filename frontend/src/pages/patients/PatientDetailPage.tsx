@@ -36,7 +36,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PatientDetail } from '@/components/patients/PatientDetail';
+import { PatientDetail, PatientNotificationHistory } from '@/components/patients';
 import { FullPageSpinner } from '@/components/Spinner';
 import { PatientDocumentsSection, DocumentGenerationDialog } from '@/components/documents';
 import { PrescriptionList } from '@/components/prescriptions';
@@ -547,6 +547,9 @@ export function PatientDetailPage() {
         onGenerateDocument={() => setShowGenerateDocDialog(true)}
         limit={5}
       />
+
+      {/* Notification History Section */}
+      <PatientNotificationHistory patientId={id!} limit={5} />
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

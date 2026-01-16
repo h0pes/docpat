@@ -11,3 +11,6 @@ export { LocalizationSettingsSection } from './LocalizationSettingsSection';
 export { SecuritySettingsSection } from './SecuritySettingsSection';
 export { WorkingHoursSection } from './WorkingHoursSection';
 export { HolidaysSection } from './HolidaysSection';
+export { EmailSettingsSection } from './EmailSettingsSection';
+export { BackupSettingsSection } from './BackupSettingsSection';
+export { SchedulerSettingsSection } from './SchedulerSettingsSection';

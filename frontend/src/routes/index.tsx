@@ -51,6 +51,7 @@ import { SettingsPage } from '../pages/settings';
 import { AuditLogsPage } from '../pages/audit';
 import { SystemHealthPage } from '../pages/system';
 import { ProfilePage } from '../pages/ProfilePage';
+import { NotificationsPage } from '../pages/notifications';
 
 /**
  * Application router configuration
@@ -184,6 +185,11 @@ export const router = createBrowserRouter([
           {
             path: '/reports',
             element: <ReportsPage />,
+          },
+          // Notifications (Admin and Doctor)
+          {
+            path: '/notifications',
+            element: <NotificationsPage />,
           },
           // User management routes (Admin only)
           {

@@ -24,6 +24,7 @@
     "submit": "Submit",
     "refresh": "Refresh",
     "loading": "Loading...",
+    "sending": "Sending...",
     "noResults": "No results found",
     "comingSoon": "Coming soon",
     "actionsTitle": "Actions",
@@ -34,7 +35,10 @@
       "reactivating": "Reactivating...",
       "cancel": "Cancel",
       "delete": "Delete",
-      "viewAll": "View All"
+      "viewAll": "View All",
+      "refresh": "Refresh",
+      "reset": "Reset",
+      "save": "Save"
     },
     "metadata": "Metadata",
     "created_at": "Created At",
@@ -205,6 +209,7 @@
     "documents": "Documents",
     "document_templates": "Document Templates",
     "reports": "Reports",
+    "notifications": "Notifications",
     "users": "Users",
     "settings": "Settings",
     "audit_logs": "Audit Logs",
@@ -441,6 +446,29 @@
       "dobDesc": "Date of Birth (Newest)",
       "statusAsc": "Status (A-Z)",
       "statusDesc": "Status (Z-A)"
+    },
+    "notification_preferences": {
+      "title": "Notification Preferences",
+      "description": "Configure how this patient receives notifications",
+      "saved": "Preferences Saved",
+      "saved_description": "Notification preferences have been updated",
+      "save_error": "Failed to save notification preferences",
+      "load_error": "Failed to load notification preferences",
+      "email_enabled": "Email Notifications",
+      "email_enabled_hint": "Send notifications via email to this patient",
+      "reminder_enabled": "Appointment Reminders",
+      "reminder_enabled_hint": "Automatically send reminders before appointments",
+      "reminder_timing": "Reminder Timing",
+      "reminder_timing_hint": "How many days before the appointment to send the reminder",
+      "day_before": "day before",
+      "days_before": "days before"
+    },
+    "notification_history": {
+      "title": "Notification History",
+      "description": "Recent notifications sent to this patient",
+      "no_notifications": "No notifications have been sent to this patient yet",
+      "load_error": "Failed to load notification history",
+      "showing_of": "Showing {{shown}} of {{total}} notifications"
     }
   },
   "appointments": {
@@ -610,6 +638,10 @@
       "reason_label": "Reason for Cancellation",
       "reason_placeholder": "Please provide a reason for cancelling this appointment..."
     },
+    "confirm_dialog": {
+      "title": "Confirm Appointment",
+      "description": "Confirm appointment for {{patient}} on {{date}}?"
+    },
     "filters": {
       "title": "Filters",
       "date_range": "Date Range",
@@ -663,6 +695,18 @@
       "generated_on": "Generated on",
       "title": "Print Schedule",
       "description": "Print the current schedule view"
+    },
+    "notifications": {
+      "send_confirmation": "Send email confirmation to patient",
+      "send_cancellation": "Send email cancellation notice to patient",
+      "confirmation_tooltip": "An email will be sent to the patient confirming the appointment details",
+      "cancellation_tooltip": "An email will be sent to notify the patient of the cancellation",
+      "email_service_disabled": "Email service is not configured or disabled",
+      "no_email": "Patient does not have an email address on file",
+      "email_disabled_for_patient": "Email notifications are disabled for this patient",
+      "reminders_enabled": "Automatic reminders enabled ({{days}} day(s) before)",
+      "notification_sent": "Notification sent successfully",
+      "notification_failed": "Failed to send notification"
     }
   },
   "visits": {
@@ -2178,7 +2222,10 @@
       "localization": "Localization",
       "security": "Security",
       "working_hours": "Working Hours",
-      "holidays": "Holidays"
+      "holidays": "Holidays",
+      "email": "Email",
+      "scheduler": "Scheduler",
+      "backup": "Backup"
     },
     "errors": {
       "admin_only": "Settings are only accessible to administrators"
@@ -2277,6 +2324,90 @@
       "password_lowercase": "At least one lowercase letter",
       "password_number": "At least one number",
       "password_special": "At least one special character"
+    },
+    "email": {
+      "title": "Email & Notifications",
+      "description": "Configure email service and notification settings",
+      "status": "Email Service Status",
+      "status_description": "Current status of the email service",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "not_configured": "Not Configured",
+      "test_email": "Test Email",
+      "test_description": "Send a test email to verify configuration",
+      "send_test": "Send Test",
+      "test_success": "Test Email Sent",
+      "test_failed": "Test Email Failed",
+      "test_error": "Failed to send test email",
+      "test_dialog_title": "Send Test Email",
+      "test_dialog_description": "Send a test email to verify your SMTP configuration is working correctly.",
+      "recipient_email": "Recipient Email",
+      "recipient_name": "Recipient Name",
+      "recipient_name_placeholder": "Test User",
+      "recipient_name_hint": "Optional - the name to show in the email",
+      "configure_hint": "Email service is not configured. Set SMTP credentials in the .env file to enable notifications.",
+      "statistics": "Statistics",
+      "stats": {
+        "total": "Total Notifications",
+        "total_description": "All-time notification count",
+        "sent_today": "Sent Today",
+        "sent_today_description": "Notifications sent today",
+        "pending": "Pending",
+        "pending_description": "Awaiting delivery",
+        "failed": "Failed",
+        "failed_description": "Requires attention"
+      },
+      "configuration": "Configuration",
+      "env_config_hint": "Email configuration is managed via environment variables (SMTP_HOST, SMTP_PORT, etc.). Contact your administrator to modify these settings."
+    },
+    "backup": {
+      "title": "Backup Configuration",
+      "description": "View backup status and configuration settings",
+      "load_error": "Failed to load backup status",
+      "config_notice_title": "Read-Only Configuration",
+      "config_notice_description": "Backup settings are configured via environment variables and the backup script. Contact your administrator to modify these settings.",
+      "status_section": "Status Overview",
+      "backup_status": "Backup Status",
+      "backup_enabled": "Backups Enabled",
+      "disabled": "Disabled",
+      "no_backup_yet": "No Backup Yet",
+      "status_ok": "OK",
+      "status_error": "Error",
+      "last_backup_section": "Last Backup",
+      "last_backup_time": "Last Backup Time",
+      "backup_size": "Backup Size",
+      "backup_duration": "Duration",
+      "backup_file": "Filename",
+      "configuration_section": "Configuration",
+      "backup_location": "Backup Location",
+      "not_configured": "Not configured",
+      "retention_days": "Retention Period",
+      "next_scheduled": "Next Scheduled"
+    },
+    "scheduler": {
+      "title": "Notification Scheduler",
+      "description": "Configure automatic notification and reminder scheduling",
+      "save_success": "Scheduler Settings Saved",
+      "save_success_description": "Scheduler settings have been updated successfully",
+      "save_error": "Failed to save scheduler settings",
+      "status": "Scheduler Status",
+      "status_description": "Current state of the notification scheduler",
+      "enabled": "Active",
+      "disabled": "Paused",
+      "next_run": "Next Run",
+      "next_run_description": "When reminders will next be processed",
+      "next_run_at": "Daily at {{time}}",
+      "scheduler_paused": "Scheduler is paused",
+      "configuration": "Configuration",
+      "enable_scheduler": "Enable Scheduler",
+      "enable_scheduler_description": "Turn on automatic notification scheduling",
+      "reminder_time": "Reminder Time",
+      "reminder_time_description": "Time of day to send appointment reminders (24-hour format)",
+      "batch_size": "Batch Size",
+      "batch_size_description": "Maximum notifications to process per run (1-200)",
+      "auto_retry": "Auto-Retry Failed",
+      "auto_retry_description": "Automatically retry failed notifications",
+      "info_hint": "The scheduler runs daily at the configured time to send appointment reminders based on patient preferences. Ensure email settings are properly configured for notifications to be delivered."
     },
     "working_hours": {
       "title": "Working Hours",
@@ -2599,6 +2730,77 @@
         },
         "disableNotImplemented": "MFA disable functionality is not yet available. Please contact an administrator."
       }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "View and manage email notifications",
+    "emailNotifications": "Email Notification",
+    "empty": {
+      "title": "No Notifications",
+      "description": "There are no notifications to display"
+    },
+    "list": {
+      "title": "Recent Notifications",
+      "showing": "Showing {{count}} of {{total}}"
+    },
+    "stats": {
+      "total": "Total",
+      "all_time": "All time",
+      "pending": "Pending",
+      "awaiting_delivery": "Awaiting delivery",
+      "sent_today": "Sent Today",
+      "delivered_today": "Delivered today",
+      "failed": "Failed",
+      "require_attention": "Require attention"
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "sent": "Sent",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "unknown": "Unknown"
+    },
+    "types": {
+      "appointment_reminder": "Appointment Reminder",
+      "appointment_booked": "Appointment Scheduled",
+      "appointment_confirmation": "Appointment Confirmation",
+      "appointment_cancellation": "Appointment Cancellation",
+      "custom": "Custom",
+      "unknown": "Unknown"
+    },
+    "filters": {
+      "title": "Filters",
+      "status": "Status",
+      "type": "Type",
+      "all_statuses": "All Statuses",
+      "all_types": "All Types",
+      "from_date": "From Date",
+      "to_date": "To Date",
+      "clear": "Clear Filters",
+      "active_filters": "Active filters"
+    },
+    "actions": {
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "retry_success": "Notification Queued",
+      "retry_success_description": "The notification has been queued for retry",
+      "cancel_success": "Notification Cancelled",
+      "cancel_success_description": "The notification has been cancelled",
+      "action_failed": "Action failed. Please try again."
+    },
+    "dialogs": {
+      "retry_title": "Retry Notification",
+      "retry_description": "Are you sure you want to retry sending this notification?",
+      "cancel_title": "Cancel Notification",
+      "cancel_description": "Are you sure you want to cancel this pending notification? This action cannot be undone."
+    },
+    "scheduled_for": "Scheduled for",
+    "sent_at": "Sent at",
+    "retry_count": "Retried {{count}} time(s)",
+    "errors": {
+      "load_failed": "Failed to load notifications"
     }
   }
 }

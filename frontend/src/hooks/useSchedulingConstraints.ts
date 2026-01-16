@@ -187,9 +187,9 @@ export function useSchedulingConstraints(
       [breakEndHour, breakEndMin] = breakEnd.split(':').map(Number);
     }
 
-    // Generate 15-minute slots
+    // Generate 30-minute slots (matches backend DEFAULT_SLOT_DURATION)
     for (let hour = startHour; hour < endHour || (hour === endHour && 0 < endMin); hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
+      for (let minute = 0; minute < 60; minute += 30) {
         // Skip if before start time
         if (hour === startHour && minute < startMin) continue;
 

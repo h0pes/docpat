@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { PatientForm } from '@/components/patients/PatientForm';
+import { PatientForm, NotificationPreferencesSection } from '@/components/patients';
 import { FullPageSpinner } from '@/components/Spinner';
 import { patientsApi } from '@/services/api/patients';
 import { useToast } from '@/components/ui/use-toast';
@@ -197,6 +197,9 @@ export function EditPatientPage() {
         onCancel={handleCancel}
         isSubmitting={updateMutation.isPending}
       />
+
+      {/* Notification Preferences Section */}
+      <NotificationPreferencesSection patientId={id!} />
     </div>
   );
 }

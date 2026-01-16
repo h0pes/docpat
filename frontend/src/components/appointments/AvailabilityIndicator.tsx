@@ -50,36 +50,63 @@ export function AvailabilityIndicator({
     refetchOnWindowFocus: true,
   });
 
-  // Calculate if selected time slot is available
+  /**
+   * Calculate if selected time slot is available.
+   *
+   * Note: The API returns slots in UTC format, but these represent the practice's
+   * local working hours. We compare using time strings (HH:mm) to avoid timezone
+   * conversion issues between the user's local time selection and the UTC slot times.
+   */
   const isTimeSlotAvailable = (): boolean => {
     if (!availability?.slots) return false;
 
-    const [hours, minutes] = time.split(':').map(Number);
-    const selectedStart = setMinutes(setHours(date, hours), minutes);
-    const selectedEnd = addMinutes(selectedStart, durationMinutes);
+    const [selectedHours, selectedMinutes] = time.split(':').map(Number);
+    const selectedStartMinutes = selectedHours * 60 + selectedMinutes;
+    const selectedEndMinutes = selectedStartMinutes + durationMinutes;
 
     // Check if any available slot contains our selected time range
+    // Compare using minutes from midnight
     return availability.slots.some((slot) => {
-      const slotStart = new Date(slot.start);
-      const slotEnd = new Date(slot.end);
-      return selectedStart >= slotStart && selectedEnd <= slotEnd;
+      if (!slot.available) return false;
+
+      // Extract hours and minutes from slot times
+      const slotStartDate = new Date(slot.start);
+      const slotEndDate = new Date(slot.end);
+
+      // Use UTC hours/minutes since the backend stores working hours as "fake UTC"
+      // (the times represent local working hours but are sent with Z suffix)
+      const slotStartMinutes = slotStartDate.getUTCHours() * 60 + slotStartDate.getUTCMinutes();
+      const slotEndMinutes = slotEndDate.getUTCHours() * 60 + slotEndDate.getUTCMinutes();
+
+      return selectedStartMinutes >= slotStartMinutes && selectedEndMinutes <= slotEndMinutes;
     });
   };
 
-  // Find next available slot after selected time
+  /**
+   * Find next available slot after selected time.
+   *
+   * Uses UTC time extraction since backend stores times as "fake UTC".
+   */
   const getNextAvailableSlot = (): string | null => {
     if (!availability?.slots) return null;
 
-    const [hours, minutes] = time.split(':').map(Number);
-    const selectedTime = setMinutes(setHours(date, hours), minutes);
+    const [selectedHours, selectedMinutes] = time.split(':').map(Number);
+    const selectedTimeMinutes = selectedHours * 60 + selectedMinutes;
 
+    // Find next available slot that starts after the selected time
     const nextSlot = availability.slots.find((slot) => {
-      const slotStart = new Date(slot.start);
-      return slotStart > selectedTime;
+      if (!slot.available) return false;
+      const slotStartDate = new Date(slot.start);
+      const slotStartMinutes = slotStartDate.getUTCHours() * 60 + slotStartDate.getUTCMinutes();
+      return slotStartMinutes > selectedTimeMinutes;
     });
 
     if (nextSlot) {
-      return format(new Date(nextSlot.start), 'HH:mm');
+      // Format using UTC hours/minutes
+      const slotStartDate = new Date(nextSlot.start);
+      const h = slotStartDate.getUTCHours().toString().padStart(2, '0');
+      const m = slotStartDate.getUTCMinutes().toString().padStart(2, '0');
+      return `${h}:${m}`;
     }
     return null;
   };

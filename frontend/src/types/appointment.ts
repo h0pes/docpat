@@ -132,6 +132,7 @@ export interface CreateAppointmentRequest {
   notes?: string;
   is_recurring?: boolean;
   recurring_pattern?: RecurringPattern;
+  send_notification?: boolean; // Send confirmation email to patient
 }
 
 /**
@@ -145,6 +146,7 @@ export interface UpdateAppointmentRequest {
   notes?: string;
   status?: AppointmentStatus;
   cancellation_reason?: string;
+  send_notification?: boolean; // Send notification on status change (e.g., confirmation)
 }
 
 /**
@@ -152,6 +154,7 @@ export interface UpdateAppointmentRequest {
  */
 export interface CancelAppointmentRequest {
   cancellation_reason: string;
+  send_notification?: boolean; // Send cancellation email to patient
 }
 
 /**

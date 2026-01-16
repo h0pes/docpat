@@ -84,6 +84,7 @@ pub enum EntityType {
     SystemSetting,
     File,
     Template,
+    Notification,
 }
 
 impl EntityType {
@@ -92,7 +93,7 @@ impl EntityType {
         vec![
             "PATIENT", "PATIENT_INSURANCE", "VISIT", "PRESCRIPTION", "DIAGNOSIS",
             "APPOINTMENT", "USER", "DOCUMENT", "HOLIDAY", "WORKING_HOURS", "SYSTEM_SETTING",
-            "FILE", "TEMPLATE"
+            "FILE", "TEMPLATE", "NOTIFICATION"
         ]
     }
 
@@ -112,6 +113,7 @@ impl EntityType {
             "SYSTEM_SETTING" => Some(Self::SystemSetting),
             "FILE" => Some(Self::File),
             "TEMPLATE" => Some(Self::Template),
+            "NOTIFICATION" => Some(Self::Notification),
             _ => None,
         }
     }
@@ -133,6 +135,7 @@ impl std::fmt::Display for EntityType {
             Self::SystemSetting => write!(f, "SYSTEM_SETTING"),
             Self::File => write!(f, "FILE"),
             Self::Template => write!(f, "TEMPLATE"),
+            Self::Notification => write!(f, "NOTIFICATION"),
         }
     }
 }

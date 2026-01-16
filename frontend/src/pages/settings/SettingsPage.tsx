@@ -11,11 +11,14 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Building2,
-  Calendar,
-  Globe,
+  CalendarRange,
+  GlobeLock,
   Shield,
-  Clock,
+  Clock3,
   CalendarDays,
+  Mail,
+  Archive,
+  Timer,
   Settings as SettingsIcon,
 } from 'lucide-react';
 
@@ -30,6 +33,9 @@ import {
   SecuritySettingsSection,
   WorkingHoursSection,
   HolidaysSection,
+  EmailSettingsSection,
+  BackupSettingsSection,
+  SchedulerSettingsSection,
 } from '@/components/settings';
 
 /**
@@ -79,17 +85,17 @@ export function SettingsPage() {
 
       {/* Settings Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
           <TabsTrigger value="practice" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             <span className="hidden sm:inline">{t('settings.tabs.practice')}</span>
           </TabsTrigger>
           <TabsTrigger value="appointments" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+            <CalendarRange className="h-4 w-4" />
             <span className="hidden sm:inline">{t('settings.tabs.appointments')}</span>
           </TabsTrigger>
           <TabsTrigger value="localization" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
+            <GlobeLock className="h-4 w-4" />
             <span className="hidden sm:inline">{t('settings.tabs.localization')}</span>
           </TabsTrigger>
           <TabsTrigger value="security" className="flex items-center gap-2">
@@ -97,12 +103,24 @@ export function SettingsPage() {
             <span className="hidden sm:inline">{t('settings.tabs.security')}</span>
           </TabsTrigger>
           <TabsTrigger value="working-hours" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
+            <Clock3 className="h-4 w-4" />
             <span className="hidden sm:inline">{t('settings.tabs.working_hours')}</span>
           </TabsTrigger>
           <TabsTrigger value="holidays" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             <span className="hidden sm:inline">{t('settings.tabs.holidays')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('settings.tabs.email')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="scheduler" className="flex items-center gap-2">
+            <Timer className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('settings.tabs.scheduler')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="flex items-center gap-2">
+            <Archive className="h-4 w-4" />
+            <span className="hidden sm:inline">{t('settings.tabs.backup')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -134,6 +152,21 @@ export function SettingsPage() {
         {/* Holidays */}
         <TabsContent value="holidays" className="mt-6">
           <HolidaysSection />
+        </TabsContent>
+
+        {/* Email/Notifications */}
+        <TabsContent value="email" className="mt-6">
+          <EmailSettingsSection />
+        </TabsContent>
+
+        {/* Scheduler */}
+        <TabsContent value="scheduler" className="mt-6">
+          <SchedulerSettingsSection />
+        </TabsContent>
+
+        {/* Backup */}
+        <TabsContent value="backup" className="mt-6">
+          <BackupSettingsSection />
         </TabsContent>
       </Tabs>
     </div>

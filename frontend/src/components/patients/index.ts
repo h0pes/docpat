@@ -10,3 +10,5 @@ export { PatientForm } from './PatientForm';
 export { PatientDetail } from './PatientDetail';
 export { InsuranceForm } from './InsuranceForm';
 export { DuplicatePatientWarning } from './DuplicatePatientWarning';
+export { NotificationPreferencesSection } from './NotificationPreferencesSection';
+export { PatientNotificationHistory } from './PatientNotificationHistory';

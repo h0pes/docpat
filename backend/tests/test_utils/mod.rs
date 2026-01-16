@@ -12,6 +12,8 @@ use axum::Router;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use uuid::Uuid;
 
+use std::sync::Arc;
+
 // Re-export main application modules for testing
 use docpat_backend::{
     config::{DatabaseConfig, JwtConfig, SecurityConfig},
@@ -19,7 +21,7 @@ use docpat_backend::{
     middleware::session_timeout::SessionManager,
     models::UserRole,
     routes::create_api_v1_routes,
-    services::AuthService,
+    services::{AuthService, SettingsService},
     utils::{encryption::EncryptionKey, PasswordHasherUtil},
 };
 
@@ -90,6 +92,9 @@ impl TestApp {
         let encryption_key = EncryptionKey::from_env()
             .expect("Failed to create encryption key for tests");
 
+        // Create settings service
+        let settings_service = Arc::new(SettingsService::new(pool.clone()));
+
         // Create application state
         let app_state = AppState {
             pool: pool.clone(),
@@ -97,6 +102,7 @@ impl TestApp {
             session_manager,
             encryption_key: Some(encryption_key),
             email_service: None, // Email service not needed for tests
+            settings_service,
             start_time: std::time::SystemTime::now(),
             environment: "test".to_string(),
             #[cfg(feature = "rbac")]

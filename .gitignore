@@ -17,6 +17,7 @@ docs/TEST_CASES_MILESTONE11.md
 docs/TEST_CASES_MILESTONE12.md
 docs/TEST_CASES_MILESTONE13.md
 docs/TEST_CASES_MILESTONE14.md
+docs/TEST_CASES_MILESTONE15.md
 
 # ============================================
 # RUST BACKEND
@@ -29,6 +30,7 @@ backend/release/
 
 # Backend temp docs
 backend/docs/
+backend/db.md
 
 # Cargo lock file (keep for binaries, ignore for libraries)
 # backend/Cargo.lock
