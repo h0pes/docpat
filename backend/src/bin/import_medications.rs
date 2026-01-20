@@ -235,7 +235,7 @@ async fn main() -> Result<()> {
         .init();
 
     // Load environment variables
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     let database_url = env::var("DATABASE_URL")
         .context("DATABASE_URL environment variable not set")?;

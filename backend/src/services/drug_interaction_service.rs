@@ -429,11 +429,15 @@ impl DrugInteractionService {
         // Start transaction for RLS context
         let mut tx = pool.begin().await.context("Failed to begin transaction")?;
 
-        // Set RLS context
-        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
-        let role_query = format!("SET LOCAL app.current_user_role = '{}'", role);
-        sqlx::query(&user_id_query).execute(&mut *tx).await?;
-        sqlx::query(&role_query).execute(&mut *tx).await?;
+        // Set RLS context using set_config() for parameterized queries
+        sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+            .bind(user_id.to_string())
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("SELECT set_config('app.current_user_role', $1, true)")
+            .bind(role)
+            .execute(&mut *tx)
+            .await?;
 
         // Step 1: Fetch patient's active prescriptions with encrypted data
         let prescriptions = sqlx::query!(
@@ -693,11 +697,15 @@ impl DrugInteractionService {
         // Start transaction for RLS context
         let mut tx = pool.begin().await.context("Failed to begin transaction")?;
 
-        // Set RLS context
-        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
-        let role_query = format!("SET LOCAL app.current_user_role = '{}'", role);
-        sqlx::query(&user_id_query).execute(&mut *tx).await?;
-        sqlx::query(&role_query).execute(&mut *tx).await?;
+        // Set RLS context using set_config() for parameterized queries
+        sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+            .bind(user_id.to_string())
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query("SELECT set_config('app.current_user_role', $1, true)")
+            .bind(role)
+            .execute(&mut *tx)
+            .await?;
 
         // Fetch patient's active prescriptions
         let prescriptions = sqlx::query!(

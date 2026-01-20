@@ -53,15 +53,15 @@ impl PrescriptionService {
         user_id: Uuid,
         role: &str,
     ) -> Result<()> {
-        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
-        let role_query = format!("SET LOCAL app.current_user_role = '{}'", role);
-
-        sqlx::query(&user_id_query)
+        // Use set_config() for parameterized queries (security best practice)
+        sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+            .bind(user_id.to_string())
             .execute(&mut **tx)
             .await
             .context("Failed to set RLS user context")?;
 
-        sqlx::query(&role_query)
+        sqlx::query("SELECT set_config('app.current_user_role', $1, true)")
+            .bind(role)
             .execute(&mut **tx)
             .await
             .context("Failed to set RLS role context")?;

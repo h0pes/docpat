@@ -82,12 +82,15 @@ impl NotificationScheduler {
     ///
     /// Uses a system user with ADMIN role to access all records
     async fn set_rls_context(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
-        // Note: SET LOCAL doesn't support parameterized bindings, must use format!
-        let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", SYSTEM_USER_ID);
-        let role_query = format!("SET LOCAL app.current_user_role = '{}'", SYSTEM_ROLE);
-
-        sqlx::query(&user_id_query).execute(&mut **tx).await?;
-        sqlx::query(&role_query).execute(&mut **tx).await?;
+        // Use set_config() for parameterized queries (security best practice)
+        sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+            .bind(SYSTEM_USER_ID.to_string())
+            .execute(&mut **tx)
+            .await?;
+        sqlx::query("SELECT set_config('app.current_user_role', $1, true)")
+            .bind(SYSTEM_ROLE)
+            .execute(&mut **tx)
+            .await?;
 
         Ok(())
     }

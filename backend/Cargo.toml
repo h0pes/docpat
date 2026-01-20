@@ -12,6 +12,8 @@ repository = "https://github.com/h0pes/docpat"
 # Web Framework
 axum = { version = "0.8.6", features = ["macros", "multipart", "ws"] }
 axum-extra = { version = "0.10.3", features = ["typed-header", "cookie"] }
+axum-server = { version = "0.8", features = ["tls-rustls"] }
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs", "std", "tls12"] }
 tower = { version = "0.5.2", features = ["full"] }
 tower-http = { version = "0.6.6", features = ["full"] }
 
@@ -67,7 +69,7 @@ regex = "1.12"
 strsim = "0.11"
 
 # Configuration
-dotenv = "0.15"
+dotenvy = "0.15.7"  # Maintained fork of dotenv
 config = "0.15"
 
 # Logging & Tracing

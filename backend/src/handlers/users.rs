@@ -361,28 +361,36 @@ pub async fn list_users(
     #[cfg(feature = "rbac")]
     require_admin(&user_role)?;
 
-    // Build query with filters
-    let mut where_clauses = Vec::new();
+    // Build parameterized query with sqlx::QueryBuilder to prevent SQL injection
+    use sqlx::QueryBuilder;
+
+    // Count query
+    let mut count_builder: QueryBuilder<sqlx::Postgres> =
+        QueryBuilder::new("SELECT COUNT(*) as count FROM users WHERE 1=1");
 
     if let Some(role) = &query.role {
-        where_clauses.push(format!("role = '{}'", role));
+        count_builder.push(" AND role = ");
+        count_builder.push_bind(role.to_string());
     }
     if let Some(is_active) = query.is_active {
-        where_clauses.push(format!("is_active = {}", is_active));
+        count_builder.push(" AND is_active = ");
+        count_builder.push_bind(is_active);
     }
     if let Some(search) = &query.search {
-        where_clauses.push(format!("(username ILIKE '%{}%' OR email ILIKE '%{}%' OR first_name ILIKE '%{}%' OR last_name ILIKE '%{}%')", search, search, search, search));
+        let search_pattern = format!("%{}%", search);
+        count_builder.push(" AND (username ILIKE ");
+        count_builder.push_bind(search_pattern.clone());
+        count_builder.push(" OR email ILIKE ");
+        count_builder.push_bind(search_pattern.clone());
+        count_builder.push(" OR first_name ILIKE ");
+        count_builder.push_bind(search_pattern.clone());
+        count_builder.push(" OR last_name ILIKE ");
+        count_builder.push_bind(search_pattern);
+        count_builder.push(")");
     }
 
-    let where_clause = if where_clauses.is_empty() {
-        String::new()
-    } else {
-        format!("WHERE {}", where_clauses.join(" AND "))
-    };
-
-    // Get total count
-    let count_query = format!("SELECT COUNT(*) as count FROM users {}", where_clause);
-    let total: (i64,) = sqlx::query_as(&count_query)
+    let total: (i64,) = count_builder
+        .build_query_as()
         .fetch_one(pool)
         .await
         .map_err(|e| {
@@ -396,12 +404,38 @@ pub async fn list_users(
             )
         })?;
 
-    // Get users
-    let users_query = format!(
-        "SELECT * FROM users {} ORDER BY created_at DESC LIMIT {} OFFSET {}",
-        where_clause, query.limit, query.offset
-    );
-    let users: Vec<User> = sqlx::query_as(&users_query)
+    // Users query with same filters
+    let mut users_builder: QueryBuilder<sqlx::Postgres> =
+        QueryBuilder::new("SELECT * FROM users WHERE 1=1");
+
+    if let Some(role) = &query.role {
+        users_builder.push(" AND role = ");
+        users_builder.push_bind(role.to_string());
+    }
+    if let Some(is_active) = query.is_active {
+        users_builder.push(" AND is_active = ");
+        users_builder.push_bind(is_active);
+    }
+    if let Some(search) = &query.search {
+        let search_pattern = format!("%{}%", search);
+        users_builder.push(" AND (username ILIKE ");
+        users_builder.push_bind(search_pattern.clone());
+        users_builder.push(" OR email ILIKE ");
+        users_builder.push_bind(search_pattern.clone());
+        users_builder.push(" OR first_name ILIKE ");
+        users_builder.push_bind(search_pattern.clone());
+        users_builder.push(" OR last_name ILIKE ");
+        users_builder.push_bind(search_pattern);
+        users_builder.push(")");
+    }
+
+    users_builder.push(" ORDER BY created_at DESC LIMIT ");
+    users_builder.push_bind(query.limit);
+    users_builder.push(" OFFSET ");
+    users_builder.push_bind(query.offset);
+
+    let users: Vec<User> = users_builder
+        .build_query_as()
         .fetch_all(pool)
         .await
         .map_err(|e| {

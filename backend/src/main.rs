@@ -23,9 +23,11 @@ use axum::{
     routing::get,
     Router,
 };
+use axum_server::tls_rustls::RustlsConfig;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -63,6 +65,12 @@ struct VersionResponse {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Install rustls crypto provider (required for rustls 0.23+)
+    // Using aws-lc-rs as recommended by rustls for performance and FIPS support
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     // Check for health check CLI flag
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 && args[1] == "--health-check" {
@@ -191,16 +199,45 @@ async fn main() -> anyhow::Result<()> {
     // Build application router
     let app = create_app(app_state, start_time);
 
-    // Start the server
-    let addr = format!("{}:{}", config.server.host, config.server.port);
-    tracing::info!("Server listening on {}", addr);
+    // Start the server (HTTP or HTTPS based on TLS configuration)
+    let addr: SocketAddr = format!("{}:{}", config.server.host, config.server.port)
+        .parse()
+        .expect("Invalid server address");
 
-    let listener = TcpListener::bind(&addr).await?;
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<SocketAddr>(),
-    )
-    .await?;
+    if config.tls.is_ready() {
+        // Start HTTPS server with TLS
+        let cert_path = PathBuf::from(config.tls.cert_path_required());
+        let key_path = PathBuf::from(config.tls.key_path_required());
+
+        tracing::info!("TLS enabled - loading certificates...");
+        tracing::info!("  Certificate: {}", cert_path.display());
+        tracing::info!("  Private key: {}", key_path.display());
+
+        let tls_config = RustlsConfig::from_pem_file(&cert_path, &key_path)
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to load TLS certificates: {}", e))?;
+
+        tracing::info!("HTTPS server listening on https://{}", addr);
+
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+            .await?;
+    } else {
+        // Start HTTP server (development mode or TLS not configured)
+        if config.tls.enabled {
+            tracing::warn!(
+                "TLS is enabled but certificate paths are not configured. Starting HTTP server instead."
+            );
+        }
+        tracing::info!("HTTP server listening on http://{}", addr);
+
+        let listener = TcpListener::bind(addr).await?;
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await?;
+    }
 
     Ok(())
 }
@@ -302,13 +339,31 @@ async fn version_handler() -> impl IntoResponse {
 }
 
 /// Perform health check for Docker healthcheck
+///
+/// Checks both HTTP and HTTPS endpoints based on TLS_ENABLED setting.
 async fn perform_health_check() -> anyhow::Result<()> {
     let port = env::var("SERVER_PORT").unwrap_or_else(|_| "8000".to_string());
-    let url = format!("http://127.0.0.1:{}/health", port);
+    let tls_enabled = env::var("TLS_ENABLED")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse::<bool>()
+        .unwrap_or(false);
 
-    match reqwest::get(&url).await {
+    let scheme = if tls_enabled { "https" } else { "http" };
+    let url = format!("{}://127.0.0.1:{}/health", scheme, port);
+
+    // Build HTTP client - for HTTPS health checks in dev, we need to accept self-signed certs
+    let client = if tls_enabled {
+        reqwest::Client::builder()
+            .danger_accept_invalid_certs(true) // Accept self-signed certs for health check
+            .build()
+            .unwrap_or_default()
+    } else {
+        reqwest::Client::new()
+    };
+
+    match client.get(&url).send().await {
         Ok(response) if response.status().is_success() => {
-            println!("Health check passed");
+            println!("Health check passed ({})", scheme.to_uppercase());
             std::process::exit(0);
         }
         Ok(response) => {

@@ -1,0 +1,9 @@
+# Never commit private keys
+*.key
+# But allow certificate files (public)
+!*.crt
+# Keep .gitignore
+!.gitignore
+# Ignore OpenSSL temp files
+*.srl
+*.csr

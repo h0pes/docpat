@@ -20,6 +20,46 @@ pub struct Config {
     pub security: SecurityConfig,
     /// Email configuration (optional - for document delivery)
     pub email: Option<EmailConfig>,
+    /// TLS/HTTPS configuration
+    pub tls: TlsConfig,
+}
+
+/// TLS/HTTPS configuration for secure connections
+#[derive(Debug, Clone)]
+pub struct TlsConfig {
+    /// Whether TLS is enabled
+    pub enabled: bool,
+    /// Path to the TLS certificate file (PEM format)
+    pub cert_path: Option<String>,
+    /// Path to the TLS private key file (PEM format)
+    pub key_path: Option<String>,
+}
+
+impl TlsConfig {
+    /// Check if TLS is fully configured and ready to use
+    ///
+    /// Returns true only if TLS is enabled AND both certificate and key paths are provided.
+    pub fn is_ready(&self) -> bool {
+        self.enabled && self.cert_path.is_some() && self.key_path.is_some()
+    }
+
+    /// Get the certificate path, panics if not set
+    ///
+    /// # Panics
+    ///
+    /// Panics if cert_path is None. Only call this after verifying `is_ready()`.
+    pub fn cert_path_required(&self) -> &str {
+        self.cert_path.as_ref().expect("TLS cert_path must be set when TLS is enabled")
+    }
+
+    /// Get the key path, panics if not set
+    ///
+    /// # Panics
+    ///
+    /// Panics if key_path is None. Only call this after verifying `is_ready()`.
+    pub fn key_path_required(&self) -> &str {
+        self.key_path.as_ref().expect("TLS key_path must be set when TLS is enabled")
+    }
 }
 
 /// Email/SMTP configuration
@@ -129,7 +169,7 @@ impl Config {
     /// Returns an error if required environment variables are missing
     /// or contain invalid values.
     pub fn from_env() -> anyhow::Result<Self> {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         let config = Self {
             server: ServerConfig {
@@ -206,9 +246,39 @@ impl Config {
             },
 
             email: Self::load_email_config(),
+
+            tls: Self::load_tls_config(),
         };
 
         Ok(config)
+    }
+
+    /// Load TLS configuration from environment variables
+    ///
+    /// Reads TLS_ENABLED, TLS_CERT_PATH, and TLS_KEY_PATH from environment.
+    /// If TLS_ENABLED is true but paths are missing, logs a warning.
+    fn load_tls_config() -> TlsConfig {
+        let enabled = std::env::var("TLS_ENABLED")
+            .unwrap_or_else(|_| "false".to_string())
+            .parse::<bool>()
+            .unwrap_or(false);
+
+        let cert_path = std::env::var("TLS_CERT_PATH").ok();
+        let key_path = std::env::var("TLS_KEY_PATH").ok();
+
+        // Validate that paths are provided if TLS is enabled
+        if enabled && (cert_path.is_none() || key_path.is_none()) {
+            tracing::warn!(
+                "TLS_ENABLED is true but TLS_CERT_PATH or TLS_KEY_PATH is missing. \
+                 TLS will not be enabled until both paths are configured."
+            );
+        }
+
+        TlsConfig {
+            enabled,
+            cert_path,
+            key_path,
+        }
     }
 
     /// Load email configuration from environment variables

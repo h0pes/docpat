@@ -25,6 +25,7 @@ use crate::{
 };
 
 /// Helper function to set RLS context in a transaction
+/// Uses set_config() with parameterized queries for security (prevents SQL injection)
 async fn set_rls_in_transaction(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &Uuid,
@@ -35,12 +36,10 @@ async fn set_rls_in_transaction(
         UserRole::Doctor => "DOCTOR",
     };
 
-    // Note: SET LOCAL doesn't support bind parameters, so we use string formatting
-    // This is safe because user_id is a UUID and role_str is from an enum
-    let user_id_query = format!("SET LOCAL app.current_user_id = '{}'", user_id);
-    let role_query = format!("SET LOCAL app.current_user_role = '{}'", role_str);
-
-    sqlx::query(&user_id_query)
+    // Use set_config() which supports parameterized queries
+    // Third parameter 'true' makes it local to the current transaction
+    sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+        .bind(user_id.to_string())
         .execute(&mut **tx)
         .await
         .map_err(|e| {
@@ -48,7 +47,8 @@ async fn set_rls_in_transaction(
             AppError::Internal("Failed to set security context".to_string())
         })?;
 
-    sqlx::query(&role_query)
+    sqlx::query("SELECT set_config('app.current_user_role', $1, true)")
+        .bind(role_str)
         .execute(&mut **tx)
         .await
         .map_err(|e| {
