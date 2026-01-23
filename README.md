@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-491%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-1600%2B%20passing-brightgreen.svg)]()
 
 > A secure, self-hosted Medical Practice Management System designed for individual practitioners prioritizing simplicity, data sovereignty, and military-grade security.
 
@@ -266,13 +266,15 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 
 ## Documentation
 
-- **[API Documentation](docs/API.md)** - Complete REST API reference (75 endpoints documented)
+- **[API Documentation](docs/API.md)** - Complete REST API reference (83 endpoints documented)
 - **[Product Requirements Document (PRD)](docs/PRD.md)** - Comprehensive requirements and specifications
 - **[Planning Document](docs/PLANNING.md)** - Architecture and development setup
 - **[Task Tracking](docs/TASKS.md)** - Milestone-based task breakdown
 - **[Claude Development Guide](docs/CLAUDE.md)** - AI-assisted development guidelines
 - **[Security Guidelines](docs/SECURITY.md)** - Security best practices and compliance
 - **[Session History](docs/SESSIONS.md)** - Development session logs and decisions
+- **[Backend Testing Strategy](backend/TESTING.md)** - Testing approach, coverage analysis, priorities
+- **[Integration Tests Guide](backend/tests/README.md)** - Detailed integration test documentation
 
 ## Architecture
 
@@ -303,13 +305,15 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 docpat/
 ├── backend/              # Rust backend application
 │   ├── src/
-│   │   ├── handlers/     # HTTP request handlers (11 modules)
+│   │   ├── handlers/     # HTTP request handlers (21 modules)
 │   │   ├── models/       # Data models and DTOs
 │   │   ├── services/     # Business logic layer
 │   │   ├── routes/       # API route definitions
 │   │   └── utils/        # Utilities, encryption, errors
 │   ├── migrations/       # SQLx database migrations
-│   └── tests/            # Integration tests
+│   ├── tests/            # Integration tests (381 tests, 21 suites)
+│   ├── TESTING.md        # Testing strategy documentation
+│   └── casbin/           # RBAC policy definitions
 ├── frontend/             # React frontend application
 │   ├── src/
 │   │   ├── components/   # Reusable UI components
@@ -387,25 +391,61 @@ Security is non-negotiable in healthcare applications. DocPat implements:
 
 ## Testing
 
-DocPat maintains comprehensive test coverage:
+DocPat maintains comprehensive test coverage with a two-tier testing strategy.
 
 ### Current Test Status
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Backend Integration | 85+ | Passing |
-| Backend Unit (Notifications) | 29 | Passing |
-| Frontend Component | 378+ | Passing |
-| E2E (Playwright) | 19 | Passing |
-| **Total** | **491+** | **All Passing** |
+| Category | Tests | Coverage | Status |
+|----------|-------|----------|--------|
+| Backend Integration | 381 | ~98% endpoints | ✅ Passing |
+| Backend Unit | ~128 | ~18% code | ✅ Exceeds Target |
+| Frontend Component | 754+ | - | ✅ Passing |
+| E2E (Playwright) | 19 | - | ✅ Passing |
+| **Total** | **1,270+** | - | **Passing** |
+
+### Backend Testing
+
+The backend uses a two-tier testing strategy:
+- **Integration tests (primary)**: 381 tests across 21 suites validating full API request/response cycles including RBAC, database operations, and business logic
+- **Unit tests (supplementary)**: ~530 tests targeting complex business logic, utilities, and edge cases
+
+**Integration Test Suites:**
+| Suite | Tests | Status |
+|-------|-------|--------|
+| Patients | 31 | ✅ |
+| Users | 25 | ✅ |
+| Appointments | 25 | ✅ |
+| Holidays | 23 | ✅ |
+| Visits | 22 | ✅ |
+| Notifications | 21 | ✅ |
+| Prescriptions | 20 | ✅ |
+| Reports | 19 | ✅ |
+| Working Hours | 19 | ✅ |
+| Files | 18 | ✅ |
+| Documents | 17 | ✅ |
+| Diagnoses | 17 | ✅ |
+| Audit Logs | 16 | ✅ |
+| Drug Interactions | 16 | ✅ |
+| Auth | 17 | ✅ **SECURITY** |
+| Settings | 13 | ✅ |
+| Prescription Templates | 12 | ✅ |
+| System Health | 12 | ✅ |
+| Visit Templates | 11 | ✅ |
+| Visit Versions | 10 | ✅ |
+| MFA | 17 | ✅ **IMPROVED** |
 
 ### Running Tests
 
 ```bash
-# Backend tests
+# Backend integration tests (recommended)
 cd backend
-cargo test                              # Unit tests
-./run-integration-tests.sh              # Integration tests
+./run-integration-tests.sh              # All 21 suites, serial execution
+
+# Backend unit tests
+cargo test --lib --features "rbac,report-export,pdf-export"
+
+# Specific test suite
+cargo test --test patient_integration_tests --features "rbac,report-export,pdf-export" -- --test-threads=1
 
 # Frontend tests
 cd frontend
@@ -413,9 +453,14 @@ npm test                                # Component tests
 npm run test:e2e                        # E2E tests with Playwright
 
 # Code coverage
-cd backend && cargo tarpaulin --out Html
+cd backend && cargo tarpaulin --lib --features "rbac,report-export,pdf-export" --out Html
 cd frontend && npm run test:coverage
 ```
+
+### Test Documentation
+
+- **[Backend Testing Strategy](backend/TESTING.md)** - Overall testing approach, coverage gaps, priorities
+- **[Integration Tests README](backend/tests/README.md)** - Detailed integration test documentation
 
 ## Development Workflow
 
@@ -470,7 +515,7 @@ npm audit    # Frontend
 - Prescription templates for frequently used medications
 - Visit version history with restore capability
 - Enhanced prescription workflow (discontinuation, refills)
-- Comprehensive integration testing
+- Comprehensive integration testing (314 tests across 17 suites)
 
 ### Phase 4: Document Generation (Milestone 11) - COMPLETE
 - PDF generation for medical certificates

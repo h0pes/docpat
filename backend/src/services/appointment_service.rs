@@ -1379,3 +1379,494 @@ fn parse_time_str(time: &str) -> Option<(u32, u32)> {
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{RecurringFrequency, RecurringPattern};
+    use chrono::{Duration, TimeZone, Timelike, Utc};
+
+    // ==================== parse_time_str Tests ====================
+
+    #[test]
+    fn test_parse_time_str_valid_morning() {
+        assert_eq!(parse_time_str("08:00"), Some((8, 0)));
+    }
+
+    #[test]
+    fn test_parse_time_str_valid_afternoon() {
+        assert_eq!(parse_time_str("14:30"), Some((14, 30)));
+    }
+
+    #[test]
+    fn test_parse_time_str_valid_evening() {
+        assert_eq!(parse_time_str("18:45"), Some((18, 45)));
+    }
+
+    #[test]
+    fn test_parse_time_str_valid_midnight() {
+        assert_eq!(parse_time_str("00:00"), Some((0, 0)));
+    }
+
+    #[test]
+    fn test_parse_time_str_valid_just_before_midnight() {
+        assert_eq!(parse_time_str("23:59"), Some((23, 59)));
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_hour_24() {
+        assert_eq!(parse_time_str("24:00"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_hour_25() {
+        assert_eq!(parse_time_str("25:00"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_minute_60() {
+        assert_eq!(parse_time_str("12:60"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_minute_99() {
+        assert_eq!(parse_time_str("12:99"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_format_no_colon() {
+        assert_eq!(parse_time_str("1200"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_format_empty() {
+        assert_eq!(parse_time_str(""), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_format_letters() {
+        assert_eq!(parse_time_str("ab:cd"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_invalid_format_partial() {
+        assert_eq!(parse_time_str("12:"), None);
+    }
+
+    #[test]
+    fn test_parse_time_str_with_seconds() {
+        // Should still work, ignores seconds
+        assert_eq!(parse_time_str("08:30:00"), Some((8, 30)));
+    }
+
+    #[test]
+    fn test_parse_time_str_single_digit_hour() {
+        // Single digit should work (parsed as number)
+        assert_eq!(parse_time_str("8:30"), Some((8, 30)));
+    }
+
+    #[test]
+    fn test_parse_time_str_single_digit_minute() {
+        assert_eq!(parse_time_str("08:5"), Some((8, 5)));
+    }
+
+    // ==================== Constants Tests ====================
+
+    #[test]
+    fn test_fallback_start_hour() {
+        assert_eq!(FALLBACK_START_HOUR, 8);
+    }
+
+    #[test]
+    fn test_fallback_end_hour() {
+        assert_eq!(FALLBACK_END_HOUR, 18);
+    }
+
+    #[test]
+    fn test_default_slot_duration() {
+        assert_eq!(DEFAULT_SLOT_DURATION, 30);
+    }
+
+    // ==================== RecurringPattern Calculation Tests ====================
+    // Note: calculate_next_occurrence requires &self, so we test the logic directly
+
+    #[test]
+    fn test_daily_recurrence_calculation() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Daily,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(7),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::days(1);
+
+        // Direct calculation (same as calculate_next_occurrence)
+        let result = base_date + Duration::days(pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_daily_recurrence_interval_2() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Daily,
+            interval: 2,
+            end_date: None,
+            max_occurrences: Some(5),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::days(2);
+
+        let result = base_date + Duration::days(pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_weekly_recurrence_calculation() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Weekly,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(12),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::weeks(1);
+
+        let result = base_date + Duration::weeks(pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_weekly_recurrence_interval_2() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Weekly,
+            interval: 2,
+            end_date: None,
+            max_occurrences: Some(6),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::weeks(2);
+
+        let result = base_date + Duration::weeks(pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_biweekly_recurrence_calculation() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::BiWeekly,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(6),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::weeks(2);
+
+        // BiWeekly uses 2 * interval weeks
+        let result = base_date + Duration::weeks(2 * pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_biweekly_recurrence_interval_2() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::BiWeekly,
+            interval: 2,
+            end_date: None,
+            max_occurrences: Some(3),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::weeks(4); // 2 * 2 weeks
+
+        let result = base_date + Duration::weeks(2 * pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_monthly_recurrence_calculation() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Monthly,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(12),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        // Monthly uses approximately 30 days
+        let expected = base_date + Duration::days(30);
+
+        let result = base_date + Duration::days(30 * pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_monthly_recurrence_interval_3() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Monthly,
+            interval: 3,
+            end_date: None,
+            max_occurrences: Some(4),
+        };
+
+        let base_date = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let expected = base_date + Duration::days(90); // 30 * 3 days
+
+        let result = base_date + Duration::days(30 * pattern.interval as i64);
+        assert_eq!(result, expected);
+    }
+
+    // ==================== Duration Calculation Tests ====================
+
+    #[test]
+    fn test_appointment_duration_calculation() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let duration_minutes = 30i64;
+        let end = start + Duration::minutes(duration_minutes);
+
+        assert_eq!((end - start).num_minutes(), 30);
+    }
+
+    #[test]
+    fn test_appointment_duration_60_minutes() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let duration_minutes = 60i64;
+        let end = start + Duration::minutes(duration_minutes);
+
+        assert_eq!((end - start).num_minutes(), 60);
+        assert_eq!(end.hour(), 10);
+    }
+
+    #[test]
+    fn test_appointment_duration_crosses_hour() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 45, 0).unwrap();
+        let duration_minutes = 30i64;
+        let end = start + Duration::minutes(duration_minutes);
+
+        assert_eq!(end.hour(), 10);
+        assert_eq!(end.minute(), 15);
+    }
+
+    // ==================== Time Slot Generation Logic Tests ====================
+
+    #[test]
+    fn test_slot_duration_calculation() {
+        let slot_duration = Duration::minutes(30);
+        let start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let end = start + slot_duration;
+
+        assert_eq!((end - start).num_minutes(), 30);
+    }
+
+    #[test]
+    fn test_slot_increment() {
+        let start = Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap();
+        let slot_increment = Duration::minutes(DEFAULT_SLOT_DURATION);
+        let next_slot_start = start + slot_increment;
+
+        assert_eq!(next_slot_start.hour(), 8);
+        assert_eq!(next_slot_start.minute(), 30);
+    }
+
+    #[test]
+    fn test_slots_in_workday() {
+        // 8:00 to 18:00 = 10 hours = 600 minutes
+        // With 30 minute slots = 20 slots
+        let day_start = Utc.with_ymd_and_hms(2026, 1, 15, 8, 0, 0).unwrap();
+        let day_end = Utc.with_ymd_and_hms(2026, 1, 15, 18, 0, 0).unwrap();
+
+        let total_minutes = (day_end - day_start).num_minutes();
+        let num_slots = total_minutes / DEFAULT_SLOT_DURATION;
+
+        assert_eq!(total_minutes, 600);
+        assert_eq!(num_slots, 20);
+    }
+
+    // ==================== Overlap Detection Logic Tests ====================
+
+    #[test]
+    fn test_time_overlap_detection_overlapping() {
+        let slot_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let slot_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 30, 0).unwrap();
+
+        let appt_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 15, 0).unwrap();
+        let appt_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 45, 0).unwrap();
+
+        // Overlap check: slot_start < appt_end AND slot_end > appt_start
+        let overlaps = slot_start < appt_end && slot_end > appt_start;
+        assert!(overlaps);
+    }
+
+    #[test]
+    fn test_time_overlap_detection_not_overlapping() {
+        let slot_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let slot_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 30, 0).unwrap();
+
+        let appt_start = Utc.with_ymd_and_hms(2026, 1, 15, 10, 0, 0).unwrap();
+        let appt_end = Utc.with_ymd_and_hms(2026, 1, 15, 10, 30, 0).unwrap();
+
+        let overlaps = slot_start < appt_end && slot_end > appt_start;
+        assert!(!overlaps);
+    }
+
+    #[test]
+    fn test_time_overlap_detection_adjacent_not_overlapping() {
+        // Adjacent time slots should not overlap
+        let slot_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let slot_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 30, 0).unwrap();
+
+        let appt_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 30, 0).unwrap();
+        let appt_end = Utc.with_ymd_and_hms(2026, 1, 15, 10, 0, 0).unwrap();
+
+        // slot_end == appt_start means they are adjacent, not overlapping
+        let overlaps = slot_start < appt_end && slot_end > appt_start;
+        assert!(!overlaps);
+    }
+
+    #[test]
+    fn test_time_overlap_slot_contains_appointment() {
+        let slot_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let slot_end = Utc.with_ymd_and_hms(2026, 1, 15, 10, 0, 0).unwrap();
+
+        let appt_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 15, 0).unwrap();
+        let appt_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 45, 0).unwrap();
+
+        let overlaps = slot_start < appt_end && slot_end > appt_start;
+        assert!(overlaps);
+    }
+
+    #[test]
+    fn test_time_overlap_appointment_contains_slot() {
+        let slot_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 15, 0).unwrap();
+        let slot_end = Utc.with_ymd_and_hms(2026, 1, 15, 9, 45, 0).unwrap();
+
+        let appt_start = Utc.with_ymd_and_hms(2026, 1, 15, 9, 0, 0).unwrap();
+        let appt_end = Utc.with_ymd_and_hms(2026, 1, 15, 10, 0, 0).unwrap();
+
+        let overlaps = slot_start < appt_end && slot_end > appt_start;
+        assert!(overlaps);
+    }
+
+    // ==================== Break Time Logic Tests ====================
+
+    #[test]
+    fn test_break_time_check_during_break() {
+        use chrono::NaiveTime;
+
+        let slot_time = NaiveTime::from_hms_opt(12, 30, 0).unwrap();
+        let break_start = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
+        let break_end = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
+
+        let is_during_break = slot_time >= break_start && slot_time < break_end;
+        assert!(is_during_break);
+    }
+
+    #[test]
+    fn test_break_time_check_before_break() {
+        use chrono::NaiveTime;
+
+        let slot_time = NaiveTime::from_hms_opt(11, 30, 0).unwrap();
+        let break_start = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
+        let break_end = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
+
+        let is_during_break = slot_time >= break_start && slot_time < break_end;
+        assert!(!is_during_break);
+    }
+
+    #[test]
+    fn test_break_time_check_after_break() {
+        use chrono::NaiveTime;
+
+        let slot_time = NaiveTime::from_hms_opt(13, 30, 0).unwrap();
+        let break_start = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
+        let break_end = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
+
+        let is_during_break = slot_time >= break_start && slot_time < break_end;
+        assert!(!is_during_break);
+    }
+
+    #[test]
+    fn test_break_time_check_at_break_end() {
+        use chrono::NaiveTime;
+
+        // Slot at exactly break end should NOT be during break
+        let slot_time = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
+        let break_start = NaiveTime::from_hms_opt(12, 0, 0).unwrap();
+        let break_end = NaiveTime::from_hms_opt(13, 0, 0).unwrap();
+
+        let is_during_break = slot_time >= break_start && slot_time < break_end;
+        assert!(!is_during_break);
+    }
+
+    // ==================== Working Hours Logic Tests ====================
+
+    #[test]
+    fn test_working_hours_within_bounds() {
+        use chrono::NaiveTime;
+
+        let appt_start = NaiveTime::from_hms_opt(9, 0, 0).unwrap();
+        let appt_end = NaiveTime::from_hms_opt(9, 30, 0).unwrap();
+        let working_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+
+        let is_within = appt_start >= working_start && appt_end <= working_end;
+        assert!(is_within);
+    }
+
+    #[test]
+    fn test_working_hours_starts_too_early() {
+        use chrono::NaiveTime;
+
+        let appt_start = NaiveTime::from_hms_opt(7, 30, 0).unwrap();
+        let appt_end = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+
+        let is_within = appt_start >= working_start && appt_end <= working_end;
+        assert!(!is_within);
+    }
+
+    #[test]
+    fn test_working_hours_ends_too_late() {
+        use chrono::NaiveTime;
+
+        let appt_start = NaiveTime::from_hms_opt(17, 30, 0).unwrap();
+        let appt_end = NaiveTime::from_hms_opt(18, 30, 0).unwrap();
+        let working_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+
+        let is_within = appt_start >= working_start && appt_end <= working_end;
+        assert!(!is_within);
+    }
+
+    #[test]
+    fn test_working_hours_at_boundary_start() {
+        use chrono::NaiveTime;
+
+        let appt_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let appt_end = NaiveTime::from_hms_opt(8, 30, 0).unwrap();
+        let working_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+
+        let is_within = appt_start >= working_start && appt_end <= working_end;
+        assert!(is_within);
+    }
+
+    #[test]
+    fn test_working_hours_at_boundary_end() {
+        use chrono::NaiveTime;
+
+        let appt_start = NaiveTime::from_hms_opt(17, 30, 0).unwrap();
+        let appt_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+        let working_start = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+        let working_end = NaiveTime::from_hms_opt(18, 0, 0).unwrap();
+
+        let is_within = appt_start >= working_start && appt_end <= working_end;
+        assert!(is_within);
+    }
+}

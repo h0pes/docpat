@@ -1321,6 +1321,10 @@ impl VisitService {
 mod tests {
     use super::*;
 
+    // ============================================================================
+    // VisitSearchFilter Tests
+    // ============================================================================
+
     #[test]
     fn test_visit_search_filter_default() {
         let filter = VisitSearchFilter::default();
@@ -1328,15 +1332,250 @@ mod tests {
         assert_eq!(filter.offset, Some(0));
         assert!(filter.patient_id.is_none());
         assert!(filter.provider_id.is_none());
+        assert!(filter.visit_type.is_none());
+        assert!(filter.status.is_none());
+        assert!(filter.date_from.is_none());
+        assert!(filter.date_to.is_none());
     }
 
-    // Test disabled - requires database connection and async runtime
-    // The generate_signature_hash method is tested via integration tests
-    /*
     #[test]
-    fn test_signature_hash_generation() {
-        // This test is disabled because it requires async/await and database connection
-        // The signature hash generation is tested via integration tests instead
+    fn test_visit_search_filter_with_patient_id() {
+        let patient_id = Uuid::new_v4();
+        let filter = VisitSearchFilter {
+            patient_id: Some(patient_id),
+            ..Default::default()
+        };
+        assert_eq!(filter.patient_id, Some(patient_id));
+        assert_eq!(filter.limit, Some(20)); // Default preserved
     }
-    */
+
+    #[test]
+    fn test_visit_search_filter_with_date_range() {
+        let date_from = NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        let date_to = NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
+
+        let filter = VisitSearchFilter {
+            date_from: Some(date_from),
+            date_to: Some(date_to),
+            ..Default::default()
+        };
+
+        assert_eq!(filter.date_from, Some(date_from));
+        assert_eq!(filter.date_to, Some(date_to));
+    }
+
+    #[test]
+    fn test_visit_search_filter_with_status() {
+        let filter = VisitSearchFilter {
+            status: Some(VisitStatus::Draft),
+            ..Default::default()
+        };
+        assert_eq!(filter.status, Some(VisitStatus::Draft));
+
+        let filter_signed = VisitSearchFilter {
+            status: Some(VisitStatus::Signed),
+            ..Default::default()
+        };
+        assert_eq!(filter_signed.status, Some(VisitStatus::Signed));
+    }
+
+    #[test]
+    fn test_visit_search_filter_serialization() {
+        let filter = VisitSearchFilter::default();
+        let json = serde_json::to_string(&filter).expect("Should serialize");
+        assert!(json.contains("\"limit\":20"));
+        assert!(json.contains("\"offset\":0"));
+
+        let deserialized: VisitSearchFilter =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.limit, Some(20));
+    }
+
+    #[test]
+    fn test_visit_search_filter_custom_pagination() {
+        let filter = VisitSearchFilter {
+            limit: Some(50),
+            offset: Some(100),
+            ..Default::default()
+        };
+        assert_eq!(filter.limit, Some(50));
+        assert_eq!(filter.offset, Some(100));
+    }
+
+    // ============================================================================
+    // VisitStatistics Tests
+    // ============================================================================
+
+    #[test]
+    fn test_visit_statistics_structure() {
+        let stats = VisitStatistics {
+            total_visits: 100,
+            drafts: 30,
+            signed: 50,
+            locked: 20,
+            by_type: vec![],
+        };
+
+        assert_eq!(stats.total_visits, 100);
+        assert_eq!(stats.drafts, 30);
+        assert_eq!(stats.signed, 50);
+        assert_eq!(stats.locked, 20);
+        // Verify counts add up
+        assert_eq!(stats.drafts + stats.signed + stats.locked, stats.total_visits);
+    }
+
+    #[test]
+    fn test_visit_statistics_serialization() {
+        let stats = VisitStatistics {
+            total_visits: 50,
+            drafts: 10,
+            signed: 25,
+            locked: 15,
+            by_type: vec![
+                VisitTypeCount {
+                    visit_type: VisitType::Consultation,
+                    count: 30,
+                },
+                VisitTypeCount {
+                    visit_type: VisitType::FollowUp,
+                    count: 20,
+                },
+            ],
+        };
+
+        let json = serde_json::to_string(&stats).expect("Should serialize");
+        assert!(json.contains("\"total_visits\":50"));
+        assert!(json.contains("\"drafts\":10"));
+
+        let deserialized: VisitStatistics =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.total_visits, 50);
+        assert_eq!(deserialized.by_type.len(), 2);
+    }
+
+    // ============================================================================
+    // VisitTypeCount Tests
+    // ============================================================================
+
+    #[test]
+    fn test_visit_type_count_structure() {
+        let type_count = VisitTypeCount {
+            visit_type: VisitType::Consultation,
+            count: 42,
+        };
+
+        assert_eq!(type_count.visit_type, VisitType::Consultation);
+        assert_eq!(type_count.count, 42);
+    }
+
+    #[test]
+    fn test_visit_type_count_serialization() {
+        let type_count = VisitTypeCount {
+            visit_type: VisitType::FollowUp,
+            count: 15,
+        };
+
+        let json = serde_json::to_string(&type_count).expect("Should serialize");
+        assert!(json.contains("15"));
+
+        let deserialized: VisitTypeCount =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.count, 15);
+    }
+
+    // ============================================================================
+    // SignVisitRequest / LockVisitRequest Tests
+    // ============================================================================
+
+    #[test]
+    fn test_sign_visit_request_structure() {
+        let user_id = Uuid::new_v4();
+        let request = SignVisitRequest {
+            signed_by: user_id,
+        };
+        assert_eq!(request.signed_by, user_id);
+    }
+
+    #[test]
+    fn test_sign_visit_request_serialization() {
+        let user_id = Uuid::new_v4();
+        let request = SignVisitRequest {
+            signed_by: user_id,
+        };
+
+        let json = serde_json::to_string(&request).expect("Should serialize");
+        assert!(json.contains(&user_id.to_string()));
+
+        let deserialized: SignVisitRequest =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.signed_by, user_id);
+    }
+
+    #[test]
+    fn test_lock_visit_request_structure() {
+        let user_id = Uuid::new_v4();
+        let request = LockVisitRequest {
+            locked_by: user_id,
+        };
+        assert_eq!(request.locked_by, user_id);
+    }
+
+    #[test]
+    fn test_lock_visit_request_serialization() {
+        let user_id = Uuid::new_v4();
+        let request = LockVisitRequest {
+            locked_by: user_id,
+        };
+
+        let json = serde_json::to_string(&request).expect("Should serialize");
+        assert!(json.contains(&user_id.to_string()));
+
+        let deserialized: LockVisitRequest =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.locked_by, user_id);
+    }
+
+    // ============================================================================
+    // Edge Cases
+    // ============================================================================
+
+    #[test]
+    fn test_visit_search_filter_all_fields_set() {
+        let patient_id = Uuid::new_v4();
+        let provider_id = Uuid::new_v4();
+
+        let filter = VisitSearchFilter {
+            patient_id: Some(patient_id),
+            provider_id: Some(provider_id),
+            visit_type: Some(VisitType::Consultation),
+            status: Some(VisitStatus::Signed),
+            date_from: Some(NaiveDate::from_ymd_opt(2026, 1, 1).unwrap()),
+            date_to: Some(NaiveDate::from_ymd_opt(2026, 12, 31).unwrap()),
+            limit: Some(100),
+            offset: Some(50),
+        };
+
+        assert!(filter.patient_id.is_some());
+        assert!(filter.provider_id.is_some());
+        assert!(filter.visit_type.is_some());
+        assert!(filter.status.is_some());
+        assert!(filter.date_from.is_some());
+        assert!(filter.date_to.is_some());
+        assert_eq!(filter.limit, Some(100));
+        assert_eq!(filter.offset, Some(50));
+    }
+
+    #[test]
+    fn test_visit_statistics_empty() {
+        let stats = VisitStatistics {
+            total_visits: 0,
+            drafts: 0,
+            signed: 0,
+            locked: 0,
+            by_type: vec![],
+        };
+
+        assert_eq!(stats.total_visits, 0);
+        assert!(stats.by_type.is_empty());
+    }
 }

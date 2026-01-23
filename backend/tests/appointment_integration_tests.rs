@@ -93,7 +93,7 @@ async fn create_test_patient(
         "phone_primary": "+393401234567",
         "email": format!("{}.{}@test.com", first_name.to_lowercase(), last_name.to_lowercase()),
         "preferred_contact_method": "PHONE",
-        "health_card_expire": "2025-12-31",
+        "health_card_expire": "2027-12-31",
     });
 
     let response = app

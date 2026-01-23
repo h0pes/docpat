@@ -135,7 +135,7 @@ async fn test_list_holidays_with_year_filter() {
     let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
     let token = login_and_get_token(&app, &admin.username, "Test123!").await;
 
-    // Create a holiday for 2025
+    // Create a holiday for 2027
     let _ = app
         .clone()
         .oneshot(
@@ -146,7 +146,7 @@ async fn test_list_holidays_with_year_filter() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "holiday_date": "2025-12-25",
+                        "holiday_date": "2027-12-25",
                         "name": "Christmas",
                         "holiday_type": "NATIONAL",
                         "is_recurring": true
@@ -158,13 +158,13 @@ async fn test_list_holidays_with_year_filter() {
         .await
         .unwrap();
 
-    // List holidays for 2025
+    // List holidays for 2027
     let response = app
         .clone()
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/api/v1/holidays?year=2025")
+                .uri("/api/v1/holidays?year=2027")
                 .header("authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),
@@ -352,7 +352,7 @@ async fn test_create_holiday_as_doctor_forbidden() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "holiday_date": "2025-12-25",
+                        "holiday_date": "2027-12-25",
                         "name": "Christmas",
                         "holiday_type": "NATIONAL",
                         "is_recurring": true
@@ -907,7 +907,7 @@ async fn test_get_holidays_range() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "holiday_date": "2025-06-15",
+                        "holiday_date": "2027-06-15",
                         "name": "Mid-Year Holiday",
                         "holiday_type": "PRACTICE_CLOSED",
                         "is_recurring": false
@@ -925,7 +925,7 @@ async fn test_get_holidays_range() {
         .oneshot(
             Request::builder()
                 .method("GET")
-                .uri("/api/v1/holidays/range?from_date=2025-06-01&to_date=2025-06-30")
+                .uri("/api/v1/holidays/range?from_date=2027-06-01&to_date=2027-06-30")
                 .header("authorization", format!("Bearer {}", token))
                 .body(Body::empty())
                 .unwrap(),
@@ -1095,7 +1095,7 @@ async fn test_recurring_holiday_check() {
     let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
     let token = login_and_get_token(&app, &admin.username, "Test123!").await;
 
-    // Create a recurring holiday (Christmas in 2025)
+    // Create a recurring holiday (Christmas in 2027)
     let _ = app
         .clone()
         .oneshot(
@@ -1106,7 +1106,7 @@ async fn test_recurring_holiday_check() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "holiday_date": "2025-12-25",
+                        "holiday_date": "2027-12-25",
                         "name": "Natale",
                         "holiday_type": "NATIONAL",
                         "is_recurring": true

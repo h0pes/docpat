@@ -287,8 +287,10 @@ impl VisitTemplateService {
     }
 
     /// Delete visit template (soft delete by setting is_active = false)
-    pub async fn delete_template(&self, id: Uuid, user_id: Uuid) -> Result<()> {
-        // Check template exists and user owns it
+    ///
+    /// Admins can delete any template, non-admins can only delete their own templates.
+    pub async fn delete_template(&self, id: Uuid, user_id: Uuid, is_admin: bool) -> Result<()> {
+        // Check template exists and user owns it (unless admin)
         let existing = sqlx::query!(
             "SELECT created_by FROM visit_templates WHERE id = $1",
             id
@@ -298,8 +300,8 @@ impl VisitTemplateService {
         .context("Failed to check template existence")?
         .ok_or_else(|| anyhow::anyhow!("Template not found"))?;
 
-        // Verify ownership
-        if existing.created_by != user_id {
+        // Verify ownership (admins can delete any template)
+        if !is_admin && existing.created_by != user_id {
             return Err(anyhow::anyhow!("Unauthorized: not template owner"));
         }
 

@@ -33,7 +33,8 @@ impl FileUploadService {
     ///
     /// This is more secure than trusting the file extension or Content-Type header
     pub fn detect_mime_type(content: &[u8]) -> Option<String> {
-        if content.len() < 8 {
+        // Minimum 3 bytes needed for JPEG signature (smallest we check)
+        if content.len() < 3 {
             return None;
         }
 

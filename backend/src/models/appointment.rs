@@ -455,6 +455,9 @@ pub struct AppointmentStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Duration;
+
+    // ==================== AppointmentStatus Tests ====================
 
     #[test]
     fn test_appointment_status_transitions() {
@@ -475,11 +478,112 @@ mod tests {
     }
 
     #[test]
+    fn test_scheduled_can_transition_to_self() {
+        assert!(AppointmentStatus::Scheduled.can_transition_to(&AppointmentStatus::Scheduled));
+    }
+
+    #[test]
+    fn test_scheduled_cannot_transition_to_completed() {
+        assert!(!AppointmentStatus::Scheduled.can_transition_to(&AppointmentStatus::Completed));
+    }
+
+    #[test]
+    fn test_confirmed_can_transition_to_self() {
+        assert!(AppointmentStatus::Confirmed.can_transition_to(&AppointmentStatus::Confirmed));
+    }
+
+    #[test]
+    fn test_confirmed_can_transition_to_no_show() {
+        assert!(AppointmentStatus::Confirmed.can_transition_to(&AppointmentStatus::NoShow));
+    }
+
+    #[test]
+    fn test_confirmed_cannot_transition_to_completed() {
+        assert!(!AppointmentStatus::Confirmed.can_transition_to(&AppointmentStatus::Completed));
+    }
+
+    #[test]
+    fn test_in_progress_can_transition_to_completed() {
+        assert!(AppointmentStatus::InProgress.can_transition_to(&AppointmentStatus::Completed));
+    }
+
+    #[test]
+    fn test_in_progress_can_transition_to_cancelled() {
+        assert!(AppointmentStatus::InProgress.can_transition_to(&AppointmentStatus::Cancelled));
+    }
+
+    #[test]
+    fn test_in_progress_cannot_transition_to_no_show() {
+        assert!(!AppointmentStatus::InProgress.can_transition_to(&AppointmentStatus::NoShow));
+    }
+
+    #[test]
+    fn test_in_progress_can_transition_to_self() {
+        assert!(AppointmentStatus::InProgress.can_transition_to(&AppointmentStatus::InProgress));
+    }
+
+    #[test]
+    fn test_completed_cannot_transition_to_any_other() {
+        assert!(!AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::Scheduled));
+        assert!(!AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::Confirmed));
+        assert!(!AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::InProgress));
+        assert!(!AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::Cancelled));
+        assert!(!AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::NoShow));
+        assert!(AppointmentStatus::Completed.can_transition_to(&AppointmentStatus::Completed)); // Can stay same
+    }
+
+    #[test]
+    fn test_cancelled_is_final() {
+        assert!(AppointmentStatus::Cancelled.is_final());
+        assert!(!AppointmentStatus::Cancelled.can_transition_to(&AppointmentStatus::Scheduled));
+    }
+
+    #[test]
+    fn test_no_show_is_final() {
+        assert!(AppointmentStatus::NoShow.is_final());
+        assert!(!AppointmentStatus::NoShow.can_transition_to(&AppointmentStatus::Confirmed));
+    }
+
+    #[test]
+    fn test_scheduled_is_not_final() {
+        assert!(!AppointmentStatus::Scheduled.is_final());
+    }
+
+    #[test]
+    fn test_confirmed_is_not_final() {
+        assert!(!AppointmentStatus::Confirmed.is_final());
+    }
+
+    #[test]
+    fn test_in_progress_is_not_final() {
+        assert!(!AppointmentStatus::InProgress.is_final());
+    }
+
+    // ==================== AppointmentType Tests ====================
+
+    #[test]
     fn test_appointment_type_default_duration() {
         assert_eq!(AppointmentType::NewPatient.default_duration(), 60);
         assert_eq!(AppointmentType::FollowUp.default_duration(), 30);
         assert_eq!(AppointmentType::Acupuncture.default_duration(), 45);
     }
+
+    #[test]
+    fn test_urgent_default_duration() {
+        assert_eq!(AppointmentType::Urgent.default_duration(), 30);
+    }
+
+    #[test]
+    fn test_consultation_default_duration() {
+        assert_eq!(AppointmentType::Consultation.default_duration(), 45);
+    }
+
+    #[test]
+    fn test_routine_checkup_default_duration() {
+        assert_eq!(AppointmentType::RoutineCheckup.default_duration(), 30);
+    }
+
+    // ==================== RecurringPattern Tests ====================
 
     #[test]
     fn test_recurring_pattern_validation() {
@@ -501,5 +605,408 @@ mod tests {
         };
 
         assert!(invalid_pattern.validate().is_err());
+    }
+
+    #[test]
+    fn test_recurring_pattern_daily() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Daily,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(7),
+        };
+        assert!(pattern.validate().is_ok());
+    }
+
+    #[test]
+    fn test_recurring_pattern_biweekly() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::BiWeekly,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(6),
+        };
+        assert!(pattern.validate().is_ok());
+    }
+
+    #[test]
+    fn test_recurring_pattern_monthly() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Monthly,
+            interval: 1,
+            end_date: Some(Utc::now() + Duration::days(365)),
+            max_occurrences: Some(12),
+        };
+        assert!(pattern.validate().is_ok());
+    }
+
+    #[test]
+    fn test_recurring_pattern_invalid_max_occurrences() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Weekly,
+            interval: 1,
+            end_date: None,
+            max_occurrences: Some(200), // Above max of 100
+        };
+        assert!(pattern.validate().is_err());
+    }
+
+    #[test]
+    fn test_recurring_pattern_zero_interval() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Weekly,
+            interval: 0, // Below min of 1
+            end_date: None,
+            max_occurrences: Some(10),
+        };
+        assert!(pattern.validate().is_err());
+    }
+
+    // ==================== TimeSlot Tests ====================
+
+    #[test]
+    fn test_time_slot_available() {
+        let slot = TimeSlot {
+            start: Utc::now(),
+            end: Utc::now() + Duration::minutes(30),
+            available: true,
+        };
+        assert!(slot.available);
+    }
+
+    #[test]
+    fn test_time_slot_not_available() {
+        let slot = TimeSlot {
+            start: Utc::now(),
+            end: Utc::now() + Duration::minutes(30),
+            available: false,
+        };
+        assert!(!slot.available);
+    }
+
+    // ==================== AppointmentSearchFilter Tests ====================
+
+    #[test]
+    fn test_search_filter_default() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: None,
+            appointment_type: None,
+            start_date: None,
+            end_date: None,
+            limit: None,
+            offset: None,
+        };
+        assert!(filter.validate().is_ok());
+    }
+
+    #[test]
+    fn test_search_filter_with_limit() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: None,
+            appointment_type: None,
+            start_date: None,
+            end_date: None,
+            limit: Some(50),
+            offset: Some(0),
+        };
+        assert!(filter.validate().is_ok());
+    }
+
+    #[test]
+    fn test_search_filter_with_status() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: Some(AppointmentStatus::Confirmed),
+            appointment_type: None,
+            start_date: None,
+            end_date: None,
+            limit: None,
+            offset: None,
+        };
+        assert!(filter.validate().is_ok());
+        assert_eq!(filter.status, Some(AppointmentStatus::Confirmed));
+    }
+
+    #[test]
+    fn test_search_filter_with_type() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: None,
+            appointment_type: Some(AppointmentType::NewPatient),
+            start_date: None,
+            end_date: None,
+            limit: None,
+            offset: None,
+        };
+        assert!(filter.validate().is_ok());
+        assert_eq!(filter.appointment_type, Some(AppointmentType::NewPatient));
+    }
+
+    #[test]
+    fn test_search_filter_invalid_limit_too_high() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: None,
+            appointment_type: None,
+            start_date: None,
+            end_date: None,
+            limit: Some(2000), // Above max of 1000
+            offset: None,
+        };
+        assert!(filter.validate().is_err());
+    }
+
+    #[test]
+    fn test_search_filter_invalid_limit_zero() {
+        let filter = AppointmentSearchFilter {
+            patient_id: None,
+            provider_id: None,
+            status: None,
+            appointment_type: None,
+            start_date: None,
+            end_date: None,
+            limit: Some(0), // Below min of 1
+            offset: None,
+        };
+        assert!(filter.validate().is_err());
+    }
+
+    // ==================== AppointmentStatistics Tests ====================
+
+    #[test]
+    fn test_appointment_statistics_structure() {
+        let mut by_status = std::collections::HashMap::new();
+        by_status.insert("SCHEDULED".to_string(), 10);
+        by_status.insert("CONFIRMED".to_string(), 5);
+        by_status.insert("COMPLETED".to_string(), 20);
+
+        let mut by_type = std::collections::HashMap::new();
+        by_type.insert("NEW_PATIENT".to_string(), 15);
+        by_type.insert("FOLLOW_UP".to_string(), 20);
+
+        let stats = AppointmentStatistics {
+            total: 35,
+            by_status,
+            by_type,
+            upcoming_today: 3,
+            upcoming_week: 10,
+            no_show_rate: 5.5,
+            cancellation_rate: 8.2,
+        };
+
+        assert_eq!(stats.total, 35);
+        assert_eq!(stats.upcoming_today, 3);
+        assert_eq!(stats.upcoming_week, 10);
+        assert!((stats.no_show_rate - 5.5).abs() < f64::EPSILON);
+        assert!((stats.cancellation_rate - 8.2).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_appointment_statistics_zero_rates() {
+        let stats = AppointmentStatistics {
+            total: 0,
+            by_status: std::collections::HashMap::new(),
+            by_type: std::collections::HashMap::new(),
+            upcoming_today: 0,
+            upcoming_week: 0,
+            no_show_rate: 0.0,
+            cancellation_rate: 0.0,
+        };
+
+        assert_eq!(stats.total, 0);
+        assert!((stats.no_show_rate - 0.0).abs() < f64::EPSILON);
+        assert!((stats.cancellation_rate - 0.0).abs() < f64::EPSILON);
+    }
+
+    // ==================== AvailabilityRequest Tests ====================
+
+    #[test]
+    fn test_availability_request_valid() {
+        let request = AvailabilityRequest {
+            provider_id: Uuid::new_v4().to_string(),
+            date: Utc::now() + Duration::days(1),
+            duration_minutes: 30,
+        };
+        // provider_id format is validated by custom validator
+        assert_eq!(request.duration_minutes, 30);
+    }
+
+    #[test]
+    fn test_availability_request_min_duration() {
+        let request = AvailabilityRequest {
+            provider_id: Uuid::new_v4().to_string(),
+            date: Utc::now(),
+            duration_minutes: 15, // Minimum valid
+        };
+        assert_eq!(request.duration_minutes, 15);
+    }
+
+    #[test]
+    fn test_availability_request_max_duration() {
+        let request = AvailabilityRequest {
+            provider_id: Uuid::new_v4().to_string(),
+            date: Utc::now(),
+            duration_minutes: 480, // Maximum valid (8 hours)
+        };
+        assert_eq!(request.duration_minutes, 480);
+    }
+
+    // ==================== CreateAppointmentRequest Validation Tests ====================
+
+    #[test]
+    fn test_create_appointment_request_validate_future() {
+        let request = CreateAppointmentRequest {
+            patient_id: Uuid::new_v4().to_string(),
+            provider_id: Uuid::new_v4().to_string(),
+            scheduled_start: Utc::now() + Duration::hours(1),
+            duration_minutes: 30,
+            appointment_type: AppointmentType::FollowUp,
+            reason: Some("Follow up visit".to_string()),
+            notes: None,
+            is_recurring: None,
+            recurring_pattern: None,
+            send_notification: Some(true),
+        };
+        assert!(request.validate_appointment().is_ok());
+    }
+
+    #[test]
+    fn test_create_appointment_request_validate_past_fails() {
+        let request = CreateAppointmentRequest {
+            patient_id: Uuid::new_v4().to_string(),
+            provider_id: Uuid::new_v4().to_string(),
+            scheduled_start: Utc::now() - Duration::hours(1), // In the past
+            duration_minutes: 30,
+            appointment_type: AppointmentType::FollowUp,
+            reason: None,
+            notes: None,
+            is_recurring: None,
+            recurring_pattern: None,
+            send_notification: None,
+        };
+        assert!(request.validate_appointment().is_err());
+    }
+
+    #[test]
+    fn test_create_appointment_request_recurring_needs_pattern() {
+        let request = CreateAppointmentRequest {
+            patient_id: Uuid::new_v4().to_string(),
+            provider_id: Uuid::new_v4().to_string(),
+            scheduled_start: Utc::now() + Duration::hours(1),
+            duration_minutes: 30,
+            appointment_type: AppointmentType::FollowUp,
+            reason: None,
+            notes: None,
+            is_recurring: Some(true), // Recurring but no pattern
+            recurring_pattern: None,
+            send_notification: None,
+        };
+        let result = request.validate_appointment();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Recurring pattern required"));
+    }
+
+    #[test]
+    fn test_create_appointment_request_recurring_with_pattern() {
+        let pattern = RecurringPattern {
+            frequency: RecurringFrequency::Weekly,
+            interval: 1,
+            end_date: Some(Utc::now() + Duration::days(90)),
+            max_occurrences: None,
+        };
+        let request = CreateAppointmentRequest {
+            patient_id: Uuid::new_v4().to_string(),
+            provider_id: Uuid::new_v4().to_string(),
+            scheduled_start: Utc::now() + Duration::hours(1),
+            duration_minutes: 30,
+            appointment_type: AppointmentType::Acupuncture,
+            reason: Some("Weekly acupuncture".to_string()),
+            notes: None,
+            is_recurring: Some(true),
+            recurring_pattern: Some(pattern),
+            send_notification: Some(true),
+        };
+        assert!(request.validate_appointment().is_ok());
+    }
+
+    // ==================== CancelAppointmentRequest Tests ====================
+
+    #[test]
+    fn test_cancel_appointment_request_valid() {
+        let request = CancelAppointmentRequest {
+            cancellation_reason: "Patient requested cancellation".to_string(),
+            send_notification: Some(true),
+        };
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_cancel_appointment_request_empty_reason() {
+        let request = CancelAppointmentRequest {
+            cancellation_reason: "".to_string(), // Empty - invalid
+            send_notification: None,
+        };
+        assert!(request.validate().is_err());
+    }
+
+    // ==================== JSON Serialization Tests ====================
+
+    #[test]
+    fn test_appointment_status_serialization() {
+        let status = AppointmentStatus::Scheduled;
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, "\"SCHEDULED\"");
+
+        let status = AppointmentStatus::InProgress;
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, "\"IN_PROGRESS\"");
+    }
+
+    #[test]
+    fn test_appointment_status_deserialization() {
+        let json = "\"CONFIRMED\"";
+        let status: AppointmentStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, AppointmentStatus::Confirmed);
+
+        let json = "\"NO_SHOW\"";
+        let status: AppointmentStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, AppointmentStatus::NoShow);
+    }
+
+    #[test]
+    fn test_appointment_type_serialization() {
+        let apt_type = AppointmentType::NewPatient;
+        let json = serde_json::to_string(&apt_type).unwrap();
+        assert_eq!(json, "\"NEW_PATIENT\"");
+
+        let apt_type = AppointmentType::RoutineCheckup;
+        let json = serde_json::to_string(&apt_type).unwrap();
+        assert_eq!(json, "\"ROUTINE_CHECKUP\"");
+    }
+
+    #[test]
+    fn test_recurring_frequency_serialization() {
+        let freq = RecurringFrequency::BiWeekly;
+        let json = serde_json::to_string(&freq).unwrap();
+        assert_eq!(json, "\"BI_WEEKLY\"");
+    }
+
+    #[test]
+    fn test_time_slot_json_roundtrip() {
+        let slot = TimeSlot {
+            start: Utc::now(),
+            end: Utc::now() + Duration::minutes(30),
+            available: true,
+        };
+        let json = serde_json::to_string(&slot).unwrap();
+        let deserialized: TimeSlot = serde_json::from_str(&json).unwrap();
+        assert_eq!(slot.available, deserialized.available);
     }
 }

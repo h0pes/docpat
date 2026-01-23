@@ -366,6 +366,8 @@ pub struct BulkGenerateError {
 mod tests {
     use super::*;
 
+    // ==================== DocumentStatus Transition Tests ====================
+
     #[test]
     fn test_document_status_transitions() {
         // From GENERATING
@@ -389,6 +391,41 @@ mod tests {
     }
 
     #[test]
+    fn test_generating_cannot_transition_to_generating() {
+        assert!(!DocumentStatus::Generating.can_transition_to(DocumentStatus::Generating));
+    }
+
+    #[test]
+    fn test_generated_cannot_transition_to_generating() {
+        assert!(!DocumentStatus::Generated.can_transition_to(DocumentStatus::Generating));
+    }
+
+    #[test]
+    fn test_delivered_cannot_transition_to_delivered() {
+        assert!(!DocumentStatus::Delivered.can_transition_to(DocumentStatus::Delivered));
+    }
+
+    #[test]
+    fn test_failed_cannot_transition_to_any() {
+        assert!(!DocumentStatus::Failed.can_transition_to(DocumentStatus::Generating));
+        assert!(!DocumentStatus::Failed.can_transition_to(DocumentStatus::Generated));
+        assert!(!DocumentStatus::Failed.can_transition_to(DocumentStatus::Delivered));
+        assert!(!DocumentStatus::Failed.can_transition_to(DocumentStatus::Deleted));
+        assert!(!DocumentStatus::Failed.can_transition_to(DocumentStatus::Failed));
+    }
+
+    #[test]
+    fn test_deleted_cannot_transition_to_any() {
+        assert!(!DocumentStatus::Deleted.can_transition_to(DocumentStatus::Generating));
+        assert!(!DocumentStatus::Deleted.can_transition_to(DocumentStatus::Generated));
+        assert!(!DocumentStatus::Deleted.can_transition_to(DocumentStatus::Delivered));
+        assert!(!DocumentStatus::Deleted.can_transition_to(DocumentStatus::Failed));
+        assert!(!DocumentStatus::Deleted.can_transition_to(DocumentStatus::Deleted));
+    }
+
+    // ==================== DocumentStatus Terminal Tests ====================
+
+    #[test]
     fn test_document_status_is_terminal() {
         assert!(!DocumentStatus::Generating.is_terminal());
         assert!(!DocumentStatus::Generated.is_terminal());
@@ -396,6 +433,8 @@ mod tests {
         assert!(DocumentStatus::Failed.is_terminal());
         assert!(DocumentStatus::Deleted.is_terminal());
     }
+
+    // ==================== DocumentStatus Conversion Tests ====================
 
     #[test]
     fn test_document_status_conversion() {
@@ -406,5 +445,203 @@ mod tests {
             Some(DocumentStatus::Generated)
         );
         assert_eq!(DocumentStatus::from_str("INVALID"), None);
+    }
+
+    #[test]
+    fn test_document_status_delivered_conversion() {
+        assert_eq!(DocumentStatus::Delivered.as_str(), "DELIVERED");
+        assert_eq!(
+            DocumentStatus::from_str("DELIVERED"),
+            Some(DocumentStatus::Delivered)
+        );
+    }
+
+    #[test]
+    fn test_document_status_failed_conversion() {
+        assert_eq!(DocumentStatus::Failed.as_str(), "FAILED");
+        assert_eq!(
+            DocumentStatus::from_str("FAILED"),
+            Some(DocumentStatus::Failed)
+        );
+    }
+
+    #[test]
+    fn test_document_status_deleted_conversion() {
+        assert_eq!(DocumentStatus::Deleted.as_str(), "DELETED");
+        assert_eq!(
+            DocumentStatus::from_str("DELETED"),
+            Some(DocumentStatus::Deleted)
+        );
+    }
+
+    #[test]
+    fn test_document_status_from_str_empty() {
+        assert_eq!(DocumentStatus::from_str(""), None);
+    }
+
+    #[test]
+    fn test_document_status_from_str_lowercase() {
+        // Case sensitive - should return None
+        assert_eq!(DocumentStatus::from_str("generated"), None);
+        assert_eq!(DocumentStatus::from_str("Generated"), None);
+    }
+
+    #[test]
+    fn test_document_status_display() {
+        assert_eq!(format!("{}", DocumentStatus::Generating), "GENERATING");
+        assert_eq!(format!("{}", DocumentStatus::Generated), "GENERATED");
+        assert_eq!(format!("{}", DocumentStatus::Delivered), "DELIVERED");
+        assert_eq!(format!("{}", DocumentStatus::Failed), "FAILED");
+        assert_eq!(format!("{}", DocumentStatus::Deleted), "DELETED");
+    }
+
+    // ==================== Serialization Tests ====================
+
+    #[test]
+    fn test_document_status_serialization() {
+        let status = DocumentStatus::Generated;
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, "\"GENERATED\"");
+    }
+
+    #[test]
+    fn test_document_status_deserialization() {
+        let json = "\"DELIVERED\"";
+        let status: DocumentStatus = serde_json::from_str(json).unwrap();
+        assert_eq!(status, DocumentStatus::Delivered);
+    }
+
+    #[test]
+    fn test_document_status_roundtrip() {
+        let original = DocumentStatus::Failed;
+        let json = serde_json::to_string(&original).unwrap();
+        let restored: DocumentStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(original, restored);
+    }
+
+    // ==================== Structure Tests ====================
+
+    #[test]
+    fn test_generated_document_filter_default() {
+        let filter = GeneratedDocumentFilter::default();
+        assert!(filter.patient_id.is_none());
+        assert!(filter.visit_id.is_none());
+        assert!(filter.provider_id.is_none());
+        assert!(filter.document_type.is_none());
+        assert!(filter.status.is_none());
+        assert!(filter.is_signed.is_none());
+    }
+
+    #[test]
+    fn test_generated_document_filter_with_values() {
+        let filter = GeneratedDocumentFilter {
+            patient_id: Some(Uuid::new_v4()),
+            visit_id: None,
+            provider_id: Some(Uuid::new_v4()),
+            document_type: Some(DocumentType::MedicalCertificate),
+            status: Some(DocumentStatus::Generated),
+            is_signed: Some(true),
+            from_date: None,
+            to_date: None,
+        };
+        assert!(filter.patient_id.is_some());
+        assert_eq!(filter.status, Some(DocumentStatus::Generated));
+        assert_eq!(filter.is_signed, Some(true));
+    }
+
+    #[test]
+    fn test_list_generated_documents_response() {
+        let response = ListGeneratedDocumentsResponse {
+            documents: vec![],
+            total: 50,
+            limit: 20,
+            offset: 0,
+        };
+        assert_eq!(response.total, 50);
+        assert_eq!(response.limit, 20);
+        assert_eq!(response.offset, 0);
+    }
+
+    #[test]
+    fn test_document_statistics_structure() {
+        let stats = DocumentStatistics {
+            total_documents: 100,
+            by_type: vec![],
+            by_status: vec![],
+            signed_count: 50,
+            delivered_count: 30,
+            total_size_bytes: 1024000,
+        };
+        assert_eq!(stats.total_documents, 100);
+        assert_eq!(stats.signed_count, 50);
+        assert_eq!(stats.total_size_bytes, 1024000);
+    }
+
+    #[test]
+    fn test_document_type_count_structure() {
+        let count = DocumentTypeCount {
+            document_type: DocumentType::MedicalCertificate,
+            count: 25,
+        };
+        assert_eq!(count.document_type, DocumentType::MedicalCertificate);
+        assert_eq!(count.count, 25);
+    }
+
+    #[test]
+    fn test_document_status_count_structure() {
+        let count = DocumentStatusCount {
+            status: DocumentStatus::Delivered,
+            count: 30,
+        };
+        assert_eq!(count.status, DocumentStatus::Delivered);
+        assert_eq!(count.count, 30);
+    }
+
+    // ==================== Edge Cases ====================
+
+    #[test]
+    fn test_document_status_equality() {
+        assert_eq!(DocumentStatus::Generated, DocumentStatus::Generated);
+        assert_ne!(DocumentStatus::Generated, DocumentStatus::Delivered);
+    }
+
+    #[test]
+    fn test_document_status_copy() {
+        let original = DocumentStatus::Generating;
+        let copied = original;
+        assert_eq!(original, copied);
+    }
+
+    #[test]
+    fn test_generate_document_request_validation() {
+        let request = GenerateDocumentRequest {
+            template_id: Uuid::new_v4(),
+            patient_id: Uuid::new_v4(),
+            visit_id: None,
+            visit_date: None,
+            document_title: "Medical Certificate".to_string(),
+            additional_data: None,
+            expires_at: None,
+        };
+        assert!(!request.document_title.is_empty());
+    }
+
+    #[test]
+    fn test_deliver_document_request_structure() {
+        let request = DeliverDocumentRequest {
+            delivered_to: "patient@email.com".to_string(),
+            delivery_method: Some("email".to_string()),
+        };
+        assert_eq!(request.delivered_to, "patient@email.com");
+        assert_eq!(request.delivery_method, Some("email".to_string()));
+    }
+
+    #[test]
+    fn test_deliver_document_request_without_method() {
+        let request = DeliverDocumentRequest {
+            delivered_to: "patient@email.com".to_string(),
+            delivery_method: None,
+        };
+        assert!(request.delivery_method.is_none());
     }
 }

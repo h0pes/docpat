@@ -1414,31 +1414,223 @@ impl ReportService {
 mod tests {
     use super::*;
 
+    // ========== DAY OF WEEK TESTS ==========
+
     #[test]
-    fn test_day_of_week_name() {
+    fn test_day_of_week_name_all_days() {
         assert_eq!(ReportService::day_of_week_name(0), "Sunday");
         assert_eq!(ReportService::day_of_week_name(1), "Monday");
+        assert_eq!(ReportService::day_of_week_name(2), "Tuesday");
+        assert_eq!(ReportService::day_of_week_name(3), "Wednesday");
+        assert_eq!(ReportService::day_of_week_name(4), "Thursday");
+        assert_eq!(ReportService::day_of_week_name(5), "Friday");
         assert_eq!(ReportService::day_of_week_name(6), "Saturday");
+    }
+
+    #[test]
+    fn test_day_of_week_name_invalid() {
         assert_eq!(ReportService::day_of_week_name(7), "Unknown");
+        assert_eq!(ReportService::day_of_week_name(-1), "Unknown");
+        assert_eq!(ReportService::day_of_week_name(100), "Unknown");
     }
 
+    // ========== MONTH NAME TESTS ==========
+
     #[test]
-    fn test_month_name() {
+    fn test_month_name_all_months() {
         assert_eq!(ReportService::month_name(1), "January");
+        assert_eq!(ReportService::month_name(2), "February");
+        assert_eq!(ReportService::month_name(3), "March");
+        assert_eq!(ReportService::month_name(4), "April");
+        assert_eq!(ReportService::month_name(5), "May");
+        assert_eq!(ReportService::month_name(6), "June");
+        assert_eq!(ReportService::month_name(7), "July");
+        assert_eq!(ReportService::month_name(8), "August");
+        assert_eq!(ReportService::month_name(9), "September");
+        assert_eq!(ReportService::month_name(10), "October");
+        assert_eq!(ReportService::month_name(11), "November");
         assert_eq!(ReportService::month_name(12), "December");
-        assert_eq!(ReportService::month_name(13), "Unknown");
     }
 
     #[test]
-    fn test_icd10_category_name() {
+    fn test_month_name_invalid() {
+        assert_eq!(ReportService::month_name(0), "Unknown");
+        assert_eq!(ReportService::month_name(13), "Unknown");
+        assert_eq!(ReportService::month_name(-1), "Unknown");
+    }
+
+    // ========== ICD-10 CATEGORY TESTS ==========
+
+    #[test]
+    fn test_icd10_category_name_infectious() {
         assert_eq!(
             ReportService::icd10_category_name("A01"),
             "Infectious and Parasitic Diseases"
         );
         assert_eq!(
+            ReportService::icd10_category_name("B99"),
+            "Infectious and Parasitic Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_neoplasms() {
+        assert_eq!(
+            ReportService::icd10_category_name("C50"),
+            "Neoplasms / Blood Diseases"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("D89"),
+            "Neoplasms / Blood Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_endocrine() {
+        assert_eq!(
+            ReportService::icd10_category_name("E11"),
+            "Endocrine, Nutritional, Metabolic"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_mental() {
+        assert_eq!(
+            ReportService::icd10_category_name("F32"),
+            "Mental and Behavioral Disorders"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_nervous() {
+        assert_eq!(
+            ReportService::icd10_category_name("G40"),
+            "Nervous System Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_eye_ear() {
+        assert_eq!(
+            ReportService::icd10_category_name("H10"),
+            "Eye and Ear Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_circulatory() {
+        assert_eq!(
             ReportService::icd10_category_name("I10"),
             "Circulatory System Diseases"
         );
+    }
+
+    #[test]
+    fn test_icd10_category_name_respiratory() {
+        assert_eq!(
+            ReportService::icd10_category_name("J00"),
+            "Respiratory System Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_digestive() {
+        assert_eq!(
+            ReportService::icd10_category_name("K20"),
+            "Digestive System Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_skin() {
+        assert_eq!(
+            ReportService::icd10_category_name("L50"),
+            "Skin Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_musculoskeletal() {
+        assert_eq!(
+            ReportService::icd10_category_name("M54"),
+            "Musculoskeletal Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_genitourinary() {
+        assert_eq!(
+            ReportService::icd10_category_name("N18"),
+            "Genitourinary System Diseases"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_pregnancy() {
+        assert_eq!(
+            ReportService::icd10_category_name("O99"),
+            "Pregnancy and Childbirth"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_perinatal() {
+        assert_eq!(
+            ReportService::icd10_category_name("P07"),
+            "Perinatal Conditions"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_congenital() {
+        assert_eq!(
+            ReportService::icd10_category_name("Q21"),
+            "Congenital Malformations"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_symptoms() {
+        assert_eq!(
+            ReportService::icd10_category_name("R10"),
+            "Symptoms and Abnormal Findings"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_injury() {
+        assert_eq!(
+            ReportService::icd10_category_name("S72"),
+            "Injury and Poisoning"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("T40"),
+            "Injury and Poisoning"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_external_causes() {
+        assert_eq!(
+            ReportService::icd10_category_name("V01"),
+            "External Causes"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("W00"),
+            "External Causes"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("X00"),
+            "External Causes"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("Y00"),
+            "External Causes"
+        );
+    }
+
+    #[test]
+    fn test_icd10_category_name_health_status() {
         assert_eq!(
             ReportService::icd10_category_name("Z00"),
             "Factors Influencing Health Status"
@@ -1446,9 +1638,229 @@ mod tests {
     }
 
     #[test]
+    fn test_icd10_category_name_unknown() {
+        assert_eq!(
+            ReportService::icd10_category_name(""),
+            "Other"
+        );
+        assert_eq!(
+            ReportService::icd10_category_name("123"),
+            "Other"
+        );
+    }
+
+    // ========== DATE RANGE TESTS ==========
+
+    #[test]
     fn test_default_date_range() {
         let (start, end) = ReportService::default_date_range();
         assert!(end >= start);
         assert_eq!((end - start).num_days(), 30);
+    }
+
+    #[test]
+    fn test_default_date_range_end_is_today() {
+        let (_, end) = ReportService::default_date_range();
+        let today = Utc::now().date_naive();
+        assert_eq!(end, today);
+    }
+
+    // ========== REPORT FILTER TESTS ==========
+
+    #[test]
+    fn test_appointment_report_filter_default() {
+        let filter = AppointmentReportFilter {
+            start_date: None,
+            end_date: None,
+            provider_id: None,
+        };
+        assert!(filter.start_date.is_none());
+        assert!(filter.end_date.is_none());
+        assert!(filter.provider_id.is_none());
+    }
+
+    #[test]
+    fn test_appointment_report_filter_with_dates() {
+        let start = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let filter = AppointmentReportFilter {
+            start_date: Some(start),
+            end_date: Some(end),
+            provider_id: None,
+        };
+        assert_eq!(filter.start_date, Some(start));
+        assert_eq!(filter.end_date, Some(end));
+    }
+
+    #[test]
+    fn test_patient_report_filter() {
+        let filter = PatientReportFilter {
+            start_date: None,
+            end_date: None,
+        };
+        assert!(filter.start_date.is_none());
+        assert!(filter.end_date.is_none());
+    }
+
+    #[test]
+    fn test_diagnosis_report_filter_default() {
+        let filter = DiagnosisReportFilter {
+            start_date: None,
+            end_date: None,
+            provider_id: None,
+            limit: None,
+        };
+        assert!(filter.start_date.is_none());
+        assert!(filter.end_date.is_none());
+        assert!(filter.provider_id.is_none());
+        assert!(filter.limit.is_none());
+    }
+
+    #[test]
+    fn test_diagnosis_report_filter_with_limit() {
+        let filter = DiagnosisReportFilter {
+            start_date: None,
+            end_date: None,
+            provider_id: None,
+            limit: Some(10),
+        };
+        assert_eq!(filter.limit, Some(10));
+    }
+
+    // ========== REPORT STRUCTURE TESTS ==========
+
+    #[test]
+    fn test_day_of_week_count_structure() {
+        let count = DayOfWeekCount {
+            day: 1,
+            day_name: "Monday".to_string(),
+            count: 42,
+        };
+        assert_eq!(count.day, 1);
+        assert_eq!(count.day_name, "Monday");
+        assert_eq!(count.count, 42);
+    }
+
+    #[test]
+    fn test_hourly_count_structure() {
+        let count = HourlyCount {
+            hour: 9,
+            count: 15,
+        };
+        assert_eq!(count.hour, 9);
+        assert_eq!(count.count, 15);
+    }
+
+    #[test]
+    fn test_monthly_count_structure() {
+        let count = MonthlyCount {
+            year: 2025,
+            month: 6,
+            month_name: "June".to_string(),
+            count: 100,
+        };
+        assert_eq!(count.year, 2025);
+        assert_eq!(count.month, 6);
+        assert_eq!(count.month_name, "June");
+        assert_eq!(count.count, 100);
+    }
+
+    #[test]
+    fn test_age_group_count_structure() {
+        let count = AgeGroupCount {
+            age_group: "31-50".to_string(),
+            count: 250,
+        };
+        assert_eq!(count.age_group, "31-50");
+        assert_eq!(count.count, 250);
+    }
+
+    #[test]
+    fn test_diagnosis_count_structure() {
+        let count = DiagnosisCount {
+            icd10_code: "I10".to_string(),
+            description: "Essential hypertension".to_string(),
+            count: 50,
+            percentage: 25.5,
+        };
+        assert_eq!(count.icd10_code, "I10");
+        assert_eq!(count.description, "Essential hypertension");
+        assert_eq!(count.count, 50);
+        assert!((count.percentage - 25.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_diagnosis_category_count_structure() {
+        let count = DiagnosisCategoryCount {
+            category: "I".to_string(),
+            category_name: "Circulatory System Diseases".to_string(),
+            count: 120,
+        };
+        assert_eq!(count.category, "I");
+        assert_eq!(count.category_name, "Circulatory System Diseases");
+        assert_eq!(count.count, 120);
+    }
+
+    #[test]
+    fn test_report_date_range_structure() {
+        let start = NaiveDate::from_ymd_opt(2025, 1, 1).unwrap();
+        let end = NaiveDate::from_ymd_opt(2025, 12, 31).unwrap();
+        let range = ReportDateRange {
+            start_date: start,
+            end_date: end,
+        };
+        assert_eq!(range.start_date, start);
+        assert_eq!(range.end_date, end);
+        assert_eq!((range.end_date - range.start_date).num_days(), 364);
+    }
+
+    #[test]
+    fn test_quick_stats_structure() {
+        let stats = QuickStats {
+            appointments_today: 10,
+            appointments_this_week: 50,
+            visits_this_week: 45,
+            pending_visits: 5,
+            active_patients: 200,
+            active_prescriptions: 150,
+            documents_this_month: 30,
+        };
+        assert_eq!(stats.appointments_today, 10);
+        assert_eq!(stats.appointments_this_week, 50);
+        assert_eq!(stats.visits_this_week, 45);
+        assert_eq!(stats.pending_visits, 5);
+        assert_eq!(stats.active_patients, 200);
+        assert_eq!(stats.active_prescriptions, 150);
+        assert_eq!(stats.documents_this_month, 30);
+    }
+
+    #[test]
+    fn test_productivity_summary_structure() {
+        let summary = ProductivitySummary {
+            total_appointments: 100,
+            completed_appointments: 85,
+            total_visits: 80,
+            total_prescriptions: 120,
+            total_documents: 50,
+            avg_appointment_duration: 25.5,
+        };
+        assert_eq!(summary.total_appointments, 100);
+        assert_eq!(summary.completed_appointments, 85);
+        assert_eq!(summary.total_visits, 80);
+        assert_eq!(summary.total_prescriptions, 120);
+        assert_eq!(summary.total_documents, 50);
+        assert!((summary.avg_appointment_duration - 25.5).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_gender_breakdown_totals() {
+        let breakdown = GenderBreakdown {
+            male: 100,
+            female: 120,
+            other: 5,
+            unspecified: 10,
+        };
+        let total = breakdown.male + breakdown.female + breakdown.other + breakdown.unspecified;
+        assert_eq!(total, 235);
     }
 }

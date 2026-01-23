@@ -1473,6 +1473,7 @@ mod tests {
     #[test]
     fn test_email_contains_date_formatting() {
         // Use a specific date to test formatting
+        // Note: Date is in UTC but will be displayed in Rome timezone (UTC+1 in March)
         let date = Utc.with_ymd_and_hms(2026, 3, 15, 14, 30, 0).unwrap();
         let (subject, body) = generate_appointment_reminder_email(
             "Date Test",
@@ -1486,7 +1487,8 @@ mod tests {
         assert!(subject.contains("March"));
         assert!(subject.contains("15"));
         assert!(subject.contains("2026"));
-        assert!(subject.contains("14:30"));
+        // Time is displayed in Rome timezone (UTC+1 in March before DST)
+        assert!(subject.contains("15:30"));
 
         // Body should also contain the formatted date
         assert!(body.contains("Sunday"));
@@ -1607,5 +1609,40 @@ mod tests {
 
         assert!(body.contains("regret to inform"));
         assert!(body.contains("apologize for any inconvenience"));
+    }
+
+    #[test]
+    fn test_email_subjects_are_distinct() {
+        let date = Utc::now() + Duration::days(1);
+
+        let (reminder_subject, _) = generate_appointment_reminder_email(
+            "Patient", &date, "Doctor", "Type"
+        );
+        let (confirmation_subject, _) = generate_appointment_confirmation_email(
+            "Patient", &date, "Doctor", "Type"
+        );
+        let (cancellation_subject, _) = generate_appointment_cancellation_email(
+            "Patient", &date, "Doctor", "Type", None
+        );
+
+        // Each email type should have a distinct subject
+        assert_ne!(reminder_subject, confirmation_subject);
+        assert_ne!(reminder_subject, cancellation_subject);
+        assert_ne!(confirmation_subject, cancellation_subject);
+    }
+
+    #[test]
+    fn test_email_body_contains_reschedule_instructions() {
+        let date = Utc::now() + Duration::days(1);
+        let (_, cancellation_body) = generate_appointment_cancellation_email(
+            "Patient",
+            &date,
+            "Doctor",
+            "Type",
+            None,
+        );
+
+        // Cancellation emails should mention rescheduling
+        assert!(cancellation_body.contains("reschedule") || cancellation_body.contains("new appointment"));
     }
 }

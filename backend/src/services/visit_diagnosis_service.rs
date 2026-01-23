@@ -70,8 +70,13 @@ impl VisitDiagnosisService {
             None
         };
 
-        // Convert diagnosis type to string
-        let diagnosis_type_str = data.diagnosis_type.as_ref().map(|t| format!("{:?}", t).to_uppercase());
+        // Convert diagnosis type to string (SCREAMING_SNAKE_CASE for database)
+        let diagnosis_type_str = data.diagnosis_type.as_ref().map(|t| match t {
+            DiagnosisType::Provisional => "PROVISIONAL",
+            DiagnosisType::Confirmed => "CONFIRMED",
+            DiagnosisType::Differential => "DIFFERENTIAL",
+            DiagnosisType::RuleOut => "RULE_OUT",
+        }.to_string());
 
         // Insert diagnosis
         let diagnosis = sqlx::query_as!(
@@ -311,8 +316,13 @@ impl VisitDiagnosisService {
             None
         };
 
-        // Convert diagnosis type to string
-        let diagnosis_type_str = data.diagnosis_type.as_ref().map(|t| format!("{:?}", t).to_uppercase());
+        // Convert diagnosis type to string (SCREAMING_SNAKE_CASE for database)
+        let diagnosis_type_str = data.diagnosis_type.as_ref().map(|t| match t {
+            DiagnosisType::Provisional => "PROVISIONAL",
+            DiagnosisType::Confirmed => "CONFIRMED",
+            DiagnosisType::Differential => "DIFFERENTIAL",
+            DiagnosisType::RuleOut => "RULE_OUT",
+        }.to_string());
 
         // Update diagnosis
         let diagnosis = sqlx::query_as!(

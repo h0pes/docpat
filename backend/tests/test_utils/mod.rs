@@ -21,7 +21,7 @@ use docpat_backend::{
     middleware::session_timeout::SessionManager,
     models::UserRole,
     routes::create_api_v1_routes,
-    services::{AuthService, SettingsService},
+    services::{AuthService, EmailService, SettingsService},
     utils::{encryption::EncryptionKey, PasswordHasherUtil},
 };
 
@@ -39,8 +39,19 @@ impl TestApp {
     /// - Application state
     /// - Router with all routes
     pub async fn new() -> (Router, PgPool) {
+        // Initialize tracing for tests (only once)
+        use std::sync::Once;
+        static INIT: Once = Once::new();
+        INIT.call_once(|| {
+            tracing_subscriber::fmt()
+                .with_env_filter("docpat_backend=debug,warn")
+                .with_test_writer()
+                .try_init()
+                .ok();
+        });
+
         // Load environment variables from .env file
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         // Load test configuration from environment or use defaults
         let db_config = DatabaseConfig {
@@ -95,13 +106,18 @@ impl TestApp {
         // Create settings service
         let settings_service = Arc::new(SettingsService::new(pool.clone()));
 
+        // Create a disabled email service for notification testing
+        // This allows notification endpoints to work without actual SMTP
+        let email_service = EmailService::new(None)
+            .expect("Failed to create disabled email service for tests");
+
         // Create application state
         let app_state = AppState {
             pool: pool.clone(),
             auth_service,
             session_manager,
             encryption_key: Some(encryption_key),
-            email_service: None, // Email service not needed for tests
+            email_service: Some(email_service),
             settings_service,
             start_time: std::time::SystemTime::now(),
             environment: "test".to_string(),
@@ -140,104 +156,86 @@ pub async fn setup_test_db(config: &DatabaseConfig) -> PgPool {
 
 /// Clean up test database
 ///
-/// Removes all test data from the database
-/// Uses a transaction with admin RLS context to bypass RLS policies during cleanup
+/// Removes all test data from the database using TRUNCATE CASCADE
+/// which bypasses RLS policies and is more reliable than DELETE.
+/// Note: TRUNCATE users CASCADE also cascades to default_working_hours and
+/// system_settings via updated_by FK, so we re-seed them after cleanup.
 pub async fn teardown_test_db(pool: &PgPool) {
-    // Start a transaction to set RLS context
-    let mut tx = match pool.begin().await {
-        Ok(tx) => tx,
-        Err(e) => {
-            eprintln!("Failed to begin teardown transaction: {}", e);
-            return;
-        }
-    };
+    // Use TRUNCATE CASCADE to efficiently clean all test data
+    // This bypasses RLS policies and cascades to dependent tables
+    // Note: CASCADE to default_working_hours and system_settings via updated_by FK
+    sqlx::query(
+        r#"
+        TRUNCATE users, patients, patient_insurance, appointments,
+                 visits, visit_diagnoses, visit_templates, visit_versions,
+                 prescriptions, prescription_templates,
+                 document_templates, generated_documents,
+                 holidays, uploaded_files, audit_logs,
+                 notifications, patient_notification_preferences CASCADE
+        "#
+    )
+    .execute(pool)
+    .await
+    .ok();
 
-    // Set RLS context as ADMIN to allow DELETE operations
-    // Use a dummy UUID for teardown operations
-    let admin_id = uuid::Uuid::nil();
-    sqlx::query(&format!("SET LOCAL app.current_user_id = '{}'", admin_id))
-        .execute(&mut *tx)
-        .await
-        .ok();
+    // Re-seed default working hours (Mon-Fri 9:00-18:00, weekends closed)
+    // These get deleted by CASCADE from TRUNCATE users because of updated_by FK
+    sqlx::query(
+        r#"
+        INSERT INTO default_working_hours (day_of_week, start_time, end_time, is_working_day)
+        VALUES
+            (1, '09:00', '18:00', true),
+            (2, '09:00', '18:00', true),
+            (3, '09:00', '18:00', true),
+            (4, '09:00', '18:00', true),
+            (5, '09:00', '18:00', true),
+            (6, NULL, NULL, false),
+            (7, NULL, NULL, false)
+        ON CONFLICT (day_of_week) DO NOTHING
+        "#
+    )
+    .execute(pool)
+    .await
+    .ok();
 
-    sqlx::query("SET LOCAL app.current_user_role = 'ADMIN'")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    // Clean up all tables in reverse order of dependencies
-    sqlx::query("DELETE FROM audit_logs")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM uploaded_files")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM generated_documents")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM document_templates")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM prescription_templates")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM prescriptions")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM visit_versions")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM visit_diagnoses")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM visit_templates")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM visits")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM appointments")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM patient_insurance")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM patients")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    sqlx::query("DELETE FROM users")
-        .execute(&mut *tx)
-        .await
-        .ok();
-
-    // Commit the transaction
-    tx.commit().await.ok();
+    // Re-seed default system settings (also deleted by CASCADE from users.updated_by FK)
+    sqlx::query(
+        r#"
+        INSERT INTO system_settings (setting_key, setting_group, setting_name, setting_value, value_type, description, default_value, is_public, is_readonly) VALUES
+        ('clinic.name', 'clinic', 'Clinic Name', '"Medical Practice"', 'STRING', 'Name of the medical practice', '"Medical Practice"', true, false),
+        ('clinic.address', 'clinic', 'Clinic Address', '"123 Main St, City, State 12345"', 'STRING', 'Physical address of the clinic', '""', true, false),
+        ('clinic.phone', 'clinic', 'Clinic Phone', '"+1-555-0100"', 'STRING', 'Main clinic phone number', '""', true, false),
+        ('clinic.email', 'clinic', 'Clinic Email', '"info@clinic.com"', 'STRING', 'Main clinic email address', '""', true, false),
+        ('clinic.timezone', 'clinic', 'Timezone', '"Europe/Rome"', 'STRING', 'Clinic timezone for appointments', '"Europe/Rome"', false, false),
+        ('appointment.default_duration', 'appointment', 'Default Appointment Duration (minutes)', '30', 'INTEGER', 'Default duration for appointments in minutes', '30', false, false),
+        ('appointment.booking_advance_days', 'appointment', 'Booking Advance (days)', '90', 'INTEGER', 'How many days in advance patients can book', '90', false, false),
+        ('appointment.cancellation_hours', 'appointment', 'Cancellation Notice (hours)', '24', 'INTEGER', 'Minimum hours notice required for cancellation', '24', false, false),
+        ('appointment.buffer_minutes', 'appointment', 'Buffer Between Appointments (minutes)', '0', 'INTEGER', 'Buffer time between appointments', '0', false, false),
+        ('appointment.allow_double_booking', 'appointment', 'Allow Double Booking', 'false', 'BOOLEAN', 'Whether to allow double-booking appointments', 'false', false, false),
+        ('notification.reminder_hours_before', 'notification', 'Reminder Hours Before', '24', 'INTEGER', 'Hours before appointment to send reminder', '24', false, false),
+        ('notification.email_enabled', 'notification', 'Email Notifications Enabled', 'false', 'BOOLEAN', 'Enable email notifications', 'false', false, false),
+        ('notification.sms_enabled', 'notification', 'SMS Notifications Enabled', 'false', 'BOOLEAN', 'Enable SMS notifications', 'false', false, false),
+        ('notification.whatsapp_enabled', 'notification', 'WhatsApp Notifications Enabled', 'false', 'BOOLEAN', 'Enable WhatsApp notifications', 'false', false, false),
+        ('security.session_timeout_minutes', 'security', 'Session Timeout (minutes)', '30', 'INTEGER', 'Session inactivity timeout in minutes', '30', false, false),
+        ('security.mfa_required', 'security', 'MFA Required', 'true', 'BOOLEAN', 'Require multi-factor authentication for all users', 'true', false, false),
+        ('security.password_expiry_days', 'security', 'Password Expiry (days)', '90', 'INTEGER', 'Days until password expires (0 = never)', '90', false, false),
+        ('security.max_login_attempts', 'security', 'Max Login Attempts', '5', 'INTEGER', 'Maximum failed login attempts before lockout', '5', false, false),
+        ('security.lockout_duration_minutes', 'security', 'Lockout Duration (minutes)', '15', 'INTEGER', 'Duration of account lockout after max failed attempts', '15', false, false),
+        ('backup.enabled', 'backup', 'Automated Backups Enabled', 'true', 'BOOLEAN', 'Enable automated database backups', 'true', false, false),
+        ('backup.retention_days', 'backup', 'Backup Retention (days)', '30', 'INTEGER', 'Days to retain backups', '30', false, false),
+        ('backup.schedule', 'backup', 'Backup Schedule (cron)', '"0 2 * * *"', 'STRING', 'Cron expression for backup schedule', '"0 2 * * *"', false, false),
+        ('localization.default_language', 'localization', 'Default Language', '"it"', 'STRING', 'Default system language (it or en)', '"it"', true, false),
+        ('localization.supported_languages', 'localization', 'Supported Languages', '["it", "en"]', 'ARRAY', 'List of supported languages', '["it", "en"]', true, true),
+        ('localization.date_format', 'localization', 'Date Format', '"DD/MM/YYYY"', 'STRING', 'Date display format', '"DD/MM/YYYY"', false, false),
+        ('localization.time_format', 'localization', 'Time Format', '"24h"', 'STRING', 'Time display format (12h or 24h)', '"24h"', false, false),
+        ('system.maintenance_mode', 'system', 'Maintenance Mode', 'false', 'BOOLEAN', 'Enable maintenance mode (blocks access)', 'false', true, false),
+        ('system.maintenance_message', 'system', 'Maintenance Message', '"System is under maintenance. Please try again later."', 'STRING', 'Message to show during maintenance', '"System is under maintenance."', true, false)
+        ON CONFLICT (setting_key) DO NOTHING
+        "#
+    )
+    .execute(pool)
+    .await
+    .ok();
 }
 
 /// Test user helper

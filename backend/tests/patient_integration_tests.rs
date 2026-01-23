@@ -91,7 +91,7 @@ async fn create_test_patient(
         "email": format!("{}.{}@test.com", first_name.to_lowercase(), last_name.to_lowercase()),
         "preferred_contact_method": "PHONE",
         "blood_type": "A+",
-        "health_card_expire": "2025-12-31",
+        "health_card_expire": "2027-12-31",
     });
 
     if let Some(fc) = fiscal_code {
@@ -161,7 +161,7 @@ async fn test_create_patient_as_doctor_success() {
                         "blood_type": "A+",
                         "allergies": ["Penicillin", "Peanuts"],
                         "chronic_conditions": ["Hypertension", "Diabetes Type 2"],
-                        "health_card_expire": "2025-12-31",
+                        "health_card_expire": "2027-12-31",
                         "notes": "Regular patient, visits monthly for checkup"
                     })
                     .to_string(),
@@ -1423,11 +1423,12 @@ async fn test_patient_data_encrypted_in_database() {
     // Query database directly to verify data is encrypted
     // Need to set RLS context for direct database query
     let mut tx = pool.begin().await.unwrap();
-    sqlx::query(&format!("SET LOCAL app.current_user_id = '{}'", doctor.id))
+    sqlx::query("SELECT set_config('app.current_user_id', $1, true)")
+        .bind(doctor.id.to_string())
         .execute(&mut *tx)
         .await
         .unwrap();
-    sqlx::query("SET LOCAL app.current_user_role = 'DOCTOR'")
+    sqlx::query("SELECT set_config('app.current_user_role', 'DOCTOR', true)")
         .execute(&mut *tx)
         .await
         .unwrap();

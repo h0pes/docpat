@@ -290,8 +290,9 @@ pub async fn delete_template(
         .ok_or_else(|| AppError::Internal("Encryption key not configured".to_string()))?;
 
     let template_service = VisitTemplateService::new(state.pool.clone(), encryption_key.clone());
+    let is_admin = matches!(auth_user.role, UserRole::Admin);
     template_service
-        .delete_template(id, auth_user.user_id)
+        .delete_template(id, auth_user.user_id, is_admin)
         .await
         .map_err(|e| {
             tracing::error!("Failed to delete visit template {}: {}", id, e);

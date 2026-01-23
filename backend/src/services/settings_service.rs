@@ -520,8 +520,8 @@ impl SettingsService {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_validate_string_type() {
+    #[tokio::test]
+    async fn test_validate_string_type() {
         let service = SettingsService {
             pool: sqlx::PgPool::connect_lazy("postgres://").unwrap(),
             cache: RwLock::new(HashMap::new()),
@@ -537,8 +537,8 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_validate_integer_type() {
+    #[tokio::test]
+    async fn test_validate_integer_type() {
         let service = SettingsService {
             pool: sqlx::PgPool::connect_lazy("postgres://").unwrap(),
             cache: RwLock::new(HashMap::new()),
@@ -554,8 +554,8 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_validate_boolean_type() {
+    #[tokio::test]
+    async fn test_validate_boolean_type() {
         let service = SettingsService {
             pool: sqlx::PgPool::connect_lazy("postgres://").unwrap(),
             cache: RwLock::new(HashMap::new()),
@@ -574,8 +574,8 @@ mod tests {
         assert!(result.is_err());
     }
 
-    #[test]
-    fn test_validate_array_type() {
+    #[tokio::test]
+    async fn test_validate_array_type() {
         let service = SettingsService {
             pool: sqlx::PgPool::connect_lazy("postgres://").unwrap(),
             cache: RwLock::new(HashMap::new()),

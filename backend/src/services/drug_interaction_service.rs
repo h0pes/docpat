@@ -1057,6 +1057,8 @@ pub struct InteractionStatistics {
 mod tests {
     use super::*;
 
+    // ==================== InteractionSeverity Tests ====================
+
     #[test]
     fn test_severity_from_string() {
         assert_eq!(InteractionSeverity::from("contraindicated"), InteractionSeverity::Contraindicated);
@@ -1068,10 +1070,474 @@ mod tests {
     }
 
     #[test]
+    fn test_severity_from_string_case_insensitive() {
+        assert_eq!(InteractionSeverity::from("CONTRAINDICATED"), InteractionSeverity::Contraindicated);
+        assert_eq!(InteractionSeverity::from("Contraindicated"), InteractionSeverity::Contraindicated);
+        assert_eq!(InteractionSeverity::from("MODERATE"), InteractionSeverity::Moderate);
+    }
+
+    #[test]
+    fn test_severity_from_empty_string() {
+        assert_eq!(InteractionSeverity::from(""), InteractionSeverity::Unknown);
+    }
+
+    #[test]
+    fn test_severity_from_whitespace() {
+        assert_eq!(InteractionSeverity::from("  "), InteractionSeverity::Unknown);
+    }
+
+    #[test]
     fn test_severity_priority() {
         assert!(InteractionSeverity::Contraindicated.priority() > InteractionSeverity::Major.priority());
         assert!(InteractionSeverity::Major.priority() > InteractionSeverity::Moderate.priority());
         assert!(InteractionSeverity::Moderate.priority() > InteractionSeverity::Minor.priority());
         assert!(InteractionSeverity::Minor.priority() > InteractionSeverity::Unknown.priority());
+    }
+
+    #[test]
+    fn test_severity_priority_values() {
+        assert_eq!(InteractionSeverity::Contraindicated.priority(), 5);
+        assert_eq!(InteractionSeverity::Major.priority(), 4);
+        assert_eq!(InteractionSeverity::Moderate.priority(), 3);
+        assert_eq!(InteractionSeverity::Minor.priority(), 2);
+        assert_eq!(InteractionSeverity::Unknown.priority(), 1);
+    }
+
+    #[test]
+    fn test_severity_display_name_contraindicated() {
+        assert_eq!(InteractionSeverity::Contraindicated.display_name(), "Contraindicated");
+    }
+
+    #[test]
+    fn test_severity_display_name_major() {
+        assert_eq!(InteractionSeverity::Major.display_name(), "Major");
+    }
+
+    #[test]
+    fn test_severity_display_name_moderate() {
+        assert_eq!(InteractionSeverity::Moderate.display_name(), "Moderate");
+    }
+
+    #[test]
+    fn test_severity_display_name_minor() {
+        assert_eq!(InteractionSeverity::Minor.display_name(), "Minor");
+    }
+
+    #[test]
+    fn test_severity_display_name_unknown() {
+        assert_eq!(InteractionSeverity::Unknown.display_name(), "Unknown");
+    }
+
+    // ==================== Fuzzy Matching Tests (drugs_match) ====================
+
+    #[test]
+    fn test_drugs_match_exact_name() {
+        // Exact match should always work
+        assert!(DrugInteractionService::drugs_match(
+            "ibuprofen",
+            None,
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_case_insensitive() {
+        assert!(DrugInteractionService::drugs_match(
+            "IBUPROFEN",
+            None,
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_italian_to_english_ibuprofen() {
+        // Ibuprofene (IT) → Ibuprofen (EN) should match
+        assert!(DrugInteractionService::drugs_match(
+            "ibuprofene",
+            None,
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_italian_to_english_ketoprofen() {
+        // Ketoprofene (IT) → Ketoprofen (EN) should match
+        assert!(DrugInteractionService::drugs_match(
+            "ketoprofene",
+            None,
+            Some("ketoprofen"),
+            "M01AE03"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_atc_code_exact() {
+        // ATC code match should work even if names don't match
+        assert!(DrugInteractionService::drugs_match(
+            "completely different name",
+            Some("M01AE01"),
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_atc_code_case_insensitive() {
+        assert!(DrugInteractionService::drugs_match(
+            "any name",
+            Some("m01ae01"),
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_no_match_different_drugs() {
+        // Completely different drugs should not match
+        assert!(!DrugInteractionService::drugs_match(
+            "aspirin",
+            None,
+            Some("metformin"),
+            "A10BA02"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_similar_but_different() {
+        // Similar names but different drugs (below threshold)
+        // ketoprofene vs fenoprofen similarity is ~0.7
+        assert!(!DrugInteractionService::drugs_match(
+            "ketoprofene",
+            None,
+            Some("fenoprofen"),
+            "M01AE04"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_none_ddinter_name() {
+        // No DDInter name should not match without ATC
+        assert!(!DrugInteractionService::drugs_match(
+            "ibuprofen",
+            None,
+            None,
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_with_atc_no_ddinter_name() {
+        // Should match via ATC even without DDInter name
+        assert!(DrugInteractionService::drugs_match(
+            "ibuprofen",
+            Some("M01AE01"),
+            None,
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_paracetamol_acetaminophen() {
+        // Paracetamol (UK/IT) vs Acetaminophen (US) - names too different
+        // This tests that very different names don't false-match
+        assert!(!DrugInteractionService::drugs_match(
+            "paracetamolo",
+            None,
+            Some("acetaminophen"),
+            "N02BE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_minor_spelling_variation() {
+        // Minor spelling variations should match
+        assert!(DrugInteractionService::drugs_match(
+            "amoxicillina",
+            None,
+            Some("amoxicillin"),
+            "J01CA04"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_omeprazolo_omeprazole() {
+        // Italian omeprazolo vs English omeprazole
+        assert!(DrugInteractionService::drugs_match(
+            "omeprazolo",
+            None,
+            Some("omeprazole"),
+            "A02BC01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_metformina_metformin() {
+        // Italian metformina vs English metformin
+        assert!(DrugInteractionService::drugs_match(
+            "metformina",
+            None,
+            Some("metformin"),
+            "A10BA02"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_atorvastatina_atorvastatin() {
+        // Italian atorvastatina vs English atorvastatin
+        assert!(DrugInteractionService::drugs_match(
+            "atorvastatina",
+            None,
+            Some("atorvastatin"),
+            "C10AA05"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_short_names() {
+        // Very short names might not have enough characters for similarity
+        assert!(DrugInteractionService::drugs_match(
+            "ace",
+            None,
+            Some("ace"),
+            "X00XX00"
+        ));
+    }
+
+    // ==================== Structure Tests ====================
+
+    #[test]
+    fn test_check_interactions_request_default() {
+        let request = CheckInteractionsRequest {
+            atc_codes: vec!["M01AE01".to_string()],
+            min_severity: None,
+            include_inactive: false,
+        };
+        assert_eq!(request.atc_codes.len(), 1);
+        assert!(!request.include_inactive);
+    }
+
+    #[test]
+    fn test_check_interactions_request_multiple_codes() {
+        let request = CheckInteractionsRequest {
+            atc_codes: vec![
+                "M01AE01".to_string(),
+                "N02BE01".to_string(),
+                "C10AA05".to_string(),
+            ],
+            min_severity: Some("moderate".to_string()),
+            include_inactive: false,
+        };
+        assert_eq!(request.atc_codes.len(), 3);
+        assert_eq!(request.min_severity, Some("moderate".to_string()));
+    }
+
+    #[test]
+    fn test_check_interactions_response_empty() {
+        let response = CheckInteractionsResponse {
+            interactions: vec![],
+            total: 0,
+            major_count: 0,
+            moderate_count: 0,
+            minor_count: 0,
+            highest_severity: None,
+        };
+        assert_eq!(response.total, 0);
+        assert!(response.highest_severity.is_none());
+    }
+
+    #[test]
+    fn test_check_interactions_response_with_interactions() {
+        let response = CheckInteractionsResponse {
+            interactions: vec![],
+            total: 5,
+            major_count: 2,
+            moderate_count: 2,
+            minor_count: 1,
+            highest_severity: Some(InteractionSeverity::Major),
+        };
+        assert_eq!(response.total, 5);
+        assert_eq!(response.major_count, 2);
+        assert_eq!(response.highest_severity, Some(InteractionSeverity::Major));
+    }
+
+    #[test]
+    fn test_check_new_medication_request() {
+        let request = CheckNewMedicationRequest {
+            new_atc_code: "M01AE01".to_string(),
+            existing_atc_codes: vec!["N02BE01".to_string(), "C10AA05".to_string()],
+            min_severity: None,
+        };
+        assert_eq!(request.new_atc_code, "M01AE01");
+        assert_eq!(request.existing_atc_codes.len(), 2);
+    }
+
+    #[test]
+    fn test_check_new_medication_for_patient_request() {
+        let request = CheckNewMedicationForPatientRequest {
+            new_medication_name: "Ibuprofene 400mg".to_string(),
+            new_generic_name: Some("ibuprofene".to_string()),
+            patient_id: Uuid::new_v4(),
+            min_severity: Some("moderate".to_string()),
+        };
+        assert!(!request.new_medication_name.is_empty());
+        assert!(request.new_generic_name.is_some());
+    }
+
+    #[test]
+    fn test_interaction_statistics_structure() {
+        let stats = InteractionStatistics {
+            total: 170000,
+            contraindicated: 500,
+            major: 15000,
+            moderate: 80000,
+            minor: 70000,
+            unknown: 4500,
+            sources: 3,
+        };
+        assert_eq!(stats.total, 170000);
+        assert_eq!(stats.contraindicated, 500);
+        assert_eq!(stats.sources, 3);
+    }
+
+    #[test]
+    fn test_interaction_statistics_zero() {
+        let stats = InteractionStatistics {
+            total: 0,
+            contraindicated: 0,
+            major: 0,
+            moderate: 0,
+            minor: 0,
+            unknown: 0,
+            sources: 0,
+        };
+        assert_eq!(stats.total, 0);
+    }
+
+    #[test]
+    fn test_drug_interaction_structure() {
+        let interaction = DrugInteraction {
+            id: Uuid::new_v4(),
+            drug_a_atc_code: "M01AE01".to_string(),
+            drug_a_name: Some("Ibuprofen".to_string()),
+            drug_b_atc_code: "N02BE01".to_string(),
+            drug_b_name: Some("Paracetamol".to_string()),
+            severity: InteractionSeverity::Moderate,
+            effect: Some("Increased risk of GI bleeding".to_string()),
+            mechanism: Some("Both drugs affect COX enzymes".to_string()),
+            management: Some("Use with caution".to_string()),
+            source: "DDINTER".to_string(),
+        };
+        assert_eq!(interaction.drug_a_atc_code, "M01AE01");
+        assert_eq!(interaction.severity, InteractionSeverity::Moderate);
+    }
+
+    // ==================== Serialization Tests ====================
+
+    #[test]
+    fn test_severity_serialization() {
+        let severity = InteractionSeverity::Major;
+        let json = serde_json::to_string(&severity).unwrap();
+        assert_eq!(json, "\"major\"");
+    }
+
+    #[test]
+    fn test_severity_deserialization() {
+        let json = "\"moderate\"";
+        let severity: InteractionSeverity = serde_json::from_str(json).unwrap();
+        assert_eq!(severity, InteractionSeverity::Moderate);
+    }
+
+    #[test]
+    fn test_severity_serialization_contraindicated() {
+        let severity = InteractionSeverity::Contraindicated;
+        let json = serde_json::to_string(&severity).unwrap();
+        assert_eq!(json, "\"contraindicated\"");
+    }
+
+    #[test]
+    fn test_interaction_statistics_serialization() {
+        let stats = InteractionStatistics {
+            total: 100,
+            contraindicated: 5,
+            major: 20,
+            moderate: 50,
+            minor: 20,
+            unknown: 5,
+            sources: 2,
+        };
+        let json = serde_json::to_string(&stats).unwrap();
+        assert!(json.contains("\"total\":100"));
+        assert!(json.contains("\"contraindicated\":5"));
+    }
+
+    #[test]
+    fn test_check_interactions_response_serialization() {
+        let response = CheckInteractionsResponse {
+            interactions: vec![],
+            total: 3,
+            major_count: 1,
+            moderate_count: 2,
+            minor_count: 0,
+            highest_severity: Some(InteractionSeverity::Major),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("\"total\":3"));
+        assert!(json.contains("\"highest_severity\":\"major\""));
+    }
+
+    // ==================== Edge Cases ====================
+
+    #[test]
+    fn test_drugs_match_empty_patient_name() {
+        assert!(!DrugInteractionService::drugs_match(
+            "",
+            None,
+            Some("ibuprofen"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_empty_ddinter_name() {
+        assert!(!DrugInteractionService::drugs_match(
+            "ibuprofen",
+            None,
+            Some(""),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_drugs_match_unicode_names() {
+        // Test with accented characters
+        assert!(DrugInteractionService::drugs_match(
+            "ibuprofène",
+            None,
+            Some("ibuprofene"),
+            "M01AE01"
+        ));
+    }
+
+    #[test]
+    fn test_severity_ordering() {
+        let mut severities = vec![
+            InteractionSeverity::Minor,
+            InteractionSeverity::Contraindicated,
+            InteractionSeverity::Moderate,
+            InteractionSeverity::Major,
+            InteractionSeverity::Unknown,
+        ];
+
+        // Sort by priority descending
+        severities.sort_by(|a, b| b.priority().cmp(&a.priority()));
+
+        assert_eq!(severities[0], InteractionSeverity::Contraindicated);
+        assert_eq!(severities[1], InteractionSeverity::Major);
+        assert_eq!(severities[2], InteractionSeverity::Moderate);
+        assert_eq!(severities[3], InteractionSeverity::Minor);
+        assert_eq!(severities[4], InteractionSeverity::Unknown);
     }
 }

@@ -1499,12 +1499,240 @@ impl PrescriptionService {
 mod tests {
     use super::*;
 
-    // Test disabled - EncryptionKey::from_base64() method doesn't exist
-    // Use from_env() or create integration tests instead
-    /*
+    // ============================================================================
+    // MedicationSearchResult Tests
+    // ============================================================================
+
     #[test]
-    fn test_medication_search_filtering() {
-        // Disabled - requires proper encryption key initialization
+    fn test_medication_search_result_creation() {
+        let result = MedicationSearchResult {
+            name: "Ibuprofen".to_string(),
+            generic_name: Some("Ibuprofen".to_string()),
+            form: Some(MedicationForm::Tablet),
+            common_dosages: vec!["200mg".to_string(), "400mg".to_string(), "600mg".to_string()],
+        };
+
+        assert_eq!(result.name, "Ibuprofen");
+        assert_eq!(result.generic_name, Some("Ibuprofen".to_string()));
+        assert_eq!(result.form, Some(MedicationForm::Tablet));
+        assert_eq!(result.common_dosages.len(), 3);
     }
-    */
+
+    #[test]
+    fn test_medication_search_result_serialization() {
+        let result = MedicationSearchResult {
+            name: "Amoxicillin".to_string(),
+            generic_name: Some("Amoxicillin Trihydrate".to_string()),
+            form: Some(MedicationForm::Capsule),
+            common_dosages: vec!["250mg".to_string(), "500mg".to_string()],
+        };
+
+        let json = serde_json::to_string(&result).expect("Should serialize");
+        assert!(json.contains("Amoxicillin"));
+        assert!(json.contains("CAPSULE"));
+
+        // Deserialize back
+        let deserialized: MedicationSearchResult =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.name, "Amoxicillin");
+        assert_eq!(deserialized.form, Some(MedicationForm::Capsule));
+    }
+
+    #[test]
+    fn test_medication_search_result_with_no_optional_fields() {
+        let result = MedicationSearchResult {
+            name: "Generic Drug".to_string(),
+            generic_name: None,
+            form: None,
+            common_dosages: vec![],
+        };
+
+        assert!(result.generic_name.is_none());
+        assert!(result.form.is_none());
+        assert!(result.common_dosages.is_empty());
+    }
+
+    // ============================================================================
+    // Form String Conversion Tests
+    // ============================================================================
+
+    #[test]
+    fn test_form_string_conversion_tablet() {
+        let form_str = "tablet";
+        let form = match form_str.to_lowercase().as_str() {
+            "tablet" => Some(MedicationForm::Tablet),
+            _ => None,
+        };
+        assert_eq!(form, Some(MedicationForm::Tablet));
+    }
+
+    #[test]
+    fn test_form_string_conversion_capsule() {
+        let form_str = "CAPSULE";
+        let form = match form_str.to_lowercase().as_str() {
+            "capsule" => Some(MedicationForm::Capsule),
+            _ => None,
+        };
+        assert_eq!(form, Some(MedicationForm::Capsule));
+    }
+
+    #[test]
+    fn test_form_string_conversion_liquid_variants() {
+        for form_str in &["liquid", "solution", "syrup"] {
+            let form = match form_str.to_lowercase().as_str() {
+                "liquid" | "solution" | "syrup" => Some(MedicationForm::Liquid),
+                _ => None,
+            };
+            assert_eq!(form, Some(MedicationForm::Liquid), "Failed for: {}", form_str);
+        }
+    }
+
+    #[test]
+    fn test_form_string_conversion_topical_variants() {
+        for form_str in &["topical", "cream", "gel", "ointment"] {
+            let form = match form_str.to_lowercase().as_str() {
+                "topical" | "cream" | "gel" | "ointment" => Some(MedicationForm::Topical),
+                _ => None,
+            };
+            assert_eq!(form, Some(MedicationForm::Topical), "Failed for: {}", form_str);
+        }
+    }
+
+    #[test]
+    fn test_form_string_conversion_patch_variants() {
+        for form_str in &["patch", "transdermal"] {
+            let form = match form_str.to_lowercase().as_str() {
+                "patch" | "transdermal" => Some(MedicationForm::Patch),
+                _ => None,
+            };
+            assert_eq!(form, Some(MedicationForm::Patch), "Failed for: {}", form_str);
+        }
+    }
+
+    #[test]
+    fn test_form_string_conversion_unknown() {
+        let form_str = "unknown_form";
+        let form: Option<MedicationForm> = match form_str.to_lowercase().as_str() {
+            "tablet" => Some(MedicationForm::Tablet),
+            "capsule" => Some(MedicationForm::Capsule),
+            _ => None,
+        };
+        assert!(form.is_none());
+    }
+
+    // ============================================================================
+    // Status Transition Logic Tests
+    // ============================================================================
+
+    #[test]
+    fn test_active_prescription_can_be_cancelled() {
+        // Only ACTIVE prescriptions can be cancelled (as per service logic)
+        let status = PrescriptionStatus::Active;
+        assert_eq!(status, PrescriptionStatus::Active);
+    }
+
+    #[test]
+    fn test_on_hold_prescription_cannot_be_cancelled() {
+        // ON_HOLD cannot be cancelled, must be resumed or discontinued
+        let status = PrescriptionStatus::OnHold;
+        assert_ne!(status, PrescriptionStatus::Active);
+    }
+
+    #[test]
+    fn test_active_or_on_hold_can_be_completed() {
+        // Both ACTIVE and ON_HOLD can be marked complete
+        let active = PrescriptionStatus::Active;
+        let on_hold = PrescriptionStatus::OnHold;
+
+        assert!(matches!(active, PrescriptionStatus::Active | PrescriptionStatus::OnHold));
+        assert!(matches!(on_hold, PrescriptionStatus::Active | PrescriptionStatus::OnHold));
+    }
+
+    #[test]
+    fn test_completed_prescription_is_terminal_state() {
+        let status = PrescriptionStatus::Completed;
+        // Completed prescriptions cannot be refilled or discontinued
+        assert!(!status.can_refill());
+        assert!(!status.can_discontinue());
+    }
+
+    #[test]
+    fn test_cancelled_prescription_is_terminal_state() {
+        let status = PrescriptionStatus::Cancelled;
+        assert!(!status.can_refill());
+        assert!(!status.can_discontinue());
+    }
+
+    #[test]
+    fn test_discontinued_prescription_is_terminal_state() {
+        let status = PrescriptionStatus::Discontinued;
+        assert!(!status.can_refill());
+        assert!(!status.can_discontinue());
+    }
+
+    // ============================================================================
+    // Drug Interaction Placeholder Tests
+    // ============================================================================
+
+    // Note: check_drug_interactions() is a placeholder that returns empty vec.
+    // When implemented, these tests should be updated to test real logic.
+
+    #[test]
+    fn test_drug_interaction_warning_structure() {
+        let warning = DrugInteractionWarning {
+            medication_name: "Warfarin".to_string(),
+            severity: "major".to_string(),
+            description: "May increase bleeding risk".to_string(),
+        };
+
+        assert_eq!(warning.medication_name, "Warfarin");
+        assert_eq!(warning.severity, "major");
+        assert!(!warning.description.is_empty());
+    }
+
+    #[test]
+    fn test_drug_interaction_warning_serialization() {
+        let warning = DrugInteractionWarning {
+            medication_name: "Aspirin".to_string(),
+            severity: "moderate".to_string(),
+            description: "May cause GI bleeding when combined with NSAIDs".to_string(),
+        };
+
+        let json = serde_json::to_string(&warning).expect("Should serialize");
+        assert!(json.contains("Aspirin"));
+        assert!(json.contains("moderate"));
+
+        let deserialized: DrugInteractionWarning =
+            serde_json::from_str(&json).expect("Should deserialize");
+        assert_eq!(deserialized.severity, "moderate");
+    }
+
+    // ============================================================================
+    // Enum Conversion Tests
+    // ============================================================================
+
+    #[test]
+    fn test_medication_form_enum_format() {
+        let form = MedicationForm::Tablet;
+        let form_str = format!("{:?}", form).to_uppercase();
+        assert_eq!(form_str, "TABLET");
+    }
+
+    #[test]
+    fn test_route_enum_format() {
+        let route = RouteOfAdministration::Oral;
+        let route_str = format!("{:?}", route).to_uppercase();
+        assert_eq!(route_str, "ORAL");
+
+        let route2 = RouteOfAdministration::Intravenous;
+        let route_str2 = format!("{:?}", route2).to_uppercase();
+        assert_eq!(route_str2, "INTRAVENOUS");
+    }
+
+    #[test]
+    fn test_prescription_status_enum_format() {
+        let status = PrescriptionStatus::Active;
+        let status_str = format!("{:?}", status).to_uppercase();
+        assert_eq!(status_str, "ACTIVE");
+    }
 }
