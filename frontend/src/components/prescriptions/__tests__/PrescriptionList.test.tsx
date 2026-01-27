@@ -256,7 +256,8 @@ describe('PrescriptionList', () => {
     it('passes onRenew callback to prescription cards', async () => {
       const user = userEvent.setup();
       const onRenew = vi.fn();
-      const prescriptions = [createMockPrescription()];
+      // Renew is only available for COMPLETED, DISCONTINUED, or CANCELLED prescriptions
+      const prescriptions = [createMockPrescription({ status: PrescriptionStatus.COMPLETED })];
 
       render(<PrescriptionList prescriptions={prescriptions} onRenew={onRenew} />);
 

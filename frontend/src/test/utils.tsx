@@ -56,6 +56,7 @@ export function AllProviders({ children, queryClient, withRouter = false }: AllP
 
 /**
  * Custom render function that wraps components with all providers
+ * Returns render result plus a user object from userEvent.setup()
  */
 export function renderWithProviders(
   ui: ReactElement,
@@ -65,13 +66,19 @@ export function renderWithProviders(
   }
 ) {
   const { queryClient, withRouter = false, ...renderOptions } = options || {};
+  const user = require('@testing-library/user-event').default.setup();
 
-  return render(ui, {
+  const result = render(ui, {
     wrapper: ({ children }) => (
       <AllProviders queryClient={queryClient} withRouter={withRouter}>{children}</AllProviders>
     ),
     ...renderOptions,
   });
+
+  return {
+    ...result,
+    user,
+  };
 }
 
 /**

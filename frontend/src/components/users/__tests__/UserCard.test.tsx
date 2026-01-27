@@ -158,7 +158,7 @@ describe('UserCard', () => {
     );
 
     // Find and click the actions button
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
 
     // Check menu items are shown
@@ -174,7 +174,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={mockUser} onView={handleView} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
     await user.click(screen.getByText('users.actions.view'));
 
@@ -187,7 +187,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={mockUser} onEdit={handleEdit} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
     await user.click(screen.getByText('users.actions.edit'));
 
@@ -200,7 +200,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={inactiveUser} onActivate={vi.fn()} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
 
     expect(screen.getByText('users.actions.activate')).toBeInTheDocument();
@@ -212,7 +212,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={mockUser} onDeactivate={vi.fn()} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
 
     expect(screen.getByText('users.actions.deactivate')).toBeInTheDocument();
@@ -224,7 +224,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={mockAdminUser} onResetMfa={vi.fn()} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
 
     expect(screen.getByText('users.actions.reset_mfa')).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe('UserCard', () => {
 
     render(<UserCard user={mockUser} onResetMfa={vi.fn()} />);
 
-    const actionsButton = screen.getByRole('button', { name: /common\.actions/i });
+    const actionsButton = screen.getByRole('button', { name: /common\.menu/i });
     await user.click(actionsButton);
 
     expect(screen.queryByText('users.actions.reset_mfa')).not.toBeInTheDocument();

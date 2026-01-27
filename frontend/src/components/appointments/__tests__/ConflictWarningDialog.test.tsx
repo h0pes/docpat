@@ -220,7 +220,9 @@ describe('ConflictWarningDialog', () => {
       );
 
       // Time will be formatted as HH:mm - HH:mm (timezone may affect exact time displayed)
-      expect(screen.getByText(/\d{1,2}:\d{2} - \d{1,2}:\d{2}/)).toBeInTheDocument();
+      // Use getAllByText as there may be multiple time ranges displayed (proposed + conflicts)
+      const timeRanges = screen.getAllByText(/\d{1,2}:\d{2} - \d{1,2}:\d{2}/);
+      expect(timeRanges.length).toBeGreaterThan(0);
     });
 
     it('displays conflict status badges', () => {

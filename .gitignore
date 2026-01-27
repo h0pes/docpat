@@ -39,6 +39,9 @@ backend/db.md
 backend/**/*.rs.bk
 backend/**/*.pdb
 
+# User uploads (runtime data, not source code)
+backend/uploads/
+
 # ============================================
 # NODE.JS FRONTEND
 # ============================================

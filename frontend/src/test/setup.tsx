@@ -216,3 +216,14 @@ if (!Element.prototype.releasePointerCapture) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// Mock document.elementFromPoint for components that use it (e.g., react-big-calendar)
+if (!document.elementFromPoint) {
+  document.elementFromPoint = vi.fn().mockReturnValue(null);
+}
+
+// Mock getComputedStyle for calendar components
+const originalGetComputedStyle = window.getComputedStyle;
+window.getComputedStyle = vi.fn((element) => {
+  return originalGetComputedStyle(element);
+}) as typeof window.getComputedStyle;

@@ -219,7 +219,7 @@ describe('PrescriptionCard', () => {
       expect(screen.queryByText('Has Interactions')).not.toBeInTheDocument();
     });
 
-    it('applies yellow border when needs refill', () => {
+    it('applies amber border when needs refill', () => {
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 3);
 
@@ -233,7 +233,7 @@ describe('PrescriptionCard', () => {
       );
 
       const card = container.firstChild;
-      expect(card).toHaveClass('border-yellow-400');
+      expect(card).toHaveClass('border-amber-500');
     });
   });
 
@@ -358,12 +358,16 @@ describe('PrescriptionCard', () => {
       expect(screen.queryByRole('menuitem', { name: /edit/i })).not.toBeInTheDocument();
     });
 
-    it('shows Renew option when onRenew is provided', async () => {
+    it('shows Renew option when onRenew is provided and status allows renewal', async () => {
       const user = userEvent.setup();
       const onRenew = vi.fn();
 
+      // Renew is only available for COMPLETED, DISCONTINUED, or CANCELLED prescriptions
       render(
-        <PrescriptionCard prescription={createMockPrescription()} onRenew={onRenew} />
+        <PrescriptionCard
+          prescription={createMockPrescription({ status: PrescriptionStatus.COMPLETED })}
+          onRenew={onRenew}
+        />
       );
 
       await user.click(screen.getByRole('button', { name: /actions/i }));
@@ -495,8 +499,12 @@ describe('PrescriptionCard', () => {
       const user = userEvent.setup();
       const onRenew = vi.fn();
 
+      // Renew is only available for COMPLETED, DISCONTINUED, or CANCELLED prescriptions
       render(
-        <PrescriptionCard prescription={createMockPrescription()} onRenew={onRenew} />
+        <PrescriptionCard
+          prescription={createMockPrescription({ status: PrescriptionStatus.COMPLETED })}
+          onRenew={onRenew}
+        />
       );
 
       await user.click(screen.getByRole('button', { name: /actions/i }));

@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-1600%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-3791%2B%20passing-brightgreen.svg)]()
 
 > A secure, self-hosted Medical Practice Management System designed for individual practitioners prioritizing simplicity, data sovereignty, and military-grade security.
 
@@ -274,7 +274,9 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 - **[Security Guidelines](docs/SECURITY.md)** - Security best practices and compliance
 - **[Session History](docs/SESSIONS.md)** - Development session logs and decisions
 - **[Backend Testing Strategy](backend/TESTING.md)** - Testing approach, coverage analysis, priorities
-- **[Integration Tests Guide](backend/tests/README.md)** - Detailed integration test documentation
+- **[Backend Integration Tests Guide](backend/tests/README.md)** - Detailed integration test documentation
+- **[Frontend Testing Strategy](frontend/TESTING.md)** - Frontend testing approach, priorities, patterns
+- **[Frontend E2E Tests Guide](frontend/tests/README.md)** - Playwright E2E test documentation
 
 ## Architecture
 
@@ -316,12 +318,16 @@ docpat/
 │   └── casbin/           # RBAC policy definitions
 ├── frontend/             # React frontend application
 │   ├── src/
-│   │   ├── components/   # Reusable UI components
-│   │   ├── features/     # Feature-specific modules
+│   │   ├── components/   # Reusable UI components (~2,761 tests)
+│   │   ├── pages/        # Page-level containers
 │   │   ├── hooks/        # Custom React hooks
 │   │   ├── services/     # API service layer
+│   │   ├── store/        # State management (React Context)
+│   │   ├── test/         # Test setup and mocks
 │   │   └── lib/          # Utilities and helpers
-│   └── e2e/              # Playwright E2E tests
+│   ├── tests/e2e/        # Playwright E2E tests (~65 tests)
+│   ├── TESTING.md        # Frontend testing strategy
+│   └── vitest.config.ts  # Vitest configuration
 ├── infrastructure/       # Docker, Nginx, monitoring configs
 ├── scripts/              # Utility scripts (setup, backup, deploy)
 ├── docs/                 # Documentation
@@ -391,23 +397,51 @@ Security is non-negotiable in healthcare applications. DocPat implements:
 
 ## Testing
 
-DocPat maintains comprehensive test coverage with a two-tier testing strategy.
+DocPat maintains comprehensive test coverage with a two-tier testing strategy for both backend and frontend.
 
 ### Current Test Status
 
 | Category | Tests | Coverage | Status |
 |----------|-------|----------|--------|
 | Backend Integration | 381 | ~98% endpoints | ✅ Passing |
-| Backend Unit | ~128 | ~18% code | ✅ Exceeds Target |
-| Frontend Component | 754+ | - | ✅ Passing |
-| E2E (Playwright) | 19 | - | ✅ Passing |
-| **Total** | **1,270+** | - | **Passing** |
+| Backend Unit | ~531 | ~25% code | ✅ Exceeds Target |
+| Frontend Component | 2,761 | 100% components | ✅ Passing |
+| Frontend Page | 318 | 100% pages (34 files) | ✅ Passing |
+| Frontend Hooks | 310 | 100% hooks | ✅ Passing |
+| Frontend API Services | 293 | 100% services | ✅ Passing |
+| Frontend Store | 17 | 100% stores | ✅ Passing |
+| Frontend E2E | ~65 | 3 workflows | ✅ Passing |
+| **Total** | **~3,791** | - | **All Passing** |
 
 ### Backend Testing
 
 The backend uses a two-tier testing strategy:
 - **Integration tests (primary)**: 381 tests across 21 suites validating full API request/response cycles including RBAC, database operations, and business logic
-- **Unit tests (supplementary)**: ~530 tests targeting complex business logic, utilities, and edge cases
+- **Unit tests (supplementary)**: ~531 tests targeting complex business logic, utilities, and edge cases
+
+### Frontend Testing
+
+The frontend uses a two-tier testing strategy:
+- **Component/Unit tests (Vitest)**: 2,761 component tests + 318 page tests + 310 hook tests + 293 API service tests + 17 store tests across 198 test files
+- **E2E tests (Playwright)**: ~65 tests covering patient, appointment, and visit workflows
+
+**Component Test Coverage by Module:**
+| Module | Components | Tested | Coverage |
+|--------|------------|--------|----------|
+| system-health | 5 | 5 | 100% |
+| patients | 8 | 8 | 100% |
+| documents | 11 | 11 | 100% |
+| reports | 5 | 5 | 100% |
+| prescriptions | 12 | 12 | 100% |
+| users | 4 | 4 | 100% |
+| visits | 20 | 20 | 100% |
+| settings | 10 | 10 | 100% |
+| audit | 5 | 5 | 100% |
+| appointments | 10 | 10 | 100% |
+| auth | 3 | 3 | 100% |
+| notifications | 3 | 3 | 100% |
+| layouts | 4 | 4 | 100% |
+| ui (Radix wrappers) | 33 | 33 | 100% |
 
 **Integration Test Suites:**
 | Suite | Tests | Status |
@@ -460,7 +494,9 @@ cd frontend && npm run test:coverage
 ### Test Documentation
 
 - **[Backend Testing Strategy](backend/TESTING.md)** - Overall testing approach, coverage gaps, priorities
-- **[Integration Tests README](backend/tests/README.md)** - Detailed integration test documentation
+- **[Backend Integration Tests README](backend/tests/README.md)** - Detailed integration test documentation
+- **[Frontend Testing Strategy](frontend/TESTING.md)** - Frontend testing approach, coverage analysis, priorities
+- **[Frontend E2E Tests README](frontend/tests/README.md)** - Playwright E2E test documentation
 
 ## Development Workflow
 
