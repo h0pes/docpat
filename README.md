@@ -5,7 +5,7 @@
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-3791%2B%20passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-3966%2B%20passing-brightgreen.svg)]()
 
 > A secure, self-hosted Medical Practice Management System designed for individual practitioners prioritizing simplicity, data sovereignty, and military-grade security.
 
@@ -325,7 +325,7 @@ docpat/
 │   │   ├── store/        # State management (React Context)
 │   │   ├── test/         # Test setup and mocks
 │   │   └── lib/          # Utilities and helpers
-│   ├── tests/e2e/        # Playwright E2E tests (~65 tests)
+│   ├── tests/e2e/        # Playwright E2E tests (240 tests, 12 suites - complete)
 │   ├── TESTING.md        # Frontend testing strategy
 │   └── vitest.config.ts  # Vitest configuration
 ├── infrastructure/       # Docker, Nginx, monitoring configs
@@ -410,8 +410,8 @@ DocPat maintains comprehensive test coverage with a two-tier testing strategy fo
 | Frontend Hooks | 310 | 100% hooks | ✅ Passing |
 | Frontend API Services | 293 | 100% services | ✅ Passing |
 | Frontend Store | 17 | 100% stores | ✅ Passing |
-| Frontend E2E | ~65 | 3 workflows | ✅ Passing |
-| **Total** | **~3,791** | - | **All Passing** |
+| Frontend E2E | 240 | 12 workflows (complete) | ✅ Passing |
+| **Total** | **~3,966** | - | **All Passing** |
 
 ### Backend Testing
 
@@ -423,7 +423,7 @@ The backend uses a two-tier testing strategy:
 
 The frontend uses a two-tier testing strategy:
 - **Component/Unit tests (Vitest)**: 2,761 component tests + 318 page tests + 310 hook tests + 293 API service tests + 17 store tests across 198 test files
-- **E2E tests (Playwright)**: ~65 tests covering patient, appointment, and visit workflows
+- **E2E tests (Playwright)**: 240 tests across 12 suites covering authentication, admin, profile, dashboard, patients, appointments, visits, prescriptions, documents, notifications, reports, and templates workflows - **ALL COMPLETE**
 
 **Component Test Coverage by Module:**
 | Module | Components | Tested | Coverage |
