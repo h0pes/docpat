@@ -488,7 +488,9 @@ The PostgreSQL container automatically:
 - Creates the user (`mpms_user`)
 - Installs required extensions (via init.sql)
 
-**BUT you need to run migrations to create the application tables:**
+**BUT you need to run migrations to create the application tables and seed default data:**
+
+> **Note:** Migrations automatically seed required default data including system settings, working hours, holidays, and document templates. No separate seeding step is needed.
 
 ```bash
 # Connect to the backend container and run migrations
@@ -923,6 +925,8 @@ ls -la target/release/docpat-backend
 ---
 
 ## B.11 Run Database Migrations
+
+Migrations create all application tables and seed required default data (system settings, working hours, holidays, and document templates).
 
 ```bash
 # Make sure you're in backend directory

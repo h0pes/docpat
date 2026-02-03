@@ -55,6 +55,20 @@ INSERT INTO default_working_hours (day_of_week, start_time, end_time, is_working
     (7, NULL, NULL, false)
 ON CONFLICT (day_of_week) DO NOTHING;
 
+-- Re-seed default document templates (deleted by CASCADE/TRUNCATE)
+ALTER TABLE document_templates DISABLE ROW LEVEL SECURITY;
+INSERT INTO document_templates (template_key, template_name, description, document_type, template_html, template_variables, page_size, page_orientation, is_active, is_default, language) VALUES
+    ('medical_certificate_it', 'Certificato Medico', 'Certificato medico standard', 'MEDICAL_CERTIFICATE', '<div>{{certificate.content}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('medical_certificate_en', 'Medical Certificate', 'Standard medical certificate', 'MEDICAL_CERTIFICATE', '<div>{{certificate.content}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en'),
+    ('referral_letter_it', 'Lettera di Referral', 'Lettera di invio a specialista', 'REFERRAL_LETTER', '<div>{{referral.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('referral_letter_en', 'Referral Letter', 'Specialist referral letter', 'REFERRAL_LETTER', '<div>{{referral.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en'),
+    ('lab_request_it', 'Richiesta Esami', 'Richiesta esami di laboratorio', 'LAB_REQUEST', '<div>{{lab.diagnostic_question}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('visit_summary_it', 'Riepilogo Visita', 'Riepilogo visita medica', 'VISIT_SUMMARY', '<div>{{visit.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('prescription_it', 'Ricetta Medica', 'Ricetta medica standard', 'PRESCRIPTION', '<div>{{prescription.medications}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('prescription_en', 'Medical Prescription', 'Standard medical prescription', 'PRESCRIPTION', '<div>{{prescription.medications}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en')
+ON CONFLICT (template_key) DO NOTHING;
+ALTER TABLE document_templates ENABLE ROW LEVEL SECURITY;
+
 -- Re-seed default system settings (deleted by CASCADE from users.updated_by FK)
 INSERT INTO system_settings (setting_key, setting_group, setting_name, setting_value, value_type, description, default_value, is_public, is_readonly) VALUES
 ('clinic.name', 'clinic', 'Clinic Name', '"Medical Practice"', 'STRING', 'Name of the medical practice', '"Medical Practice"', true, false),
@@ -149,6 +163,20 @@ INSERT INTO default_working_hours (day_of_week, start_time, end_time, is_working
     (6, NULL, NULL, false),           -- Saturday
     (7, NULL, NULL, false)            -- Sunday
 ON CONFLICT (day_of_week) DO NOTHING;
+
+-- Re-seed default document templates after TRUNCATE
+ALTER TABLE document_templates DISABLE ROW LEVEL SECURITY;
+INSERT INTO document_templates (template_key, template_name, description, document_type, template_html, template_variables, page_size, page_orientation, is_active, is_default, language) VALUES
+    ('medical_certificate_it', 'Certificato Medico', 'Certificato medico standard', 'MEDICAL_CERTIFICATE', '<div>{{certificate.content}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('medical_certificate_en', 'Medical Certificate', 'Standard medical certificate', 'MEDICAL_CERTIFICATE', '<div>{{certificate.content}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en'),
+    ('referral_letter_it', 'Lettera di Referral', 'Lettera di invio a specialista', 'REFERRAL_LETTER', '<div>{{referral.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('referral_letter_en', 'Referral Letter', 'Specialist referral letter', 'REFERRAL_LETTER', '<div>{{referral.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en'),
+    ('lab_request_it', 'Richiesta Esami', 'Richiesta esami di laboratorio', 'LAB_REQUEST', '<div>{{lab.diagnostic_question}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('visit_summary_it', 'Riepilogo Visita', 'Riepilogo visita medica', 'VISIT_SUMMARY', '<div>{{visit.reason}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('prescription_it', 'Ricetta Medica', 'Ricetta medica standard', 'PRESCRIPTION', '<div>{{prescription.medications}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'it'),
+    ('prescription_en', 'Medical Prescription', 'Standard medical prescription', 'PRESCRIPTION', '<div>{{prescription.medications}}</div>', '{}', 'A4', 'PORTRAIT', true, true, 'en')
+ON CONFLICT (template_key) DO NOTHING;
+ALTER TABLE document_templates ENABLE ROW LEVEL SECURITY;
 EOF
 }
 

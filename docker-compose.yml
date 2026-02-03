@@ -178,8 +178,12 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-DocPat}
 
+      # Document storage
+      DOCUMENT_STORAGE_PATH: /app/documents
+
     volumes:
       - backend_uploads:/app/uploads
+      - backend_documents:/app/documents
       - backend_logs:/app/logs
       - ./backend/casbin:/app/casbin:ro
 
@@ -410,6 +414,9 @@ volumes:
 
   # Application volumes
   backend_uploads:
+    driver: local
+
+  backend_documents:
     driver: local
 
   backend_logs:
