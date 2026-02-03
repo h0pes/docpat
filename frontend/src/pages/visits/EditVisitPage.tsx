@@ -8,13 +8,15 @@
 
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { PageSpinner } from '../../components/ui/spinner';
 
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { VisitForm } from '@/components/visits';
 import { useVisit, useUpdateVisit } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { UpdateVisitRequest } from '@/types/visit';
 import { useAuthStore } from '@/store/authStore';
 import { VisitStatus } from '@/types/visit';
@@ -54,12 +56,12 @@ export function EditVisitPage() {
 
       // Navigate to visit detail page
       navigate(`/visits/${id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to update visit:', error);
       toast({
         variant: 'destructive',
-        title: t('visits.messages.updateError'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -90,13 +92,7 @@ export function EditVisitPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   // Error state

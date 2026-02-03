@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Dialog,
   DialogContent,
@@ -345,17 +346,18 @@ export function VisitsPage() {
 
           {/* Empty State */}
           {visitsData && visitsData.visits.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{t('visits.no_visits')}</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t('visits.no_visits_description')}
-              </p>
-              <Button onClick={handleNewVisit}>
-                <Plus className="mr-2 h-4 w-4" />
-                {t('visits.create_first_visit')}
-              </Button>
-            </div>
+            <EmptyState
+              variant="default"
+              icon={FileText}
+              title={t('visits.no_visits')}
+              description={t('visits.no_visits_description')}
+              action={
+                <Button onClick={handleNewVisit}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('visits.create_first_visit')}
+                </Button>
+              }
+            />
           )}
 
           {/* Visits List */}

@@ -46,6 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 
 import {
   usePatientDocuments,
@@ -64,6 +65,7 @@ import {
   type GeneratedDocumentSummary,
 } from '@/types/document';
 import { EmailDocumentDialog } from './EmailDocumentDialog';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface PatientDocumentsSectionProps {
   /** Patient ID to fetch documents for */
@@ -117,11 +119,11 @@ export function PatientDocumentsSection({
         title: t('documents.download_success'),
         description: doc.document_filename,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('documents.download_error'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -132,11 +134,11 @@ export function PatientDocumentsSection({
   const handlePrint = async (doc: GeneratedDocumentSummary) => {
     try {
       await printDocument.mutateAsync(doc.id);
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('documents.print_error'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -147,11 +149,11 @@ export function PatientDocumentsSection({
   const handlePreview = async (doc: GeneratedDocumentSummary) => {
     try {
       await previewDocument.mutateAsync(doc.id);
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('documents.preview_error'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -169,11 +171,11 @@ export function PatientDocumentsSection({
       });
       setSignConfirmId(null);
       refetch();
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('documents.sign_error'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -191,11 +193,11 @@ export function PatientDocumentsSection({
       });
       setDeleteConfirmId(null);
       refetch();
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('documents.delete_error'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -249,18 +251,19 @@ export function PatientDocumentsSection({
               ))}
             </div>
           ) : documents.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">
-                {t('documents.no_documents')}
-              </p>
-              {onGenerateDocument && (
-                <Button onClick={onGenerateDocument} className="gap-2">
-                  <FileOutput className="h-4 w-4" />
-                  {t('documents.generate_document')}
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              variant="compact"
+              icon={FileText}
+              title={t('documents.no_documents')}
+              action={
+                onGenerateDocument && (
+                  <Button onClick={onGenerateDocument} className="gap-2">
+                    <FileOutput className="h-4 w-4" />
+                    {t('documents.generate_document')}
+                  </Button>
+                )
+              }
+            />
           ) : (
             <div className="space-y-3">
               {documents.map((doc) => (
@@ -295,7 +298,7 @@ export function PatientDocumentsSection({
                     </Badge>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" aria-label={t('common.actionsMenu')} className="h-8 w-8">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>

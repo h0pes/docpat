@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { PrescriptionCard } from './PrescriptionCard';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Prescription } from '@/types/prescription';
 
 /**
@@ -157,18 +158,13 @@ export function PrescriptionList({
   // Empty state
   if (!prescriptions || prescriptions.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Pill className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">
-            {emptyMessage || t('prescriptions.no_prescriptions')}
-          </h3>
-          <p className="text-muted-foreground text-center mb-4">
-            {emptyDescription || t('prescriptions.no_prescriptions_description')}
-          </p>
-          {emptyAction}
-        </CardContent>
-      </Card>
+      <EmptyState
+        variant="default"
+        icon={Pill}
+        title={emptyMessage || t('prescriptions.no_prescriptions')}
+        description={emptyDescription || t('prescriptions.no_prescriptions_description')}
+        action={emptyAction}
+      />
     );
   }
 

@@ -93,10 +93,11 @@ describe('Spinner', () => {
 
 describe('FullPageSpinner', () => {
   describe('Rendering', () => {
-    it('renders full page spinner', () => {
+    it('renders full page spinner with loading text', () => {
       render(<FullPageSpinner />);
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.getByText('Loading')).toBeInTheDocument();
     });
 
     it('renders spinner element', () => {
@@ -134,10 +135,11 @@ describe('FullPageSpinner', () => {
 
 describe('PageSpinner', () => {
   describe('Rendering', () => {
-    it('renders page spinner', () => {
+    it('renders page spinner with loading text', () => {
       render(<PageSpinner />);
 
-      expect(screen.getByText('Loading...')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.getByText('Loading')).toBeInTheDocument();
     });
 
     it('renders spinner element', () => {

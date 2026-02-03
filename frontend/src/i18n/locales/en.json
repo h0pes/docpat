@@ -16,6 +16,8 @@
     "close": "Close",
     "confirm": "Confirm",
     "back": "Back",
+    "goBack": "Go back",
+    "actionsMenu": "Actions menu",
     "next": "Next",
     "previous": "Previous",
     "search": "Search",
@@ -250,8 +252,19 @@
     "generic": "An error occurred. Please try again.",
     "network": "Network error. Please check your connection.",
     "unauthorized": "You are not authorized to perform this action.",
+    "forbidden": "You don't have permission to access this resource.",
     "notFound": "The requested resource was not found.",
-    "serverError": "Server error. Please try again later."
+    "badRequest": "The request was invalid. Please check your input.",
+    "conflict": "A conflict occurred. The resource may have been modified.",
+    "validationFailed": "Validation failed. Please check the form fields.",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+    "serverError": "Server error. Please try again later.",
+    "title": {
+      "clientError": "Request Error",
+      "serverError": "Server Error",
+      "networkError": "Connection Error",
+      "unknownError": "Error"
+    }
   },
   "patients": {
     "title": "Patients",
@@ -360,6 +373,7 @@
       "middle_name": "Middle Name",
       "date_of_birth": "Date of Birth",
       "fiscal_code": "Fiscal Code",
+      "fiscal_code_hint": "Italian Codice Fiscale: 16 alphanumeric characters (e.g., RSSMRA85M01H501Z)",
       "phone_primary": "Primary Phone",
       "phone_secondary": "Secondary Phone",
       "email": "Email Address",
@@ -1009,6 +1023,7 @@
       "generic_name": "Generic Name",
       "generic_placeholder": "Generic or chemical name",
       "dosage": "Dosage",
+      "dosage_hint": "Amount and unit, e.g., 100mg, 5ml, 2 tablets",
       "form": "Form",
       "form_placeholder": "Select form",
       "route": "Route",
@@ -3423,6 +3438,18 @@
       "document_template": "Use template variables like {{patient.name}} to auto-populate data. Preview the result before generating. See Template Guide for syntax help.",
       "report_filters": "Set date range to filter report data. Use the refresh button to update statistics. Export options available for all report types."
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "We're sorry, but something unexpected happened. Please try again or reload the page.",
+    "devDetails": "Error Details (Development Only)",
+    "tryAgain": "Try Again",
+    "reloadPage": "Reload Page"
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "mainNavigation": "Main navigation",
+    "mainContent": "Main content"
   }
 }
 

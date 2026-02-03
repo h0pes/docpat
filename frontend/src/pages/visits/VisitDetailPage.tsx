@@ -14,7 +14,6 @@ import {
   FileSignature,
   Lock,
   Printer,
-  Loader2,
   Calendar,
   User,
   Activity,
@@ -23,6 +22,7 @@ import {
   Plus,
   Eye,
 } from 'lucide-react';
+import { PageSpinner } from '../../components/ui/spinner';
 import { format } from 'date-fns';
 import { enUS, it } from 'date-fns/locale';
 
@@ -119,13 +119,7 @@ export function VisitDetailPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   // Error state
@@ -362,6 +356,7 @@ export function VisitDetailPage() {
         <Button
           variant="ghost"
           size="sm"
+          aria-label={t('common.goBack')}
           onClick={() => navigate(`/patients/${visit.patient_id}`)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />

@@ -45,6 +45,7 @@ import { usePatientVisits, usePatientPrescriptions } from '@/hooks/useVisits';
 import { getStatusBadgeColor, VisitStatus, VisitType } from '@/types/visit';
 import { PatientStatus } from '@/types/patient';
 import { useToast } from '@/components/ui/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { format } from 'date-fns';
@@ -143,7 +144,7 @@ export function PatientDetailPage() {
       // Navigate back to patients list
       navigate('/patients');
     },
-    onError: (error: any, _variables, context) => {
+    onError: (error: unknown, _variables, context) => {
       // Rollback optimistic updates
       if (context?.previousPatientsList) {
         context.previousPatientsList.forEach(([queryKey, data]) => {
@@ -156,8 +157,8 @@ export function PatientDetailPage() {
 
       toast({
         variant: 'destructive',
-        title: t('patients.messages.deleteError'),
-        description: error?.response?.data?.message || t('common.errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
       setShowDeleteDialog(false);
     },
@@ -184,11 +185,11 @@ export function PatientDetailPage() {
 
       setShowReactivateDialog(false);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
         variant: 'destructive',
-        title: t('patients.messages.reactivateError'),
-        description: error?.response?.data?.message || t('common.errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
       setShowReactivateDialog(false);
     },
@@ -311,7 +312,7 @@ export function PatientDetailPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -345,7 +346,7 @@ export function PatientDetailPage() {
       {/* Page header with actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

@@ -249,7 +249,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
 
       {/* Navigation Menu */}
       <ScrollArea className="flex-1 px-3 py-4">
-        <nav className="flex flex-col gap-1">
+        <nav aria-label={t('accessibility.mainNavigation')} className="flex flex-col gap-1">
           {/* Main Section - Clinical features */}
           {groupedItems.main.map(renderNavLink)}
 

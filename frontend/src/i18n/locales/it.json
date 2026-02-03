@@ -16,6 +16,8 @@
     "close": "Chiudi",
     "confirm": "Conferma",
     "back": "Indietro",
+    "goBack": "Torna indietro",
+    "actionsMenu": "Menu azioni",
     "next": "Avanti",
     "previous": "Precedente",
     "search": "Cerca",
@@ -250,8 +252,19 @@
     "generic": "Si è verificato un errore. Riprova.",
     "network": "Errore di rete. Controlla la tua connessione.",
     "unauthorized": "Non sei autorizzato a eseguire questa azione.",
+    "forbidden": "Non hai i permessi per accedere a questa risorsa.",
     "notFound": "La risorsa richiesta non è stata trovata.",
-    "serverError": "Errore del server. Riprova più tardi."
+    "badRequest": "La richiesta non è valida. Controlla i dati inseriti.",
+    "conflict": "Si è verificato un conflitto. La risorsa potrebbe essere stata modificata.",
+    "validationFailed": "Validazione fallita. Controlla i campi del modulo.",
+    "tooManyRequests": "Troppe richieste. Attendi un momento e riprova.",
+    "serverError": "Errore del server. Riprova più tardi.",
+    "title": {
+      "clientError": "Errore nella Richiesta",
+      "serverError": "Errore del Server",
+      "networkError": "Errore di Connessione",
+      "unknownError": "Errore"
+    }
   },
   "patients": {
     "title": "Pazienti",
@@ -360,6 +373,7 @@
       "middle_name": "Secondo Nome",
       "date_of_birth": "Data di Nascita",
       "fiscal_code": "Codice Fiscale",
+      "fiscal_code_hint": "Codice Fiscale italiano: 16 caratteri alfanumerici (es. RSSMRA85M01H501Z)",
       "phone_primary": "Telefono Principale",
       "phone_secondary": "Telefono Secondario",
       "email": "Indirizzo Email",
@@ -1009,6 +1023,7 @@
       "generic_name": "Nome Generico",
       "generic_placeholder": "Nome generico o chimico",
       "dosage": "Dosaggio",
+      "dosage_hint": "Quantità e unità, es. 100mg, 5ml, 2 compresse",
       "form": "Forma",
       "form_placeholder": "Seleziona forma",
       "route": "Via di Somministrazione",
@@ -3423,5 +3438,17 @@
       "document_template": "Usa variabili del modello come {{patient.name}} per auto-compilare i dati. Visualizza l'anteprima del risultato prima di generare. Vedi la Guida Modelli per la sintassi.",
       "report_filters": "Imposta l'intervallo date per filtrare i dati del report. Usa il pulsante aggiorna per aggiornare le statistiche. Opzioni di esportazione disponibili per tutti i tipi di report."
     }
+  },
+  "errorBoundary": {
+    "title": "Qualcosa è andato storto",
+    "description": "Ci scusiamo, ma si è verificato un errore imprevisto. Riprova o ricarica la pagina.",
+    "devDetails": "Dettagli Errore (Solo Sviluppo)",
+    "tryAgain": "Riprova",
+    "reloadPage": "Ricarica Pagina"
+  },
+  "accessibility": {
+    "skipToContent": "Vai al contenuto principale",
+    "mainNavigation": "Navigazione principale",
+    "mainContent": "Contenuto principale"
   }
 }

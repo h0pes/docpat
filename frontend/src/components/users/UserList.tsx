@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { User, UserRole, UserListQuery } from '@/types/user';
 
 const PAGE_SIZES = [10, 20, 50];
@@ -560,20 +561,21 @@ export function UserList({
           )}
         </>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              {debouncedSearch || activeFilterCount > 0
-                ? t('users.no_results')
-                : t('users.no_users')}
-            </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              {debouncedSearch || activeFilterCount > 0
-                ? t('users.no_results_description')
-                : t('users.no_users_description')}
-            </p>
-            {debouncedSearch || activeFilterCount > 0 ? (
+        <EmptyState
+          variant="default"
+          icon={UserPlus}
+          title={
+            debouncedSearch || activeFilterCount > 0
+              ? t('users.no_results')
+              : t('users.no_users')
+          }
+          description={
+            debouncedSearch || activeFilterCount > 0
+              ? t('users.no_results_description')
+              : t('users.no_users_description')
+          }
+          action={
+            debouncedSearch || activeFilterCount > 0 ? (
               <Button variant="outline" onClick={handleClearFilters}>
                 {t('users.clear_filters')}
               </Button>
@@ -582,9 +584,9 @@ export function UserList({
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t('users.add_first_user')}
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            )
+          }
+        />
       )}
     </div>
   );

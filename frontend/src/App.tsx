@@ -12,6 +12,7 @@ import { ThemeProvider } from './components/providers/ThemeProvider';
 import { AuthProvider } from './store/authStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Toaster } from './components/ui/toaster';
+import { LiveAnnouncer } from './components/ui/live-announcer';
 import { queryClient } from './lib/react-query';
 import { router } from './routes';
 import './i18n'; // Initialize i18next
@@ -25,9 +26,11 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="docpat-theme">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <RouterProvider router={router} />
-            <Toaster />
-            {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+            <LiveAnnouncer>
+              <RouterProvider router={router} />
+              <Toaster />
+              {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+            </LiveAnnouncer>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>

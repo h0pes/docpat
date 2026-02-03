@@ -8,7 +8,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Calendar, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, AlertTriangle } from 'lucide-react';
+import { PageSpinner } from '../../components/ui/spinner';
 
 import { appointmentsApi } from '../../services/api/appointments';
 import { AppointmentForm } from '../../components/appointments';
@@ -17,6 +18,7 @@ import { AppointmentStatus } from '../../types/appointment';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useToast } from '../../hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 
 /**
  * EditAppointmentPage allows editing of existing appointments.
@@ -58,11 +60,11 @@ export function EditAppointmentPage() {
       // Navigate back to appointment detail
       navigate(`/appointments/${id}`);
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: error.message || t('appointments.messages.update_failed'),
         variant: 'destructive',
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
   });
@@ -83,11 +85,7 @@ export function EditAppointmentPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   // Error state
@@ -116,7 +114,7 @@ export function EditAppointmentPage() {
     return (
       <div className="container mx-auto max-w-4xl py-6">
         <div className="mb-6 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleGoBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">{t('appointments.edit')}</h1>
@@ -143,7 +141,7 @@ export function EditAppointmentPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleGoBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

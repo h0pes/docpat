@@ -15,6 +15,7 @@ import { PatientForm, NotificationPreferencesSection } from '@/components/patien
 import { FullPageSpinner } from '@/components/Spinner';
 import { patientsApi } from '@/services/api/patients';
 import { useToast } from '@/components/ui/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import type { PatientUpdateRequest } from '@/types/patient';
 
 /**
@@ -85,7 +86,7 @@ export function EditPatientPage() {
       // Navigate back to patient detail page
       navigate(`/patients/${id}`);
     },
-    onError: (error: any, _updatedData, context) => {
+    onError: (error: unknown, _updatedData, context) => {
       // Rollback on error
       if (context?.previousPatient) {
         queryClient.setQueryData(['patient', id], context.previousPatient);
@@ -93,8 +94,8 @@ export function EditPatientPage() {
 
       toast({
         variant: 'destructive',
-        title: t('patients.messages.updateError'),
-        description: error?.response?.data?.message || t('common.errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
     // Always refetch after error or success to ensure sync
@@ -134,7 +135,7 @@ export function EditPatientPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/patients')}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={() => navigate('/patients')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -167,7 +168,7 @@ export function EditPatientPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
+        <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

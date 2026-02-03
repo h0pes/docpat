@@ -15,6 +15,7 @@ import { usePatientDrugInteractions, useCheckNewMedicationForPatient } from '@/h
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { PrescriptionForm } from '@/components/visits/PrescriptionForm';
 import { PatientSearchCombobox } from '@/components/appointments/PatientSearchCombobox';
 import { DrugInteractionWarning } from '@/components/prescriptions/DrugInteractionWarning';
@@ -134,11 +135,11 @@ export function NewPrescriptionPage() {
       });
       // Navigate to the newly created prescription detail page
       navigate(`/prescriptions/${result.id}`);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.create.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -156,7 +157,7 @@ export function NewPrescriptionPage() {
       <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/prescriptions')}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={() => navigate('/prescriptions')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -190,7 +191,7 @@ export function NewPrescriptionPage() {
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/prescriptions')}>
+        <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={() => navigate('/prescriptions')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

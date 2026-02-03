@@ -212,9 +212,8 @@ export function AppointmentCard({
           {/* Actions Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" aria-label={t('common.actionsMenu')} className="h-8 w-8">
                 <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">{t('common.menu')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

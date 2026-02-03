@@ -2,10 +2,12 @@
  * Error Boundary Component
  *
  * Catches JavaScript errors anywhere in the child component tree,
- * logs those errors, and displays a fallback UI.
+ * logs those errors, and displays a fallback UI. The fallback UI
+ * is internationalized via i18next.
  */
 
 import { Component, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -28,10 +30,85 @@ interface ErrorBoundaryState {
 }
 
 /**
+ * Props for the default error fallback UI
+ */
+interface ErrorFallbackProps {
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+  onReset: () => void;
+  onReload: () => void;
+}
+
+/**
+ * Default error fallback UI (functional component for i18n hook access)
+ *
+ * Renders a card with an error title, description, dev-only error details,
+ * and action buttons for retrying or reloading the page.
+ */
+function ErrorFallback({ error, errorInfo, onReset, onReload }: ErrorFallbackProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-5 w-5" />
+            {t('errorBoundary.title')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {t('errorBoundary.description')}
+          </p>
+
+          {/* Error details - only show in development */}
+          {import.meta.env.DEV && error && (
+            <details className="rounded-lg border border-border bg-muted p-4 text-xs">
+              <summary className="cursor-pointer font-medium text-foreground">
+                {t('errorBoundary.devDetails')}
+              </summary>
+              <div className="mt-2 space-y-2">
+                <div>
+                  <strong>Error:</strong>
+                  <pre className="mt-1 overflow-x-auto">
+                    {error.toString()}
+                  </pre>
+                </div>
+                {errorInfo && (
+                  <div>
+                    <strong>Component Stack:</strong>
+                    <pre className="mt-1 overflow-x-auto">
+                      {errorInfo.componentStack}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </details>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <Button onClick={onReset} variant="outline">
+              {t('errorBoundary.tryAgain')}
+            </Button>
+            <Button onClick={onReload}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {t('errorBoundary.reloadPage')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/**
  * Error Boundary component
  *
  * Catches errors in child components and displays a fallback UI.
  * This is a class component as required by React's error boundary API.
+ * The default fallback UI is a functional component to enable i18n support.
  */
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
@@ -91,60 +168,13 @@ export class ErrorBoundary extends Component<
         return this.props.fallback;
       }
 
-      // Default error UI
       return (
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <Card className="w-full max-w-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
-                Something went wrong
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                We're sorry, but something unexpected happened. Please try
-                reloading the page or contact support if the problem persists.
-              </p>
-
-              {/* Error details - only show in development */}
-              {import.meta.env.DEV && this.state.error && (
-                <details className="rounded-lg border border-border bg-muted p-4 text-xs">
-                  <summary className="cursor-pointer font-medium text-foreground">
-                    Error Details (Development Only)
-                  </summary>
-                  <div className="mt-2 space-y-2">
-                    <div>
-                      <strong>Error:</strong>
-                      <pre className="mt-1 overflow-x-auto">
-                        {this.state.error.toString()}
-                      </pre>
-                    </div>
-                    {this.state.errorInfo && (
-                      <div>
-                        <strong>Component Stack:</strong>
-                        <pre className="mt-1 overflow-x-auto">
-                          {this.state.errorInfo.componentStack}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              )}
-
-              {/* Action buttons */}
-              <div className="flex gap-2">
-                <Button onClick={this.handleReset} variant="outline">
-                  Try Again
-                </Button>
-                <Button onClick={this.handleReload}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Reload Page
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <ErrorFallback
+          error={this.state.error}
+          errorInfo={this.state.errorInfo}
+          onReset={this.handleReset}
+          onReload={this.handleReload}
+        />
       );
     }
 

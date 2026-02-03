@@ -27,6 +27,8 @@ import {
   Phone,
 } from 'lucide-react';
 
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
+import { PageSpinner } from '../../components/ui/spinner';
 import { appointmentsApi } from '../../services/api/appointments';
 import { patientsApi } from '../../services/api/patients';
 import {
@@ -114,10 +116,10 @@ export function AppointmentDetailPage() {
         variant: 'default',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: error.message,
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
         variant: 'destructive',
       });
     },
@@ -137,10 +139,10 @@ export function AppointmentDetailPage() {
         variant: 'default',
       });
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: error.message,
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
         variant: 'destructive',
       });
     },
@@ -215,11 +217,7 @@ export function AppointmentDetailPage() {
 
   // Loading state
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageSpinner />;
   }
 
   // Error state
@@ -248,7 +246,7 @@ export function AppointmentDetailPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleGoBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

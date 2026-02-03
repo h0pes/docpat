@@ -60,6 +60,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { EmptyState } from '@/components/ui/empty-state';
 
 import {
   useDocuments,
@@ -330,9 +331,11 @@ export function DocumentList({
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            {t('documents.no_documents')}
-          </div>
+          <EmptyState
+            variant="compact"
+            icon={FileText}
+            title={t('documents.no_documents')}
+          />
         ) : (
           <div className="rounded-md border">
             <Table>
@@ -382,7 +385,7 @@ export function DocumentList({
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" aria-label={t('common.actionsMenu')}>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

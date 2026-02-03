@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 import { usePrescriptionSearch } from '@/hooks/useVisits';
 import { PrescriptionStatus } from '@/types/prescription';
@@ -184,12 +185,11 @@ export function ActivePrescriptionsWidget() {
 
         {/* Empty state for active prescriptions */}
         {totalActive === 0 && (
-          <div className="text-center py-4">
-            <Pill className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm text-muted-foreground">
-              {t('prescriptions.no_prescriptions')}
-            </p>
-          </div>
+          <EmptyState
+            variant="compact"
+            icon={Pill}
+            title={t('prescriptions.no_prescriptions')}
+          />
         )}
 
         {/* View all button */}

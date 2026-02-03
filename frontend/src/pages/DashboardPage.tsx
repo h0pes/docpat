@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
+import { EmptyState } from '../components/ui/empty-state';
 import {
   Users,
   Calendar,
@@ -282,10 +283,11 @@ export function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">{t('dashboard.no_recent_activity')}</p>
-              </div>
+              <EmptyState
+                variant="compact"
+                icon={Activity}
+                title={t('dashboard.no_recent_activity')}
+              />
             )}
             <Button
               className="w-full mt-4"

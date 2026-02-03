@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { VisitForm } from '@/components/visits';
 import { useCreateVisit } from '@/hooks/useVisits';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { CreateVisitRequest } from '@/types/visit';
 import { useAuthStore } from '@/store/authStore';
 
@@ -47,12 +48,12 @@ export function NewVisitPage() {
 
       // Navigate to visit detail page
       navigate(`/visits/${visit.id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create visit:', error);
       toast({
         variant: 'destructive',
-        title: t('visits.messages.createError'),
-        description: error instanceof Error ? error.message : t('errors.generic'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };

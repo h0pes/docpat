@@ -57,6 +57,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import {
   DiscontinueDialog,
   PrintPrescriptionDialog,
@@ -149,11 +150,11 @@ export function PrescriptionDetailPage() {
         }),
       });
       setShowDiscontinueDialog(false);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.discontinue.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -171,11 +172,11 @@ export function PrescriptionDetailPage() {
         description: t('prescriptions.delete.success_description'),
       });
       navigate('/prescriptions');
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.delete.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -205,11 +206,11 @@ export function PrescriptionDetailPage() {
         }),
       });
       setShowCancelDialog(false);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.cancel.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -232,11 +233,11 @@ export function PrescriptionDetailPage() {
         }),
       });
       setShowHoldDialog(false);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.hold.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -256,11 +257,11 @@ export function PrescriptionDetailPage() {
         }),
       });
       setShowResumeConfirm(false);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.resume.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -280,11 +281,11 @@ export function PrescriptionDetailPage() {
         }),
       });
       setShowCompleteConfirm(false);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.complete.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -306,11 +307,11 @@ export function PrescriptionDetailPage() {
       setShowRenewDialog(false);
       // Navigate to the new prescription
       navigate(`/prescriptions/${newPrescription.id}`);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.renew.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -363,7 +364,7 @@ export function PrescriptionDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/prescriptions')}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={() => navigate('/prescriptions')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

@@ -1,9 +1,11 @@
 /**
- * Spinner Component
+ * Spinner Components
  *
- * Loading spinner with different sizes and variants.
+ * Loading spinners with different sizes and variants for various contexts.
+ * Includes accessibility support with role="status" and screen reader labels.
  */
 
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -37,14 +39,27 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
 }
 
 /**
- * FullPageSpinner - centered spinner for full page loading
+ * Props for page-level spinner components
  */
-export function FullPageSpinner() {
+interface PageSpinnerProps {
+  /** Custom loading label (defaults to translated "Loading...") */
+  label?: string;
+}
+
+/**
+ * FullPageSpinner - centered spinner for full page loading
+ *
+ * Uses role="status" and a screen-reader-only label for accessibility.
+ */
+export function FullPageSpinner({ label }: PageSpinnerProps) {
+  const { t } = useTranslation();
+  const loadingText = label || t('common.loading');
+
   return (
-    <div className="flex h-screen items-center justify-center">
+    <div className="flex h-screen items-center justify-center" role="status">
       <div className="flex flex-col items-center gap-4">
         <Spinner size="xl" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">{loadingText}</p>
       </div>
     </div>
   );
@@ -52,13 +67,18 @@ export function FullPageSpinner() {
 
 /**
  * PageSpinner - centered spinner for page content loading
+ *
+ * Uses role="status" and a screen-reader-only label for accessibility.
  */
-export function PageSpinner() {
+export function PageSpinner({ label }: PageSpinnerProps) {
+  const { t } = useTranslation();
+  const loadingText = label || t('common.loading');
+
   return (
-    <div className="flex h-96 items-center justify-center">
+    <div className="flex h-96 items-center justify-center" role="status">
       <div className="flex flex-col items-center gap-4">
         <Spinner size="lg" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">{loadingText}</p>
       </div>
     </div>
   );

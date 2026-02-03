@@ -28,6 +28,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '../ui/separator';
+import { EmptyState } from '../ui/empty-state';
 
 interface DailyScheduleWidgetProps {
   maxItems?: number;
@@ -200,20 +201,21 @@ export function DailyScheduleWidget({
       )}
       <CardContent className="pt-0">
         {upcomingAppointments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Calendar className="mb-2 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              {t('appointments.daily_schedule.no_appointments')}
-            </p>
-            <Button
-              variant="link"
-              size="sm"
-              className="mt-2"
-              onClick={() => navigate('/appointments/new')}
-            >
-              {t('appointments.actions.new')}
-            </Button>
-          </div>
+          <EmptyState
+            variant="compact"
+            icon={Calendar}
+            title={t('appointments.daily_schedule.no_appointments')}
+            action={
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-2"
+                onClick={() => navigate('/appointments/new')}
+              >
+                {t('appointments.actions.new')}
+              </Button>
+            }
+          />
         ) : (
           <>
             {/* Next Appointment Highlight */}

@@ -65,6 +65,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { SettingsSection } from './SettingsSection';
 import {
   useHolidays,
@@ -295,11 +296,11 @@ export function HolidaysSection() {
 
       setIsAddDialogOpen(false);
       resetForm();
-    } catch {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('settings.holidays.create_error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -328,11 +329,11 @@ export function HolidaysSection() {
         title: t('settings.holidays.updated'),
         description: t('settings.holidays.updated_description'),
       });
-    } catch {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('settings.holidays.update_error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -352,11 +353,11 @@ export function HolidaysSection() {
         title: t('settings.holidays.deleted'),
         description: t('settings.holidays.deleted_description'),
       });
-    } catch {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('settings.holidays.delete_error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };
@@ -380,11 +381,11 @@ export function HolidaysSection() {
           skipped: result.skipped_count,
         }),
       });
-    } catch {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('settings.holidays.import_error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };

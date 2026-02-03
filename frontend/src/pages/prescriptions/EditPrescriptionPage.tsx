@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { PrescriptionForm } from '@/components/visits/PrescriptionForm';
 import { DrugInteractionWarning } from '@/components/prescriptions/DrugInteractionWarning';
 import {
@@ -95,11 +96,11 @@ export function EditPrescriptionPage() {
 
       // Navigate back to detail page
       navigate(`/prescriptions/${prescription.id}`);
-    } catch (err) {
+    } catch (error: unknown) {
       toast({
         variant: 'destructive',
-        title: t('common.error'),
-        description: t('prescriptions.update.error'),
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     }
   };

@@ -360,6 +360,7 @@ export function PrescriptionForm({
                     <FormControl>
                       <Input placeholder="100mg" {...field} />
                     </FormControl>
+                    <FormDescription>{t('visits.prescription.dosage_hint')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

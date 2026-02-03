@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { AppHeader } from './AppHeader';
 import { Sidebar } from './Sidebar';
 import { Sheet, SheetContent } from '../ui/sheet';
@@ -15,6 +16,7 @@ import { Sheet, SheetContent } from '../ui/sheet';
  * Main application layout for authenticated pages
  */
 export function MainLayout() {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   /**
@@ -26,6 +28,14 @@ export function MainLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {/* Skip Navigation Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      >
+        {t('accessibility.skipToContent')}
+      </a>
+
       {/* Desktop Sidebar - hidden on mobile */}
       <div className="hidden lg:block lg:w-64">
         <Sidebar className="h-full" />
@@ -44,7 +54,11 @@ export function MainLayout() {
         <AppHeader onMenuClick={() => setMobileMenuOpen(true)} />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-6 lg:p-8">
+        <main
+          id="main-content"
+          aria-label={t('accessibility.mainContent')}
+          className="flex-1 overflow-y-auto bg-background p-4 sm:p-6 lg:p-8"
+        >
           <Outlet />
         </main>
       </div>

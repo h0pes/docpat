@@ -11,6 +11,7 @@ import { Mail, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { NotificationCard } from './NotificationCard';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { NotificationResponse } from '@/types/notification';
 
 /**
@@ -75,13 +76,12 @@ export function NotificationList({
   // Empty state
   if (notifications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-        <Mail className="h-12 w-12 mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-1">
-          {t('notifications.empty.title')}
-        </h3>
-        <p className="text-sm">{t('notifications.empty.description')}</p>
-      </div>
+      <EmptyState
+        variant="compact"
+        icon={Mail}
+        title={t('notifications.empty.title')}
+        description={t('notifications.empty.description')}
+      />
     );
   }
 

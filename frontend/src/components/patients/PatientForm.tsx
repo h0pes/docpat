@@ -329,6 +329,7 @@ export function PatientForm({ patient, onSubmit, onCancel, isSubmitting }: Patie
                     <FormControl>
                       <Input {...field} maxLength={16} className="uppercase" />
                     </FormControl>
+                    <FormDescription>{t('patients.form.fiscal_code_hint')}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

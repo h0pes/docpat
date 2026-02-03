@@ -16,6 +16,7 @@ import { Calendar, BarChart3, AlertCircle } from 'lucide-react';
 import { appointmentsApi } from '../../services/api/appointments';
 import { AppointmentCalendar } from '../../components/appointments/AppointmentCalendar';
 import { PrintScheduleButton } from '../../components/appointments/PrintScheduleButton';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import type {
   Appointment,
   AppointmentSearchFilters,
@@ -112,10 +113,11 @@ export function AppointmentsPage() {
       setCancellationReason('');
       setAppointmentToCancel(null);
     },
-    onError: () => {
+    onError: (error: unknown) => {
       toast({
-        title: t('appointments.messages.cancelError'),
         variant: 'destructive',
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
   });

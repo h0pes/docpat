@@ -22,9 +22,11 @@ import {
 } from 'lucide-react';
 
 import { patientsApi } from '@/services/api/patients';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import { PatientCard } from './PatientCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Select,
   SelectContent,
@@ -150,11 +152,11 @@ export function PatientList() {
       setShowDeleteDialog(false);
       setSelectedPatient(null);
     },
-    onError: () => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: t('patients.messages.deleteError'),
         variant: 'destructive',
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
   });
@@ -171,11 +173,11 @@ export function PatientList() {
       setShowReactivateDialog(false);
       setSelectedPatient(null);
     },
-    onError: () => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: t('patients.messages.reactivateError'),
         variant: 'destructive',
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
   });
@@ -692,20 +694,21 @@ export function PatientList() {
           )}
         </>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">
-              {debouncedSearch || activeFilterCount > 0
-                ? t('patients.no_results')
-                : t('patients.no_patients')}
-            </h3>
-            <p className="text-muted-foreground text-center mb-4">
-              {debouncedSearch || activeFilterCount > 0
-                ? t('patients.no_results_description')
-                : t('patients.no_patients_description')}
-            </p>
-            {debouncedSearch || activeFilterCount > 0 ? (
+        <EmptyState
+          variant="default"
+          icon={UserPlus}
+          title={
+            debouncedSearch || activeFilterCount > 0
+              ? t('patients.no_results')
+              : t('patients.no_patients')
+          }
+          description={
+            debouncedSearch || activeFilterCount > 0
+              ? t('patients.no_results_description')
+              : t('patients.no_patients_description')
+          }
+          action={
+            debouncedSearch || activeFilterCount > 0 ? (
               <Button variant="outline" onClick={handleClearFilters}>
                 {t('patients.clear_filters')}
               </Button>
@@ -714,9 +717,9 @@ export function PatientList() {
                 <UserPlus className="mr-2 h-4 w-4" />
                 {t('patients.add_first_patient')}
               </Button>
-            )}
-          </CardContent>
-        </Card>
+            )
+          }
+        />
       )}
 
       {/* Delete Confirmation Dialog */}

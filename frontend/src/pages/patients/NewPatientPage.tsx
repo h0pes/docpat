@@ -16,6 +16,7 @@ import { PatientForm } from '@/components/patients/PatientForm';
 import { DuplicatePatientWarning } from '@/components/patients/DuplicatePatientWarning';
 import { patientsApi } from '@/services/api/patients';
 import { useToast } from '@/components/ui/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 import type { PatientCreateRequest, Patient } from '@/types/patient';
 
 /**
@@ -48,7 +49,7 @@ export function NewPatientPage() {
       // Navigate to the newly created patient's detail page
       navigate(`/patients/${response.id}`);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       // Check if error response indicates duplicates
       if (error?.response?.status === 409 && error?.response?.data?.duplicates) {
         setDuplicates(error.response.data.duplicates);
@@ -56,8 +57,8 @@ export function NewPatientPage() {
       } else {
         toast({
           variant: 'destructive',
-          title: t('patients.messages.createError'),
-          description: error?.response?.data?.message || t('common.errors.generic'),
+          title: t(getErrorTitle(error)),
+          description: extractErrorMessage(error, t),
         });
       }
     },
@@ -112,7 +113,7 @@ export function NewPatientPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleBack}>
+        <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

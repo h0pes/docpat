@@ -18,6 +18,7 @@ import { useAuth } from '../../store/authStore';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useToast } from '../../hooks/use-toast';
+import { extractErrorMessage, getErrorTitle } from '@/lib/error-utils';
 
 /**
  * NewAppointmentPage provides the interface for scheduling new appointments.
@@ -58,11 +59,11 @@ export function NewAppointmentPage() {
       // Navigate to the new appointment detail page
       navigate(`/appointments/${newAppointment.id}`);
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       toast({
-        title: t('common.error'),
-        description: error.message || t('appointments.messages.create_failed'),
         variant: 'destructive',
+        title: t(getErrorTitle(error)),
+        description: extractErrorMessage(error, t),
       });
     },
   });
@@ -90,7 +91,7 @@ export function NewAppointmentPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleGoBack}>
+          <Button variant="ghost" size="icon" aria-label={t('common.goBack')} onClick={handleGoBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
