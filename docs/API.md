@@ -942,6 +942,28 @@ Deactivate patient (soft delete).
 
 ---
 
+### POST /api/v1/patients/:id/reactivate
+
+Reactivate a deactivated patient.
+
+**Authentication**: Required
+**Authorization**: ADMIN, DOCTOR
+
+**Path Parameters**
+
+- `id` (UUID): Patient ID
+
+**Response** `200 OK`
+
+Returns the reactivated patient object with `status: ACTIVE`.
+
+**Error Responses**
+
+- `400 Bad Request`: Patient is already active
+- `404 Not Found`: Patient not found
+
+---
+
 ### GET /api/v1/patients/:id/visits
 
 Get all visits for a specific patient.
@@ -5662,14 +5684,26 @@ Returns the updated preferences object.
 
 ### Version 1.3.0 (January 2026)
 
+**Drug Interactions Module**
 - Added Drug Interactions endpoints using DDInter 2.0 database:
   - `POST /drug-interactions/check` - Check interactions between multiple medications
   - `POST /drug-interactions/check-new` - Check interactions when adding new medication
+  - `POST /drug-interactions/check-new-for-patient` - Check interactions using medication names for a patient
   - `GET /drug-interactions/patient/{id}` - Check patient's active prescription interactions
   - `GET /drug-interactions/statistics` - Get drug interaction database statistics
 - Added RBAC policy for `drug_interactions:read` permission
 - Database includes 170,449+ drug-drug interactions with ATC code mapping
 - Supports severity filtering: contraindicated, major, moderate, minor, unknown
+
+**Patient Management**
+- Added `POST /patients/{id}/reactivate` endpoint to reactivate deactivated patients
+
+**Documentation**
+- Generated OpenAPI 3.1.0 specification (`docs/openapi.yaml`)
+- Added comprehensive request/response examples for all endpoints
+- Documented complete authentication flow with MFA support
+- Updated API changelog with all changes
+- Cross-verified all 155+ endpoints against backend route definitions
 
 ### Version 1.2.0 (December 2025)
 
@@ -5718,6 +5752,6 @@ For API support, questions, or issues:
 
 ---
 
-**Last Updated**: December 2025
-**API Version**: 1.2.0
+**Last Updated**: January 2026
+**API Version**: 1.3.0
 **Status**: Production Ready

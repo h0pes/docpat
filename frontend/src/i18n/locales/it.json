@@ -2802,5 +2802,626 @@
     "errors": {
       "load_failed": "Impossibile caricare le notifiche"
     }
+  },
+  "help": {
+    "title": "Centro Assistenza",
+    "description": "Trova risposte alle domande frequenti e scopri come usare DocPat",
+    "search_placeholder": "Cerca negli articoli di aiuto...",
+    "no_results": "Nessun risultato trovato per \"{{query}}\"",
+    "download_manual": "Scarica il Manuale Utente (PDF)",
+    "back_to_help": "Torna al Centro Assistenza",
+    "related_topics": "Argomenti Correlati",
+    "was_helpful": "È stato utile?",
+    "yes": "Sì",
+    "no": "No",
+    "tabs": {
+      "overview": "Panoramica",
+      "getting_started": "Per Iniziare",
+      "features": "Guide Funzionalità",
+      "faq": "FAQ",
+      "troubleshooting": "Risoluzione Problemi",
+      "shortcuts": "Scorciatoie"
+    },
+    "overview": {
+      "title": "Benvenuto in DocPat",
+      "subtitle": "La tua soluzione completa per la gestione dello studio medico",
+      "intro": "DocPat ti aiuta a gestire pazienti, appuntamenti, visite, prescrizioni e documenti in modo efficiente. Questo centro assistenza fornisce guide, FAQ e suggerimenti per la risoluzione dei problemi per aiutarti a ottenere il massimo dal sistema.",
+      "quick_links": "Link Rapidi",
+      "quick_links_description": "Vai agli argomenti di aiuto più consultati",
+      "link_new_patient": "Come aggiungere un nuovo paziente",
+      "link_schedule": "Programmare appuntamenti",
+      "link_visit": "Registrare una visita clinica",
+      "link_prescription": "Creare prescrizioni",
+      "link_documents": "Generare documenti",
+      "support_title": "Hai Bisogno di Altro Aiuto?",
+      "support_description": "Se non trovi quello che cerchi, contatta l'amministratore di sistema per assistenza.",
+      "version": "Versione DocPat",
+      "last_updated": "Documentazione aggiornata il"
+    },
+    "getting_started": {
+      "title": "Per Iniziare",
+      "subtitle": "Impara le basi di DocPat in pochi minuti",
+      "intro": "Segui questi passaggi per iniziare rapidamente con DocPat.",
+      "steps": {
+        "login": {
+          "title": "1. Accesso",
+          "description": "Accedi al tuo account in sicurezza",
+          "content": "Vai alla pagina di login di DocPat e inserisci nome utente e password. Se l'autenticazione a due fattori (MFA) è abilitata, dovrai inserire il codice a 6 cifre dalla tua app di autenticazione. Usa l'opzione 'Ricordami' per rimanere connesso sui dispositivi fidati."
+        },
+        "navigation": {
+          "title": "2. Navigare l'Interfaccia",
+          "description": "Comprendere il layout principale",
+          "content": "La barra laterale a sinistra fornisce accesso a tutte le funzionalità principali: Dashboard, Pazienti, Appuntamenti, Visite, Prescrizioni, Documenti, Report e Notifiche. Gli utenti Admin vedono anche le opzioni di Amministrazione. La barra superiore contiene notifiche, selettori lingua/tema e il menu del tuo profilo."
+        },
+        "first_patient": {
+          "title": "3. Aggiungere il Primo Paziente",
+          "description": "Crea anagrafiche pazienti velocemente",
+          "content": "Vai a Pazienti nella barra laterale, poi clicca 'Nuovo Paziente'. Compila i campi obbligatori (nome, data di nascita, informazioni di contatto) e qualsiasi dettaglio opzionale come le informazioni assicurative. Clicca 'Salva' per creare l'anagrafica del paziente."
+        },
+        "schedule": {
+          "title": "4. Programmare Appuntamenti",
+          "description": "Gestisci il tuo calendario in modo efficiente",
+          "content": "Vai ad Appuntamenti per visualizzare il calendario. Clicca su uno slot temporale vuoto o usa il pulsante 'Nuovo Appuntamento'. Seleziona un paziente, scegli il tipo di appuntamento, imposta data e ora, e salva. Il sistema previene automaticamente le doppie prenotazioni."
+        },
+        "visit": {
+          "title": "5. Registrare le Visite",
+          "description": "Documenta gli incontri con i pazienti",
+          "content": "Quando arriva un paziente, vai a Visite e crea una nuova visita. Usa il formato SOAP (Soggettivo, Oggettivo, Valutazione, Piano) per documentare i risultati. Registra i segni vitali, aggiungi diagnosi usando i codici ICD-10 e salva come Bozza fino a quando non sei pronto per firmare."
+        },
+        "prescriptions": {
+          "title": "6. Creare Prescrizioni",
+          "description": "Genera prescrizioni in sicurezza",
+          "content": "Da una visita o dalla pagina Prescrizioni, crea nuove prescrizioni. Seleziona i farmaci dal database o aggiungine di personalizzati. Il sistema controlla automaticamente le interazioni farmacologiche. Imposta dosaggio, frequenza e informazioni sui ricarichi, poi salva o stampa."
+        },
+        "documents": {
+          "title": "7. Generare Documenti",
+          "description": "Crea documenti medici dai modelli",
+          "content": "Vai a Documenti per generare certificati medici, lettere di riferimento, richieste di laboratorio o riepiloghi delle visite. Seleziona un modello, scegli il paziente e la visita pertinente, e genera il PDF. Puoi scaricare o inviare i documenti direttamente ai pazienti via email."
+        }
+      },
+      "tips": {
+        "title": "Suggerimenti Rapidi",
+        "tip1": "Usa le scorciatoie da tastiera per navigare più velocemente - premi Ctrl+K per aprire la ricerca rapida",
+        "tip2": "Passa dal tema chiaro a quello scuro usando l'icona sole/luna nell'intestazione",
+        "tip3": "Cambia lingua tra Italiano e Inglese dal menu a tendina nell'intestazione"
+      }
+    },
+    "features": {
+      "title": "Guide Funzionalità",
+      "subtitle": "Guide dettagliate per ogni modulo",
+      "intro": "Seleziona una funzionalità qui sotto per saperne di più sulle sue capacità e come usarla efficacemente.",
+      "categories": {
+        "dashboard": {
+          "title": "Dashboard",
+          "description": "Panoramica e azioni rapide",
+          "content": "La Dashboard fornisce una rapida panoramica del tuo studio con schede statistiche che mostrano conteggio pazienti, appuntamenti di oggi, visite recenti e prescrizioni attive. Usa i pulsanti di azione rapida per creare nuovi pazienti, appuntamenti, visite o prescrizioni direttamente dalla dashboard.",
+          "features": [
+            "Visualizza le statistiche chiave a colpo d'occhio",
+            "Pulsanti azione rapida per operazioni comuni",
+            "Feed attività recenti",
+            "Clicca le schede statistiche per navigare alle viste dettagliate"
+          ]
+        },
+        "patients": {
+          "title": "Gestione Pazienti",
+          "description": "Aggiungi, modifica e cerca pazienti",
+          "content": "Il modulo Pazienti è il cuore di DocPat. Qui puoi gestire tutte le anagrafiche dei pazienti inclusi dati anagrafici, informazioni di contatto, dettagli assicurativi, storia clinica, allergie e farmaci.",
+          "features": [
+            "Crea nuove anagrafiche pazienti con dati anagrafici completi",
+            "Cerca pazienti per nome, ID, telefono o email",
+            "Visualizza la storia del paziente incluse visite, appuntamenti e prescrizioni",
+            "Modifica informazioni paziente e dettagli assicurativi",
+            "Traccia le date di scadenza delle tessere sanitarie"
+          ]
+        },
+        "appointments": {
+          "title": "Appuntamenti",
+          "description": "Programmazione e gestione calendario",
+          "content": "Il modulo Appuntamenti fornisce un'interfaccia calendario completa per programmare e gestire gli appuntamenti dei pazienti. Visualizza per giorno, settimana o mese, e traccia gli stati degli appuntamenti attraverso il loro ciclo di vita.",
+          "features": [
+            "Calendario interattivo con viste giorno, settimana e mese",
+            "Crea appuntamenti con tipo, durata e note",
+            "Rilevamento automatico dei conflitti previene le doppie prenotazioni",
+            "Flusso stati: Programmato → Confermato → In Corso → Completato",
+            "Annulla appuntamenti con tracciamento del motivo",
+            "Imposta appuntamenti ricorrenti (giornalieri, settimanali, mensili)",
+            "Visualizza statistiche e utilizzo appuntamenti"
+          ]
+        },
+        "visits": {
+          "title": "Visite Cliniche",
+          "description": "Note SOAP e documentazione clinica",
+          "content": "Documenta gli incontri con i pazienti usando il formato SOAP strutturato. Registra i segni vitali, le diagnosi e i piani di trattamento. Firma le visite digitalmente per la conformità legale.",
+          "features": [
+            "Formato nota SOAP (Soggettivo, Oggettivo, Valutazione, Piano)",
+            "Registrazione segni vitali con validazione",
+            "Codici diagnosi ICD-10 con ricerca",
+            "Modelli visita per tipi di incontro comuni",
+            "Firme digitali con timestamp",
+            "Flusso stati: Bozza → Firmata → Bloccata",
+            "Collega prescrizioni a visite specifiche"
+          ]
+        },
+        "prescriptions": {
+          "title": "Prescrizioni",
+          "description": "Gestione farmaci",
+          "content": "Crea e gestisci prescrizioni con funzionalità di sicurezza integrate. Il sistema controlla le interazioni farmacologiche e aiuta a tracciare ricarichi e rinnovi.",
+          "features": [
+            "Cerca farmaci dal database integrato",
+            "Aggiungi farmaci personalizzati quando necessario",
+            "Controllo automatico interazioni farmacologiche",
+            "Imposta dosaggio, frequenza e durata",
+            "Traccia ricarichi e date di rinnovo",
+            "Stampa o invia prescrizioni via email",
+            "Modelli prescrizione per farmaci comuni",
+            "Sospendi o rinnova prescrizioni facilmente"
+          ]
+        },
+        "documents": {
+          "title": "Documenti",
+          "description": "Modelli e generazione documenti",
+          "content": "Genera documenti medici professionali da modelli personalizzabili. I documenti si popolano automaticamente con i dati del paziente e della visita.",
+          "features": [
+            "Modelli predefiniti per certificati, referti e richieste di laboratorio",
+            "Creazione modelli personalizzati con sintassi variabili",
+            "Auto-compilazione dati paziente, visita e prescrizione",
+            "Genera documenti PDF istantaneamente",
+            "Invia documenti direttamente ai pazienti via email",
+            "Traccia generazione e stato consegna documenti",
+            "Guida di riferimento variabili modello"
+          ]
+        },
+        "reports": {
+          "title": "Report",
+          "description": "Analisi e approfondimenti",
+          "content": "Genera report per comprendere le performance del tuo studio. Visualizza statistiche appuntamenti, dati anagrafici pazienti, tendenze diagnosi e produttività del medico.",
+          "features": [
+            "Report appuntamenti con metriche di utilizzo",
+            "Statistiche pazienti e tendenze di crescita",
+            "Analisi frequenza diagnosi",
+            "Report produttività medico",
+            "Selezione intervallo date personalizzato",
+            "Esporta in PDF, CSV o Excel"
+          ]
+        },
+        "notifications": {
+          "title": "Notifiche",
+          "description": "Avvisi e promemoria",
+          "content": "Gestisci le notifiche email inviate ai pazienti inclusi promemoria appuntamenti e consegne documenti. Traccia lo stato di consegna e riprova le notifiche fallite.",
+          "features": [
+            "Visualizza storico notifiche e stato",
+            "Filtra per stato (in attesa, inviate, fallite)",
+            "Riprova notifiche fallite",
+            "Annulla notifiche in attesa",
+            "Traccia conferme di consegna"
+          ]
+        },
+        "admin": {
+          "title": "Amministrazione",
+          "description": "Impostazioni e gestione sistema",
+          "content": "Gli utenti Admin possono configurare le impostazioni di sistema, gestire gli utenti, visualizzare i log di audit e monitorare lo stato del sistema. Questa sezione è visibile solo agli utenti con ruolo Admin.",
+          "features": [
+            "Impostazioni studio (nome, indirizzo, contatto)",
+            "Gestione utenti (crea, modifica, disattiva)",
+            "Impostazioni sicurezza (requisiti MFA, timeout sessione)",
+            "Orari di lavoro e calendario festività",
+            "Log di audit per conformità",
+            "Monitoraggio stato sistema",
+            "Configurazione email e backup"
+          ]
+        }
+      }
+    },
+    "faq": {
+      "title": "Domande Frequenti",
+      "subtitle": "Risposte rapide alle domande comuni",
+      "intro": "Sfoglia o cerca le domande frequenti organizzate per categoria.",
+      "categories": {
+        "general": "Generale",
+        "account": "Account e Accesso",
+        "patients": "Pazienti",
+        "appointments": "Appuntamenti",
+        "visits": "Visite",
+        "prescriptions": "Prescrizioni",
+        "documents": "Documenti",
+        "security": "Sicurezza"
+      },
+      "items": {
+        "what_is_docpat": {
+          "category": "general",
+          "question": "Cos'è DocPat?",
+          "answer": "DocPat è un sistema completo di gestione dello studio medico progettato per professionisti individuali. Ti aiuta a gestire pazienti, appuntamenti, visite cliniche, prescrizioni e documenti in un'unica applicazione sicura e facile da usare."
+        },
+        "supported_browsers": {
+          "category": "general",
+          "question": "Quali browser sono supportati?",
+          "answer": "DocPat funziona meglio con browser moderni inclusi Chrome, Firefox, Safari e Edge. Ti consigliamo di mantenere il browser aggiornato all'ultima versione per la migliore esperienza e sicurezza."
+        },
+        "mobile_support": {
+          "category": "general",
+          "question": "Posso usare DocPat su dispositivi mobili?",
+          "answer": "Sì, DocPat è responsive e funziona su tablet e smartphone. L'interfaccia si adatta agli schermi più piccoli mantenendo la piena funzionalità."
+        },
+        "change_language": {
+          "category": "general",
+          "question": "Come cambio la lingua?",
+          "answer": "Clicca l'icona della lingua nella barra dell'intestazione in alto e seleziona la lingua preferita (Italiano o Inglese). La tua preferenza viene salvata automaticamente."
+        },
+        "change_theme": {
+          "category": "general",
+          "question": "Come passo dalla modalità chiara a quella scura?",
+          "answer": "Clicca l'icona sole/luna nella barra dell'intestazione in alto per alternare tra i temi chiaro e scuro. La tua preferenza viene salvata automaticamente."
+        },
+        "reset_password": {
+          "category": "account",
+          "question": "Come resetto la mia password?",
+          "answer": "Clicca 'Password dimenticata?' nella pagina di login. Inserisci il tuo indirizzo email e segui le istruzioni inviate alla tua casella di posta. Se non ricevi l'email, controlla la cartella spam o contatta l'amministratore."
+        },
+        "enable_mfa": {
+          "category": "account",
+          "question": "Come abilito l'autenticazione a due fattori?",
+          "answer": "Vai al tuo Profilo (clicca sul tuo nome nell'intestazione), scorri fino a Impostazioni Sicurezza e clicca 'Abilita MFA'. Scansiona il codice QR con un'app di autenticazione come Google Authenticator o Authy, poi inserisci il codice di verifica per completare la configurazione."
+        },
+        "mfa_lost_phone": {
+          "category": "account",
+          "question": "Cosa faccio se perdo l'accesso alla mia app di autenticazione?",
+          "answer": "Contatta l'amministratore di sistema per resettare le tue impostazioni MFA. Possono disabilitare l'MFA sul tuo account così puoi configurarlo nuovamente con un nuovo dispositivo."
+        },
+        "session_timeout": {
+          "category": "account",
+          "question": "Perché la mia sessione scade?",
+          "answer": "Per sicurezza, le sessioni scadono dopo un periodo di inattività (tipicamente 30 minuti). Questo protegge i dati dei pazienti se lasci il computer incustodito. Dovrai accedere nuovamente quando succede."
+        },
+        "add_patient": {
+          "category": "patients",
+          "question": "Come aggiungo un nuovo paziente?",
+          "answer": "Vai a Pazienti dalla barra laterale, clicca 'Nuovo Paziente', compila i campi obbligatori (nome, data di nascita, info contatto) e clicca 'Salva'. Puoi aggiungere informazioni opzionali come dettagli assicurativi e storia clinica."
+        },
+        "search_patients": {
+          "category": "patients",
+          "question": "Come cerco un paziente?",
+          "answer": "Usa la barra di ricerca in cima alla pagina Pazienti. Puoi cercare per nome paziente, numero cartella clinica, numero di telefono o indirizzo email. I risultati si aggiornano mentre digiti."
+        },
+        "delete_patient": {
+          "category": "patients",
+          "question": "Posso eliminare un'anagrafica paziente?",
+          "answer": "Le anagrafiche pazienti non possono essere eliminate per mantenere l'integrità della cartella clinica. Invece, puoi disattivare un'anagrafica paziente che la rimuove dalle liste attive preservando la sua storia per la conformità."
+        },
+        "schedule_appointment": {
+          "category": "appointments",
+          "question": "Come programmo un appuntamento?",
+          "answer": "Vai ad Appuntamenti, clicca su uno slot temporale vuoto nel calendario o usa il pulsante 'Nuovo Appuntamento'. Seleziona il paziente, scegli il tipo di appuntamento, imposta data e ora, e salva."
+        },
+        "recurring_appointments": {
+          "category": "appointments",
+          "question": "Posso impostare appuntamenti ricorrenti?",
+          "answer": "Sì, quando crei un appuntamento, espandi la sezione 'Ricorrente' e seleziona la frequenza (giornaliera, settimanale, bisettimanale o mensile). Imposta la data di fine o il numero massimo di occorrenze."
+        },
+        "cancel_appointment": {
+          "category": "appointments",
+          "question": "Come annullo un appuntamento?",
+          "answer": "Apri i dettagli dell'appuntamento, clicca il pulsante 'Annulla', inserisci opzionalmente un motivo di annullamento e conferma. Gli appuntamenti annullati sono contrassegnati nel calendario ma preservati per i registri."
+        },
+        "appointment_conflict": {
+          "category": "appointments",
+          "question": "Perché non posso prenotare un appuntamento a un certo orario?",
+          "answer": "Il sistema previene le doppie prenotazioni. Se uno slot temporale è già occupato, dovrai scegliere un orario diverso. Controlla la vista calendario per vedere gli appuntamenti esistenti."
+        },
+        "create_visit": {
+          "category": "visits",
+          "question": "Come creo una nota visita?",
+          "answer": "Vai a Visite e clicca 'Nuova Visita', o crea una visita dal profilo di un paziente. Seleziona il paziente, scegli il tipo di visita e documenta usando il formato SOAP. Salva come Bozza fino a quando non sei pronto per firmare."
+        },
+        "sign_visit": {
+          "category": "visits",
+          "question": "Cosa fa firmare una visita?",
+          "answer": "Firmare una visita aggiunge la tua firma digitale e timestamp, indicando che hai revisionato e approvato la documentazione. Le visite firmate non possono essere modificate, solo integrate con note aggiuntive."
+        },
+        "lock_visit": {
+          "category": "visits",
+          "question": "Qual è la differenza tra firmare e bloccare una visita?",
+          "answer": "Firmare indica l'approvazione del medico e previene le modifiche. Bloccare è un passaggio aggiuntivo che archivia la visita permanentemente, tipicamente usato dopo che tutta la documentazione di follow-up è completa."
+        },
+        "visit_templates": {
+          "category": "visits",
+          "question": "Come uso i modelli visita?",
+          "answer": "Quando crei una nuova visita, seleziona un modello dal menu a tendina. Il modello pre-compila i campi comuni in base al tipo di visita. Puoi personalizzare il contenuto dopo aver applicato il modello."
+        },
+        "create_prescription": {
+          "category": "prescriptions",
+          "question": "Come creo una prescrizione?",
+          "answer": "Vai a Prescrizioni o crea dall'interno di una visita. Clicca 'Nuova Prescrizione', seleziona il paziente, cerca o aggiungi il farmaco, imposta dosaggio e frequenza, e salva. Puoi poi stampare o inviare la prescrizione via email."
+        },
+        "drug_interactions": {
+          "category": "prescriptions",
+          "question": "Cosa significano gli avvisi di interazione farmacologica?",
+          "answer": "Il sistema controlla le interazioni tra i farmaci prescritti. Gli avvisi sono codificati per colore: Rosso (controindicato - evitare), Arancione (maggiore - rischio serio), Giallo (moderato - cautela), Blu (minore - basso rischio). Rivedi tutti gli avvisi prima di finalizzare le prescrizioni."
+        },
+        "renew_prescription": {
+          "category": "prescriptions",
+          "question": "Come rinnovo una prescrizione?",
+          "answer": "Trova la prescrizione nella lista, clicca l'icona o pulsante di rinnovo. Questo crea una nuova prescrizione con gli stessi dettagli che puoi modificare se necessario prima di salvare."
+        },
+        "custom_medication": {
+          "category": "prescriptions",
+          "question": "Posso prescrivere farmaci non presenti nel database?",
+          "answer": "Sì, clicca 'Farmaco Personalizzato' quando crei una prescrizione per inserire manualmente i dettagli del farmaco inclusi nome, forma, concentrazione e istruzioni."
+        },
+        "generate_document": {
+          "category": "documents",
+          "question": "Come genero un documento?",
+          "answer": "Vai a Documenti, clicca 'Genera Documento', seleziona un tipo di modello (certificato, referto, ecc.), scegli il paziente e la visita pertinente se applicabile, e clicca Genera. Il PDF verrà creato e sarà disponibile per il download."
+        },
+        "email_document": {
+          "category": "documents",
+          "question": "Posso inviare documenti ai pazienti via email?",
+          "answer": "Sì, dalla lista documenti, clicca l'icona email su qualsiasi documento generato. Inserisci o conferma l'indirizzo email del paziente e invia. Il sistema traccia lo stato di consegna."
+        },
+        "create_template": {
+          "category": "documents",
+          "question": "Come creo un modello documento personalizzato?",
+          "answer": "Gli utenti Admin possono andare a Documenti > Modelli, cliccare 'Nuovo Modello' e usare l'editor modelli. Usa variabili come {{patient.name}} per auto-compilare i dati. Consulta la Guida Modelli per la sintassi."
+        },
+        "data_security": {
+          "category": "security",
+          "question": "Come sono protetti i dati dei pazienti?",
+          "answer": "DocPat usa crittografia AES-256 per i dati sensibili a riposo e TLS 1.3 per i dati in transito. Tutti gli accessi sono registrati nella traccia di audit, e la sicurezza a livello di riga garantisce che gli utenti vedano solo i dati autorizzati."
+        },
+        "audit_logs": {
+          "category": "security",
+          "question": "Cosa sono i log di audit?",
+          "answer": "I log di audit registrano tutte le azioni significative nel sistema inclusi accesso ai dati, modifiche e attività utente. Gli utenti Admin possono visualizzare i log di audit per conformità e monitoraggio della sicurezza."
+        }
+      }
+    },
+    "troubleshooting": {
+      "title": "Risoluzione Problemi",
+      "subtitle": "Soluzioni ai problemi comuni",
+      "intro": "Trova soluzioni ai problemi comuni. Se il tuo problema non è elencato qui, contatta l'amministratore di sistema.",
+      "categories": {
+        "login": "Problemi di Accesso",
+        "performance": "Prestazioni",
+        "data": "Dati e Sincronizzazione",
+        "printing": "Stampa e Documenti",
+        "notifications": "Notifiche"
+      },
+      "severity": {
+        "info": "Info",
+        "warning": "Avviso",
+        "error": "Errore"
+      },
+      "items": {
+        "cannot_login": {
+          "category": "login",
+          "severity": "warning",
+          "issue": "Non riesco ad accedere al mio account",
+          "solutions": [
+            "Verifica che nome utente e password siano corretti (controlla eventuali errori di battitura)",
+            "Controlla se il Blocco Maiuscole è attivo sulla tastiera",
+            "Prova l'opzione 'Password dimenticata?' per resettare la password",
+            "Cancella cache e cookie del browser, poi riprova",
+            "Prova un browser diverso o la modalità incognito/privata",
+            "Contatta l'amministratore se il problema persiste"
+          ]
+        },
+        "mfa_not_working": {
+          "category": "login",
+          "severity": "warning",
+          "issue": "Il codice di autenticazione a due fattori non funziona",
+          "solutions": [
+            "Assicurati che l'ora del tuo dispositivo sia sincronizzata correttamente",
+            "Aspetta che si generi un nuovo codice (i codici cambiano ogni 30 secondi)",
+            "Assicurati di usare l'account corretto nella tua app di autenticazione",
+            "Prova a inserire il codice manualmente invece di copiare/incollare",
+            "Contatta l'amministratore per resettare l'MFA se necessario"
+          ]
+        },
+        "session_expired": {
+          "category": "login",
+          "severity": "info",
+          "issue": "La sessione continua a scadere inaspettatamente",
+          "solutions": [
+            "Questo è un comportamento di sicurezza normale - le sessioni scadono dopo inattività",
+            "Usa 'Ricordami' quando accedi per estendere la durata della sessione",
+            "Controlla la tua connessione di rete - le disconnessioni possono terminare le sessioni",
+            "Evita di usare DocPat in più schede simultaneamente",
+            "Contatta l'admin se il timeout è troppo breve per il tuo flusso di lavoro"
+          ]
+        },
+        "slow_loading": {
+          "category": "performance",
+          "severity": "warning",
+          "issue": "Le pagine si caricano lentamente",
+          "solutions": [
+            "Controlla la velocità della tua connessione internet",
+            "Cancella cache e cookie del browser",
+            "Chiudi schede e applicazioni non necessarie del browser",
+            "Prova un browser diverso",
+            "Disabilita estensioni del browser che potrebbero interferire",
+            "Se il problema persiste, contatta l'amministratore"
+          ]
+        },
+        "page_not_responding": {
+          "category": "performance",
+          "severity": "error",
+          "issue": "La pagina non risponde o si blocca",
+          "solutions": [
+            "Aspetta qualche momento - le operazioni complesse possono richiedere tempo",
+            "Aggiorna la pagina (potresti perdere il lavoro non salvato)",
+            "Controlla la tua connessione internet",
+            "Cancella la cache del browser e riavvia il browser",
+            "Prova ad accedere da un dispositivo diverso",
+            "Segnala il problema all'amministratore con i dettagli"
+          ]
+        },
+        "data_not_saving": {
+          "category": "data",
+          "severity": "error",
+          "issue": "Le modifiche non vengono salvate",
+          "solutions": [
+            "Controlla gli errori di validazione - i campi obbligatori potrebbero essere vuoti",
+            "Cerca messaggi di errore in cima al modulo",
+            "Verifica che la tua connessione internet sia stabile",
+            "Assicurati di aver cliccato il pulsante 'Salva'",
+            "Prova ad aggiornare la pagina e reinserire i dati",
+            "Contatta l'amministratore se il problema persiste"
+          ]
+        },
+        "missing_data": {
+          "category": "data",
+          "severity": "warning",
+          "issue": "I dati inseriti mancano o non vengono mostrati",
+          "solutions": [
+            "Aggiorna la pagina per caricare gli ultimi dati",
+            "Controlla se stai usando filtri che potrebbero nascondere i dati",
+            "Verifica di aver salvato i dati prima di navigare altrove",
+            "Controlla se un altro utente potrebbe aver modificato il record",
+            "Rivedi il log di audit per le modifiche (utenti admin)",
+            "Contatta l'amministratore se i dati sembrano persi"
+          ]
+        },
+        "pdf_not_generating": {
+          "category": "printing",
+          "severity": "warning",
+          "issue": "Il documento PDF non viene generato",
+          "solutions": [
+            "Aspetta qualche momento - la generazione documenti richiede tempo",
+            "Controlla lo stato del documento nella lista Documenti",
+            "Aggiorna la pagina e prova a generare di nuovo",
+            "Assicurati che tutti i dati richiesti (paziente, modello) siano selezionati",
+            "Controlla se ci sono errori nel modello",
+            "Contatta l'amministratore se la generazione fallisce ripetutamente"
+          ]
+        },
+        "print_layout_wrong": {
+          "category": "printing",
+          "severity": "info",
+          "issue": "Il documento stampato ha layout o formattazione errati",
+          "solutions": [
+            "Usa 'Stampa' dal browser o scarica prima il PDF",
+            "Controlla le impostazioni della stampante per il formato carta corretto (A4)",
+            "Disabilita 'Adatta alla pagina' nelle impostazioni di stampa",
+            "Imposta i margini su 'Predefinito' nelle impostazioni di stampa",
+            "Prova a stampare da un browser diverso",
+            "Segnala problemi del modello all'amministratore"
+          ]
+        },
+        "email_not_received": {
+          "category": "notifications",
+          "severity": "warning",
+          "issue": "Il paziente non ha ricevuto la notifica email",
+          "solutions": [
+            "Controlla lo stato della notifica nella pagina Notifiche",
+            "Chiedi al paziente di controllare la cartella spam/posta indesiderata",
+            "Verifica che l'indirizzo email del paziente sia corretto",
+            "Prova a reinviare cliccando 'Riprova' sulle notifiche fallite",
+            "Controlla se il server email è configurato correttamente (admin)",
+            "Contatta l'amministratore se le email falliscono costantemente"
+          ]
+        },
+        "notification_failed": {
+          "category": "notifications",
+          "severity": "error",
+          "issue": "Le notifiche mostrano 'Fallita'",
+          "solutions": [
+            "Clicca 'Riprova' per tentare l'invio di nuovo",
+            "Controlla che l'indirizzo email del destinatario sia valido",
+            "Verifica la configurazione del server email (admin)",
+            "Controlla i log del server per messaggi di errore dettagliati",
+            "Assicurati che il servizio email non sia limitato",
+            "Contatta l'amministratore per rivedere le impostazioni email"
+          ]
+        }
+      }
+    },
+    "shortcuts": {
+      "title": "Scorciatoie da Tastiera",
+      "subtitle": "Velocizza il tuo lavoro con le scorciatoie da tastiera",
+      "intro": "Usa queste scorciatoie da tastiera per navigare ed eseguire azioni più velocemente.",
+      "note": "Nota: Su macOS, usa Cmd invece di Ctrl per la maggior parte delle scorciatoie.",
+      "categories": {
+        "navigation": "Navigazione",
+        "actions": "Azioni Rapide",
+        "forms": "Modifica Moduli"
+      },
+      "items": {
+        "global_search": {
+          "category": "navigation",
+          "keys": "Ctrl + K",
+          "description": "Apri ricerca globale"
+        },
+        "go_dashboard": {
+          "category": "navigation",
+          "keys": "Alt + D",
+          "description": "Vai alla Dashboard"
+        },
+        "go_patients": {
+          "category": "navigation",
+          "keys": "Alt + P",
+          "description": "Vai a Pazienti"
+        },
+        "go_appointments": {
+          "category": "navigation",
+          "keys": "Alt + A",
+          "description": "Vai ad Appuntamenti"
+        },
+        "go_visits": {
+          "category": "navigation",
+          "keys": "Alt + V",
+          "description": "Vai a Visite"
+        },
+        "toggle_sidebar": {
+          "category": "navigation",
+          "keys": "Ctrl + B",
+          "description": "Mostra/nascondi barra laterale"
+        },
+        "new_patient": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + P",
+          "description": "Crea nuovo paziente"
+        },
+        "new_appointment": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + A",
+          "description": "Crea nuovo appuntamento"
+        },
+        "new_visit": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + V",
+          "description": "Crea nuova visita"
+        },
+        "save": {
+          "category": "forms",
+          "keys": "Ctrl + S",
+          "description": "Salva modulo corrente"
+        },
+        "cancel": {
+          "category": "forms",
+          "keys": "Escape",
+          "description": "Annulla/Chiudi dialogo"
+        },
+        "next_field": {
+          "category": "forms",
+          "keys": "Tab",
+          "description": "Passa al campo successivo"
+        },
+        "prev_field": {
+          "category": "forms",
+          "keys": "Shift + Tab",
+          "description": "Passa al campo precedente"
+        }
+      }
+    },
+    "contextual": {
+      "patients_list": "Visualizza e gestisci tutte le anagrafiche pazienti. Usa ricerca e filtri per trovare velocemente pazienti specifici.",
+      "patient_form": "Compila i dettagli del paziente. I campi contrassegnati con * sono obbligatori. Usa Tab per navigare tra i campi o clicca.",
+      "appointment_calendar": "Clicca su uno slot temporale per creare un nuovo appuntamento. Trascina gli appuntamenti per riprogrammare. Usa i toggle vista per giorno, settimana o mese.",
+      "visit_soap": "Documenta le visite usando il formato SOAP: Soggettivo (disturbi del paziente), Oggettivo (risultati), Valutazione (diagnosi), Piano (trattamento). Tutte le sezioni supportano testo formattato.",
+      "vital_signs": "Registra i segni vitali del paziente. I valori sono validati rispetto agli intervalli normali. Il BMI è calcolato automaticamente da altezza e peso.",
+      "prescription_form": "Cerca farmaci o aggiungine di personalizzati. Controlla gli avvisi di interazione prima di salvare. Imposta dosaggio, frequenza, durata e informazioni ricarichi.",
+      "prescription_interactions": "Gli avvisi di interazione farmacologica appaiono automaticamente. Rosso = evitare combinazione, Arancione = rischio serio, Giallo = cautela necessaria, Blu = rischio minore.",
+      "document_template": "Usa variabili del modello come {{patient.name}} per auto-compilare i dati. Visualizza l'anteprima del risultato prima di generare. Vedi la Guida Modelli per la sintassi.",
+      "report_filters": "Imposta l'intervallo date per filtrare i dati del report. Usa il pulsante aggiorna per aggiornare le statistiche. Opzioni di esportazione disponibili per tutti i tipi di report."
+    }
   }
 }

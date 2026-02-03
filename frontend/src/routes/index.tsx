@@ -52,6 +52,7 @@ import { AuditLogsPage } from '../pages/audit';
 import { SystemHealthPage } from '../pages/system';
 import { ProfilePage } from '../pages/ProfilePage';
 import { NotificationsPage } from '../pages/notifications';
+import { HelpPage } from '../pages/help';
 
 /**
  * Application router configuration
@@ -257,7 +258,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/help',
-            element: <div>Help page - Coming soon</div>,
+            element: <HelpPage />,
           },
         ],
       },

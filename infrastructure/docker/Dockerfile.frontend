@@ -23,7 +23,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 # Install dependencies with exact versions
 RUN npm ci --only=production=false
 
-# Copy application source code
+# Copy application source code and all config files
 COPY frontend/src ./src
 COPY frontend/public ./public
 COPY frontend/index.html ./
@@ -33,6 +33,12 @@ COPY frontend/tsconfig.app.json ./
 COPY frontend/tsconfig.node.json ./
 COPY frontend/tailwind.config.js ./
 COPY frontend/postcss.config.js ./
+COPY frontend/components.json ./
+
+# Build-time environment variable for API URL
+# This gets baked into the JavaScript bundle at build time
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 # Build application for production
 RUN npm run build

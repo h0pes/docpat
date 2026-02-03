@@ -2802,6 +2802,627 @@
     "errors": {
       "load_failed": "Failed to load notifications"
     }
+  },
+  "help": {
+    "title": "Help Center",
+    "description": "Find answers to common questions and learn how to use DocPat",
+    "search_placeholder": "Search help articles...",
+    "no_results": "No results found for \"{{query}}\"",
+    "download_manual": "Download User Manual (PDF)",
+    "back_to_help": "Back to Help Center",
+    "related_topics": "Related Topics",
+    "was_helpful": "Was this helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "tabs": {
+      "overview": "Overview",
+      "getting_started": "Getting Started",
+      "features": "Feature Guides",
+      "faq": "FAQ",
+      "troubleshooting": "Troubleshooting",
+      "shortcuts": "Shortcuts"
+    },
+    "overview": {
+      "title": "Welcome to DocPat",
+      "subtitle": "Your comprehensive medical practice management solution",
+      "intro": "DocPat helps you manage patients, appointments, visits, prescriptions, and documents efficiently. This help center provides guides, FAQs, and troubleshooting tips to help you get the most out of the system.",
+      "quick_links": "Quick Links",
+      "quick_links_description": "Jump to frequently used help topics",
+      "link_new_patient": "How to add a new patient",
+      "link_schedule": "Scheduling appointments",
+      "link_visit": "Recording a clinical visit",
+      "link_prescription": "Creating prescriptions",
+      "link_documents": "Generating documents",
+      "support_title": "Need More Help?",
+      "support_description": "If you can't find what you're looking for, contact your system administrator for assistance.",
+      "version": "DocPat Version",
+      "last_updated": "Documentation last updated"
+    },
+    "getting_started": {
+      "title": "Getting Started",
+      "subtitle": "Learn the basics of DocPat in just a few minutes",
+      "intro": "Follow these steps to get up and running with DocPat quickly.",
+      "steps": {
+        "login": {
+          "title": "1. Logging In",
+          "description": "Access your account securely",
+          "content": "Navigate to the DocPat login page and enter your username and password. If two-factor authentication (MFA) is enabled, you'll need to enter the 6-digit code from your authenticator app. Use the 'Remember Me' option to stay logged in on trusted devices."
+        },
+        "navigation": {
+          "title": "2. Navigating the Interface",
+          "description": "Understanding the main layout",
+          "content": "The sidebar on the left provides access to all main features: Dashboard, Patients, Appointments, Visits, Prescriptions, Documents, Reports, and Notifications. Admin users also see Administration options. The top bar contains notifications, language/theme switchers, and your profile menu."
+        },
+        "first_patient": {
+          "title": "3. Adding Your First Patient",
+          "description": "Create patient records quickly",
+          "content": "Go to Patients in the sidebar, then click 'New Patient'. Fill in the required fields (name, date of birth, contact information) and any optional details like insurance information. Click 'Save' to create the patient record."
+        },
+        "schedule": {
+          "title": "4. Scheduling Appointments",
+          "description": "Manage your calendar efficiently",
+          "content": "Navigate to Appointments to view the calendar. Click on an empty time slot or use the 'New Appointment' button. Select a patient, choose the appointment type, set the date and time, and save. The system prevents double-booking automatically."
+        },
+        "visit": {
+          "title": "5. Recording Visits",
+          "description": "Document patient encounters",
+          "content": "When a patient arrives, go to Visits and create a new visit. Use the SOAP format (Subjective, Objective, Assessment, Plan) to document findings. Record vital signs, add diagnoses using ICD-10 codes, and save as Draft until ready to sign."
+        },
+        "prescriptions": {
+          "title": "6. Creating Prescriptions",
+          "description": "Generate prescriptions safely",
+          "content": "From a visit or the Prescriptions page, create new prescriptions. Select medications from the database or add custom ones. The system checks for drug interactions automatically. Set dosage, frequency, and refill information, then save or print."
+        },
+        "documents": {
+          "title": "7. Generating Documents",
+          "description": "Create medical documents from templates",
+          "content": "Go to Documents to generate medical certificates, referral letters, lab requests, or visit summaries. Select a template, choose the patient and relevant visit, and generate the PDF. You can download or email documents directly to patients."
+        }
+      },
+      "tips": {
+        "title": "Quick Tips",
+        "tip1": "Use keyboard shortcuts to navigate faster - press Ctrl+K to open quick search",
+        "tip2": "Switch between light and dark themes using the sun/moon icon in the header",
+        "tip3": "Change language between English and Italian from the header dropdown"
+      }
+    },
+    "features": {
+      "title": "Feature Guides",
+      "subtitle": "Detailed guides for each module",
+      "intro": "Select a feature below to learn more about its capabilities and how to use it effectively.",
+      "categories": {
+        "dashboard": {
+          "title": "Dashboard",
+          "description": "Overview and quick actions",
+          "content": "The Dashboard provides a quick overview of your practice with statistics cards showing patient counts, today's appointments, recent visits, and active prescriptions. Use the quick action buttons to create new patients, appointments, visits, or prescriptions directly from the dashboard.",
+          "features": [
+            "View key statistics at a glance",
+            "Quick action buttons for common tasks",
+            "Recent activity feed",
+            "Click statistics cards to navigate to detailed views"
+          ]
+        },
+        "patients": {
+          "title": "Patient Management",
+          "description": "Add, edit, and search patients",
+          "content": "The Patients module is the core of DocPat. Here you can manage all patient records including demographics, contact information, insurance details, medical history, allergies, and medications.",
+          "features": [
+            "Create new patient records with comprehensive demographics",
+            "Search patients by name, ID, phone, or email",
+            "View patient history including visits, appointments, and prescriptions",
+            "Edit patient information and insurance details",
+            "Track health card expiration dates"
+          ]
+        },
+        "appointments": {
+          "title": "Appointments",
+          "description": "Scheduling and calendar management",
+          "content": "The Appointments module provides a full calendar interface for scheduling and managing patient appointments. View by day, week, or month, and track appointment statuses through their lifecycle.",
+          "features": [
+            "Interactive calendar with day, week, and month views",
+            "Create appointments with type, duration, and notes",
+            "Automatic conflict detection prevents double-booking",
+            "Status workflow: Scheduled → Confirmed → In Progress → Completed",
+            "Cancel appointments with reason tracking",
+            "Set up recurring appointments (daily, weekly, monthly)",
+            "View appointment statistics and utilization"
+          ]
+        },
+        "visits": {
+          "title": "Clinical Visits",
+          "description": "SOAP notes and clinical documentation",
+          "content": "Document patient encounters using the structured SOAP format. Record vital signs, diagnoses, and treatment plans. Sign visits digitally for legal compliance.",
+          "features": [
+            "SOAP note format (Subjective, Objective, Assessment, Plan)",
+            "Vital signs recording with validation",
+            "ICD-10 diagnosis codes with search",
+            "Visit templates for common encounter types",
+            "Digital signatures with timestamp",
+            "Status workflow: Draft → Signed → Locked",
+            "Link prescriptions to specific visits"
+          ]
+        },
+        "prescriptions": {
+          "title": "Prescriptions",
+          "description": "Medication management",
+          "content": "Create and manage prescriptions with built-in safety features. The system checks for drug interactions and helps track refills and renewals.",
+          "features": [
+            "Search medications from integrated database",
+            "Add custom medications when needed",
+            "Automatic drug interaction checking",
+            "Set dosage, frequency, and duration",
+            "Track refills and renewal dates",
+            "Print or email prescriptions",
+            "Prescription templates for common medications",
+            "Discontinue or renew prescriptions easily"
+          ]
+        },
+        "documents": {
+          "title": "Documents",
+          "description": "Templates and document generation",
+          "content": "Generate professional medical documents from customizable templates. Documents automatically populate with patient and visit data.",
+          "features": [
+            "Pre-built templates for certificates, referrals, and lab requests",
+            "Custom template creation with variable syntax",
+            "Auto-populate patient, visit, and prescription data",
+            "Generate PDF documents instantly",
+            "Email documents directly to patients",
+            "Track document generation and delivery status",
+            "Template variable reference guide"
+          ]
+        },
+        "reports": {
+          "title": "Reports",
+          "description": "Analytics and insights",
+          "content": "Generate reports to understand your practice performance. View appointment statistics, patient demographics, diagnosis trends, and provider productivity.",
+          "features": [
+            "Appointment reports with utilization metrics",
+            "Patient statistics and growth trends",
+            "Diagnosis frequency analysis",
+            "Provider productivity reports",
+            "Custom date range selection",
+            "Export to PDF, CSV, or Excel"
+          ]
+        },
+        "notifications": {
+          "title": "Notifications",
+          "description": "Alerts and reminders",
+          "content": "Manage email notifications sent to patients including appointment reminders and document deliveries. Track delivery status and retry failed notifications.",
+          "features": [
+            "View notification history and status",
+            "Filter by status (pending, sent, failed)",
+            "Retry failed notifications",
+            "Cancel pending notifications",
+            "Track delivery confirmations"
+          ]
+        },
+        "admin": {
+          "title": "Administration",
+          "description": "Settings and system management",
+          "content": "Admin users can configure system settings, manage users, view audit logs, and monitor system health. This section is only visible to users with the Admin role.",
+          "features": [
+            "Practice settings (name, address, contact)",
+            "User management (create, edit, deactivate)",
+            "Security settings (MFA requirements, session timeout)",
+            "Working hours and holiday schedule",
+            "Audit logs for compliance",
+            "System health monitoring",
+            "Email and backup configuration"
+          ]
+        }
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Quick answers to common questions",
+      "intro": "Browse or search frequently asked questions organized by category.",
+      "categories": {
+        "general": "General",
+        "account": "Account & Login",
+        "patients": "Patients",
+        "appointments": "Appointments",
+        "visits": "Visits",
+        "prescriptions": "Prescriptions",
+        "documents": "Documents",
+        "security": "Security"
+      },
+      "items": {
+        "what_is_docpat": {
+          "category": "general",
+          "question": "What is DocPat?",
+          "answer": "DocPat is a comprehensive medical practice management system designed for individual practitioners. It helps you manage patients, appointments, clinical visits, prescriptions, and documents in one secure, easy-to-use application."
+        },
+        "supported_browsers": {
+          "category": "general",
+          "question": "Which browsers are supported?",
+          "answer": "DocPat works best with modern browsers including Chrome, Firefox, Safari, and Edge. We recommend keeping your browser updated to the latest version for the best experience and security."
+        },
+        "mobile_support": {
+          "category": "general",
+          "question": "Can I use DocPat on mobile devices?",
+          "answer": "Yes, DocPat is responsive and works on tablets and smartphones. The interface adapts to smaller screens while maintaining full functionality."
+        },
+        "change_language": {
+          "category": "general",
+          "question": "How do I change the language?",
+          "answer": "Click the language icon in the top header bar and select your preferred language (English or Italian). Your preference is saved automatically."
+        },
+        "change_theme": {
+          "category": "general",
+          "question": "How do I switch between light and dark mode?",
+          "answer": "Click the sun/moon icon in the top header bar to toggle between light and dark themes. Your preference is saved automatically."
+        },
+        "reset_password": {
+          "category": "account",
+          "question": "How do I reset my password?",
+          "answer": "Click 'Forgot password?' on the login page. Enter your email address and follow the instructions sent to your inbox. If you don't receive an email, check your spam folder or contact your administrator."
+        },
+        "enable_mfa": {
+          "category": "account",
+          "question": "How do I enable two-factor authentication?",
+          "answer": "Go to your Profile (click your name in the header), scroll to Security Settings, and click 'Enable MFA'. Scan the QR code with an authenticator app like Google Authenticator or Authy, then enter the verification code to complete setup."
+        },
+        "mfa_lost_phone": {
+          "category": "account",
+          "question": "What if I lose access to my authenticator app?",
+          "answer": "Contact your system administrator to reset your MFA settings. They can disable MFA on your account so you can set it up again with a new device."
+        },
+        "session_timeout": {
+          "category": "account",
+          "question": "Why does my session expire?",
+          "answer": "For security, sessions expire after a period of inactivity (typically 30 minutes). This protects patient data if you leave your computer unattended. You'll need to log in again when this happens."
+        },
+        "add_patient": {
+          "category": "patients",
+          "question": "How do I add a new patient?",
+          "answer": "Navigate to Patients from the sidebar, click 'New Patient', fill in the required fields (name, date of birth, contact info), and click 'Save'. You can add optional information like insurance details and medical history."
+        },
+        "search_patients": {
+          "category": "patients",
+          "question": "How do I search for a patient?",
+          "answer": "Use the search bar at the top of the Patients page. You can search by patient name, medical record number, phone number, or email address. Results update as you type."
+        },
+        "delete_patient": {
+          "category": "patients",
+          "question": "Can I delete a patient record?",
+          "answer": "Patient records cannot be deleted to maintain medical record integrity. Instead, you can deactivate a patient record which removes them from active lists while preserving their history for compliance."
+        },
+        "schedule_appointment": {
+          "category": "appointments",
+          "question": "How do I schedule an appointment?",
+          "answer": "Go to Appointments, click on an empty time slot in the calendar or use the 'New Appointment' button. Select the patient, choose the appointment type, set the date and time, and save."
+        },
+        "recurring_appointments": {
+          "category": "appointments",
+          "question": "Can I set up recurring appointments?",
+          "answer": "Yes, when creating an appointment, expand the 'Recurring' section and select the frequency (daily, weekly, bi-weekly, or monthly). Set the end date or maximum number of occurrences."
+        },
+        "cancel_appointment": {
+          "category": "appointments",
+          "question": "How do I cancel an appointment?",
+          "answer": "Open the appointment details, click the 'Cancel' button, optionally enter a cancellation reason, and confirm. Cancelled appointments are marked in the calendar but preserved for records."
+        },
+        "appointment_conflict": {
+          "category": "appointments",
+          "question": "Why can't I book an appointment at a certain time?",
+          "answer": "The system prevents double-booking. If a time slot is already taken, you'll need to choose a different time. Check the calendar view to see existing appointments."
+        },
+        "create_visit": {
+          "category": "visits",
+          "question": "How do I create a visit note?",
+          "answer": "Go to Visits and click 'New Visit', or create a visit from a patient's profile. Select the patient, choose the visit type, and document using the SOAP format. Save as Draft until ready to sign."
+        },
+        "sign_visit": {
+          "category": "visits",
+          "question": "What does signing a visit do?",
+          "answer": "Signing a visit adds your digital signature and timestamp, indicating you've reviewed and approved the documentation. Signed visits cannot be edited, only amended with additional notes."
+        },
+        "lock_visit": {
+          "category": "visits",
+          "question": "What's the difference between signing and locking a visit?",
+          "answer": "Signing indicates provider approval and prevents editing. Locking is an additional step that archives the visit permanently, typically used after all follow-up documentation is complete."
+        },
+        "visit_templates": {
+          "category": "visits",
+          "question": "How do I use visit templates?",
+          "answer": "When creating a new visit, select a template from the dropdown. The template pre-fills common fields based on the visit type. You can customize the content after applying the template."
+        },
+        "create_prescription": {
+          "category": "prescriptions",
+          "question": "How do I create a prescription?",
+          "answer": "Go to Prescriptions or create from within a visit. Click 'New Prescription', select the patient, search for or add the medication, set dosage and frequency, and save. You can then print or email the prescription."
+        },
+        "drug_interactions": {
+          "category": "prescriptions",
+          "question": "What do the drug interaction warnings mean?",
+          "answer": "The system checks for interactions between prescribed medications. Warnings are color-coded: Red (contraindicated - avoid), Orange (major - serious risk), Yellow (moderate - caution), Blue (minor - low risk). Review all warnings before finalizing prescriptions."
+        },
+        "renew_prescription": {
+          "category": "prescriptions",
+          "question": "How do I renew a prescription?",
+          "answer": "Find the prescription in the list, click the renew icon or button. This creates a new prescription with the same details that you can adjust if needed before saving."
+        },
+        "custom_medication": {
+          "category": "prescriptions",
+          "question": "Can I prescribe medications not in the database?",
+          "answer": "Yes, click 'Custom Medication' when creating a prescription to manually enter medication details including name, form, strength, and instructions."
+        },
+        "generate_document": {
+          "category": "documents",
+          "question": "How do I generate a document?",
+          "answer": "Go to Documents, click 'Generate Document', select a template type (certificate, referral, etc.), choose the patient and relevant visit if applicable, and click Generate. The PDF will be created and available for download."
+        },
+        "email_document": {
+          "category": "documents",
+          "question": "Can I email documents to patients?",
+          "answer": "Yes, from the document list, click the email icon on any generated document. Enter or confirm the patient's email address and send. The system tracks delivery status."
+        },
+        "create_template": {
+          "category": "documents",
+          "question": "How do I create a custom document template?",
+          "answer": "Admin users can go to Documents > Templates, click 'New Template', and use the template editor. Use variables like {{patient.name}} to auto-populate data. Refer to the Template Help Guide for syntax."
+        },
+        "data_security": {
+          "category": "security",
+          "question": "How is patient data protected?",
+          "answer": "DocPat uses AES-256 encryption for sensitive data at rest and TLS 1.3 for data in transit. All access is logged in the audit trail, and row-level security ensures users only see authorized data."
+        },
+        "audit_logs": {
+          "category": "security",
+          "question": "What are audit logs?",
+          "answer": "Audit logs record all significant actions in the system including data access, modifications, and user activities. Admin users can view audit logs for compliance and security monitoring."
+        }
+      }
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting",
+      "subtitle": "Solutions to common issues",
+      "intro": "Find solutions to common problems. If your issue isn't listed here, contact your system administrator.",
+      "categories": {
+        "login": "Login Issues",
+        "performance": "Performance",
+        "data": "Data & Sync",
+        "printing": "Printing & Documents",
+        "notifications": "Notifications"
+      },
+      "severity": {
+        "info": "Info",
+        "warning": "Warning",
+        "error": "Error"
+      },
+      "items": {
+        "cannot_login": {
+          "category": "login",
+          "severity": "warning",
+          "issue": "Cannot log in to my account",
+          "solutions": [
+            "Verify your username and password are correct (check for typos)",
+            "Check if Caps Lock is enabled on your keyboard",
+            "Try the 'Forgot password?' option to reset your password",
+            "Clear your browser cache and cookies, then try again",
+            "Try a different browser or incognito/private mode",
+            "Contact your administrator if the problem persists"
+          ]
+        },
+        "mfa_not_working": {
+          "category": "login",
+          "severity": "warning",
+          "issue": "Two-factor authentication code not working",
+          "solutions": [
+            "Ensure your device's time is synchronized correctly",
+            "Wait for a new code to generate (codes change every 30 seconds)",
+            "Make sure you're using the correct account in your authenticator app",
+            "Try manually entering the code instead of copying/pasting",
+            "Contact your administrator to reset MFA if needed"
+          ]
+        },
+        "session_expired": {
+          "category": "login",
+          "severity": "info",
+          "issue": "Session keeps expiring unexpectedly",
+          "solutions": [
+            "This is normal security behavior - sessions expire after inactivity",
+            "Use 'Remember Me' when logging in to extend session duration",
+            "Check your network connection - disconnections can end sessions",
+            "Avoid using multiple tabs with DocPat simultaneously",
+            "Contact admin if timeout is too short for your workflow"
+          ]
+        },
+        "slow_loading": {
+          "category": "performance",
+          "severity": "warning",
+          "issue": "Pages are loading slowly",
+          "solutions": [
+            "Check your internet connection speed",
+            "Clear browser cache and cookies",
+            "Close unnecessary browser tabs and applications",
+            "Try a different browser",
+            "Disable browser extensions that might interfere",
+            "If problem persists, contact your administrator"
+          ]
+        },
+        "page_not_responding": {
+          "category": "performance",
+          "severity": "error",
+          "issue": "Page is not responding or freezing",
+          "solutions": [
+            "Wait a few moments - complex operations may take time",
+            "Refresh the page (you may lose unsaved work)",
+            "Check your internet connection",
+            "Clear browser cache and restart the browser",
+            "Try accessing from a different device",
+            "Report the issue to your administrator with details"
+          ]
+        },
+        "data_not_saving": {
+          "category": "data",
+          "severity": "error",
+          "issue": "Changes are not being saved",
+          "solutions": [
+            "Check for validation errors - required fields may be empty",
+            "Look for error messages at the top of the form",
+            "Verify your internet connection is stable",
+            "Make sure you clicked the 'Save' button",
+            "Try refreshing the page and re-entering the data",
+            "Contact administrator if the problem persists"
+          ]
+        },
+        "missing_data": {
+          "category": "data",
+          "severity": "warning",
+          "issue": "Data I entered is missing or not showing",
+          "solutions": [
+            "Refresh the page to load the latest data",
+            "Check if you're using filters that might hide the data",
+            "Verify you saved the data before navigating away",
+            "Check if another user might have modified the record",
+            "Review the audit log for changes (admin users)",
+            "Contact administrator if data appears lost"
+          ]
+        },
+        "pdf_not_generating": {
+          "category": "printing",
+          "severity": "warning",
+          "issue": "PDF document is not generating",
+          "solutions": [
+            "Wait a few moments - document generation takes time",
+            "Check the document status in the Documents list",
+            "Refresh the page and try generating again",
+            "Ensure all required data (patient, template) is selected",
+            "Check if there are template errors",
+            "Contact administrator if generation repeatedly fails"
+          ]
+        },
+        "print_layout_wrong": {
+          "category": "printing",
+          "severity": "info",
+          "issue": "Printed document has incorrect layout or formatting",
+          "solutions": [
+            "Use 'Print' from the browser or download PDF first",
+            "Check printer settings for correct paper size (A4)",
+            "Disable 'Scale to fit' in print settings",
+            "Set margins to 'Default' in print settings",
+            "Try printing from a different browser",
+            "Report template issues to administrator"
+          ]
+        },
+        "email_not_received": {
+          "category": "notifications",
+          "severity": "warning",
+          "issue": "Patient didn't receive email notification",
+          "solutions": [
+            "Check the notification status in the Notifications page",
+            "Ask patient to check their spam/junk folder",
+            "Verify the patient's email address is correct",
+            "Try resending by clicking 'Retry' on failed notifications",
+            "Check if the email server is configured correctly (admin)",
+            "Contact administrator if emails consistently fail"
+          ]
+        },
+        "notification_failed": {
+          "category": "notifications",
+          "severity": "error",
+          "issue": "Notifications showing as 'Failed'",
+          "solutions": [
+            "Click 'Retry' to attempt sending again",
+            "Check the recipient email address is valid",
+            "Verify email server configuration (admin)",
+            "Check server logs for detailed error messages",
+            "Ensure email service is not rate-limited",
+            "Contact administrator to review email settings"
+          ]
+        }
+      }
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "subtitle": "Speed up your workflow with keyboard shortcuts",
+      "intro": "Use these keyboard shortcuts to navigate and perform actions more quickly.",
+      "note": "Note: On macOS, use Cmd instead of Ctrl for most shortcuts.",
+      "categories": {
+        "navigation": "Navigation",
+        "actions": "Quick Actions",
+        "forms": "Form Editing"
+      },
+      "items": {
+        "global_search": {
+          "category": "navigation",
+          "keys": "Ctrl + K",
+          "description": "Open global search"
+        },
+        "go_dashboard": {
+          "category": "navigation",
+          "keys": "Alt + D",
+          "description": "Go to Dashboard"
+        },
+        "go_patients": {
+          "category": "navigation",
+          "keys": "Alt + P",
+          "description": "Go to Patients"
+        },
+        "go_appointments": {
+          "category": "navigation",
+          "keys": "Alt + A",
+          "description": "Go to Appointments"
+        },
+        "go_visits": {
+          "category": "navigation",
+          "keys": "Alt + V",
+          "description": "Go to Visits"
+        },
+        "toggle_sidebar": {
+          "category": "navigation",
+          "keys": "Ctrl + B",
+          "description": "Toggle sidebar"
+        },
+        "new_patient": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + P",
+          "description": "Create new patient"
+        },
+        "new_appointment": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + A",
+          "description": "Create new appointment"
+        },
+        "new_visit": {
+          "category": "actions",
+          "keys": "Ctrl + Shift + V",
+          "description": "Create new visit"
+        },
+        "save": {
+          "category": "forms",
+          "keys": "Ctrl + S",
+          "description": "Save current form"
+        },
+        "cancel": {
+          "category": "forms",
+          "keys": "Escape",
+          "description": "Cancel/Close dialog"
+        },
+        "next_field": {
+          "category": "forms",
+          "keys": "Tab",
+          "description": "Move to next field"
+        },
+        "prev_field": {
+          "category": "forms",
+          "keys": "Shift + Tab",
+          "description": "Move to previous field"
+        }
+      }
+    },
+    "contextual": {
+      "patients_list": "View and manage all patient records. Use search and filters to find specific patients quickly.",
+      "patient_form": "Fill in patient details. Fields marked with * are required. Tab through fields or click to navigate.",
+      "appointment_calendar": "Click on a time slot to create a new appointment. Drag appointments to reschedule. Use the view toggles for day, week, or month views.",
+      "visit_soap": "Document visits using the SOAP format: Subjective (patient's complaints), Objective (findings), Assessment (diagnosis), Plan (treatment). All sections support rich text.",
+      "vital_signs": "Record patient vital signs. Values are validated against normal ranges. BMI is calculated automatically from height and weight.",
+      "prescription_form": "Search for medications or add custom ones. Check interaction warnings before saving. Set dosage, frequency, duration, and refill information.",
+      "prescription_interactions": "Drug interaction warnings appear automatically. Red = avoid combination, Orange = serious risk, Yellow = caution needed, Blue = minor risk.",
+      "document_template": "Use template variables like {{patient.name}} to auto-populate data. Preview the result before generating. See Template Guide for syntax help.",
+      "report_filters": "Set date range to filter report data. Use the refresh button to update statistics. Export options available for all report types."
+    }
   }
 }
 

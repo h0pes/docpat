@@ -1,21 +1,28 @@
 # ==============================================================================
 # Docker Compose Configuration - Production
-# Medical Practice Management System (MPMS)
+# DocPat Medical Practice Management System
 # ==============================================================================
+#
+# IMPORTANT NOTES:
+# - Redis is NOT currently implemented in the application (commented out below)
+# - Nginx is OPTIONAL - the backend has native TLS support via rustls
+# - For minimal deployment, use: docker compose up postgres backend frontend
+# - For full deployment with Nginx: docker compose --profile with-nginx up
 #
 # Security considerations:
 # - All services run as non-root users
 # - Networks are isolated with proper segmentation
-# - Volumes are encrypted and backed up
-# - Secrets are managed via environment variables or Docker secrets
+# - Secrets are managed via environment variables
 # - Health checks ensure service reliability
 # - Resource limits prevent DoS
 #
 # Usage:
-#   docker-compose up -d                 # Start all services
-#   docker-compose down                  # Stop all services
-#   docker-compose logs -f [service]     # View logs
-#   docker-compose ps                    # Check status
+#   docker compose up -d                           # Start core services (postgres, backend, frontend)
+#   docker compose --profile with-nginx up -d      # Start with Nginx reverse proxy
+#   docker compose --profile with-certbot up -d    # Start with Nginx + Let's Encrypt
+#   docker compose down                            # Stop all services
+#   docker compose logs -f [service]               # View logs
+#   docker compose ps                              # Check status
 #
 # ==============================================================================
 
@@ -24,11 +31,11 @@
 # ==============================================================================
 services:
   # ----------------------------------------------------------------------------
-  # PostgreSQL Database - Primary data store
+  # PostgreSQL Database - Primary data store (REQUIRED)
   # ----------------------------------------------------------------------------
   postgres:
-    image: postgres:17-alpine
-    container_name: mpms-postgres
+    image: postgres:18-alpine
+    container_name: docpat-postgres
     restart: unless-stopped
 
     environment:
@@ -78,60 +85,41 @@ services:
         max-file: "3"
 
   # ----------------------------------------------------------------------------
-  # Redis Cache - Session storage and caching
+  # Redis Cache - NOT CURRENTLY IMPLEMENTED
   # ----------------------------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: mpms-redis
-    restart: unless-stopped
-
-    command: >
-      redis-server
-      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
-      --maxmemory 512mb
-      --maxmemory-policy allkeys-lru
-      --save 60 1000
-      --save 300 100
-      --save 600 10
-      --appendonly yes
-      --appendfsync everysec
-
-    volumes:
-      - redis_data:/data
-
-    networks:
-      - backend_network
-
-    ports:
-      - "127.0.0.1:6379:6379"  # Only accessible from localhost
-
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-    security_opt:
-      - no-new-privileges:true
-
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+  # NOTE: Redis caching is NOT implemented in the application code.
+  # This service is commented out. Uncomment when Redis support is added.
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: docpat-redis
+  #   restart: unless-stopped
+  #   command: >
+  #     redis-server
+  #     --requirepass ${REDIS_PASSWORD}
+  #     --maxmemory 512mb
+  #     --maxmemory-policy allkeys-lru
+  #     --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - backend_network
+  #   ports:
+  #     - "127.0.0.1:6379:6379"
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512M
+  #   security_opt:
+  #     - no-new-privileges:true
 
   # ----------------------------------------------------------------------------
-  # Backend API - Rust/Axum application
+  # Backend API - Rust/Axum application (REQUIRED)
   # ----------------------------------------------------------------------------
   backend:
     build:
@@ -140,8 +128,8 @@ services:
       args:
         - RUST_VERSION=1.90
 
-    image: mpms-backend:latest
-    container_name: mpms-backend
+    image: docpat-backend:latest
+    container_name: docpat-backend
     restart: unless-stopped
 
     environment:
@@ -149,46 +137,73 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8000
+      ENVIRONMENT: production
 
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-mpms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mpms_prod}
-      DATABASE_MAX_CONNECTIONS: 50
+      DATABASE_MAX_CONNECTIONS: ${DATABASE_MAX_CONNECTIONS:-50}
 
-      # Redis
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # Redis - NOT IMPLEMENTED (leave empty or remove)
+      # REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_ENABLED: "false"
 
       # JWT secrets
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
-      JWT_EXPIRATION: 1800
-      JWT_REFRESH_EXPIRATION: 604800
+      JWT_ACCESS_TOKEN_EXPIRY: ${JWT_ACCESS_TOKEN_EXPIRY:-900}
+      JWT_REFRESH_TOKEN_EXPIRY: ${JWT_REFRESH_TOKEN_EXPIRY:-604800}
 
       # Encryption
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
 
       # Security
-      SESSION_TIMEOUT: 1800
-      MAX_FAILED_ATTEMPTS: 5
-      LOCKOUT_DURATION: 900
+      SESSION_TIMEOUT: ${SESSION_TIMEOUT:-1800}
+      MAX_LOGIN_ATTEMPTS: ${MAX_LOGIN_ATTEMPTS:-5}
+      ACCOUNT_LOCKOUT_DURATION: ${ACCOUNT_LOCKOUT_DURATION:-900}
+
+      # CORS - Update with your domain
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://localhost}
+
+      # TLS - Backend has native TLS support
+      TLS_ENABLED: ${TLS_ENABLED:-false}
+      TLS_CERT_PATH: ${TLS_CERT_PATH:-}
+      TLS_KEY_PATH: ${TLS_KEY_PATH:-}
+
+      # Email (optional)
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-DocPat}
 
     volumes:
       - backend_uploads:/app/uploads
       - backend_logs:/app/logs
+      - ./backend/casbin:/app/casbin:ro
 
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      # Redis dependency removed - not implemented
+      # redis:
+      #   condition: service_healthy
 
     networks:
       - backend_network
+      - frontend_network  # Also on frontend network for Nginx to reach it
 
+    # Expose port 8000 internally (for Nginx)
     expose:
       - "8000"
 
+    # For direct access without Nginx, uncomment the ports section:
+    # ports:
+    #   - "8000:8000"
+
     healthcheck:
-      test: ["CMD", "/app/mpms-backend", "--health-check"]
+      test: ["CMD", "/app/docpat-backend", "--health-check"]
       interval: 30s
       timeout: 3s
       retries: 3
@@ -213,7 +228,7 @@ services:
         max-file: "5"
 
   # ----------------------------------------------------------------------------
-  # Frontend - React/Vite application
+  # Frontend - React/Vite application (REQUIRED)
   # ----------------------------------------------------------------------------
   frontend:
     build:
@@ -222,8 +237,8 @@ services:
       args:
         - NODE_VERSION=22
 
-    image: mpms-frontend:latest
-    container_name: mpms-frontend
+    image: docpat-frontend:latest
+    container_name: docpat-frontend
     restart: unless-stopped
 
     networks:
@@ -231,6 +246,10 @@ services:
 
     expose:
       - "8080"
+
+    # For direct access without Nginx, uncomment the ports section:
+    # ports:
+    #   - "8080:8080"
 
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
@@ -258,15 +277,23 @@ services:
         max-file: "3"
 
   # ----------------------------------------------------------------------------
-  # Nginx Reverse Proxy - SSL/TLS termination and routing
+  # Nginx Reverse Proxy - OPTIONAL
   # ----------------------------------------------------------------------------
+  # NOTE: Nginx is OPTIONAL. The backend has native TLS support.
+  # Use profile "with-nginx" to include this service:
+  #   docker compose --profile with-nginx up -d
+  #
   nginx:
+    profiles:
+      - with-nginx
+      - with-certbot
+
     build:
       context: .
       dockerfile: infrastructure/docker/Dockerfile.nginx
 
-    image: mpms-nginx:latest
-    container_name: mpms-nginx
+    image: docpat-nginx:latest
+    container_name: docpat-nginx
     restart: unless-stopped
 
     ports:
@@ -312,11 +339,17 @@ services:
         max-file: "5"
 
   # ----------------------------------------------------------------------------
-  # Certbot - Let's Encrypt SSL certificate renewal
+  # Certbot - Let's Encrypt SSL certificate renewal - OPTIONAL
   # ----------------------------------------------------------------------------
+  # NOTE: Only needed if using Nginx with Let's Encrypt certificates.
+  # Use profile "with-certbot" to include this service.
+  #
   certbot:
+    profiles:
+      - with-certbot
+
     image: certbot/certbot:latest
-    container_name: mpms-certbot
+    container_name: docpat-certbot
 
     volumes:
       - certbot_certs:/etc/letsencrypt
@@ -344,7 +377,7 @@ networks:
       config:
         - subnet: 172.20.0.0/24
 
-  # Backend network - Backend, database, and cache
+  # Backend network - Backend and database
   backend_network:
     driver: bridge
     ipam:
@@ -371,9 +404,9 @@ volumes:
       o: bind
       device: ${BACKUP_DIR:-./backups}/postgres
 
-  # Cache volume
-  redis_data:
-    driver: local
+  # Redis volume - commented out (not implemented)
+  # redis_data:
+  #   driver: local
 
   # Application volumes
   backend_uploads:
@@ -382,11 +415,11 @@ volumes:
   backend_logs:
     driver: local
 
-  # Nginx volumes
+  # Nginx volumes (only used with nginx profile)
   nginx_logs:
     driver: local
 
-  # SSL certificates
+  # SSL certificates (only used with nginx/certbot profiles)
   certbot_certs:
     driver: local
 

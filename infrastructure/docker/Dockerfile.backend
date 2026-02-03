@@ -34,8 +34,11 @@ RUN mkdir src && \
 COPY backend/src ./src
 COPY backend/migrations ./migrations
 
-# Build application with optimizations
-RUN cargo build --release --locked && \
+# Build application with optimizations and required features
+# - rbac: Role-Based Access Control via Casbin
+# - report-export: Report generation capabilities
+# - pdf-export: PDF document generation
+RUN cargo build --release --locked --features "rbac,report-export,pdf-export" && \
     strip target/release/docpat-backend
 
 # ------------------------------------------------------------------------------
