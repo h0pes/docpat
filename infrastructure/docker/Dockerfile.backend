@@ -24,9 +24,11 @@ WORKDIR /app
 # Copy dependency manifests first for better caching
 COPY backend/Cargo.toml backend/Cargo.lock ./
 
-# Create dummy main.rs to build dependencies (cache optimization)
+# Create dummy source files to build dependencies (cache optimization)
+# Both lib.rs and main.rs are needed since Cargo.toml declares both targets
 RUN mkdir src && \
     echo "fn main() {}" > src/main.rs && \
+    echo "" > src/lib.rs && \
     cargo build --release && \
     rm -rf src
 
