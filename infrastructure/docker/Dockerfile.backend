@@ -33,6 +33,10 @@ RUN mkdir src && \
 # Copy actual source code
 COPY backend/src ./src
 COPY backend/migrations ./migrations
+COPY backend/.sqlx ./.sqlx
+
+# Enable SQLx offline mode (uses cached query metadata instead of live DB)
+ENV SQLX_OFFLINE=true
 
 # Build application with optimizations and required features
 # - rbac: Role-Based Access Control via Casbin
