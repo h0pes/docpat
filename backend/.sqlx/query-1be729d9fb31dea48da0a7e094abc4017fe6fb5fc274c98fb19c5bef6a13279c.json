@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, retry_count, max_retries FROM notification_queue WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "retry_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "max_retries",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1be729d9fb31dea48da0a7e094abc4017fe6fb5fc274c98fb19c5bef6a13279c"
+}

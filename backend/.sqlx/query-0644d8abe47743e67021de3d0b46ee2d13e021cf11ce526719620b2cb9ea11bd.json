@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                (SELECT COUNT(*) FROM notification_queue) as \"total!\",\n                (SELECT COUNT(*) FROM notification_queue WHERE status = 'PENDING') as \"pending!\",\n                (SELECT COUNT(*) FROM notification_queue WHERE status = 'SENT' AND sent_at >= $1) as \"sent_today!\",\n                (SELECT COUNT(*) FROM notification_queue WHERE status = 'FAILED') as \"failed!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "pending!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "sent_today!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "failed!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0644d8abe47743e67021de3d0b46ee2d13e021cf11ce526719620b2cb9ea11bd"
+}

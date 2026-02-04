@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO notification_queue (\n                    id, patient_id, appointment_id, notification_type, delivery_method,\n                    recipient_email, recipient_name, subject, message_body,\n                    scheduled_for, priority, status, created_by\n                )\n                VALUES ($1, $2, $3, 'APPOINTMENT_REMINDER', 'EMAIL', $4, $5, $6, $7, NOW(), 5, 'PENDING', $8)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d3b1a697b3703d834b841fdbde8fe878900ca969e9f8f4f5b471940b3bdda6f8"
+}

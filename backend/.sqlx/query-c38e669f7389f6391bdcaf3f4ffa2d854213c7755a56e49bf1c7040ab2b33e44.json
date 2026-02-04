@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                drug_a_atc_code,\n                drug_a_name,\n                drug_b_atc_code,\n                drug_b_name,\n                severity,\n                effect,\n                mechanism,\n                management,\n                source\n            FROM drug_interactions\n            WHERE is_active = true\n              AND (\n                (drug_a_atc_code = $1 AND drug_b_atc_code = ANY($2))\n                OR (drug_a_atc_code = ANY($2) AND drug_b_atc_code = $1)\n              )\n            ORDER BY\n                CASE severity\n                    WHEN 'contraindicated' THEN 1\n                    WHEN 'major' THEN 2\n                    WHEN 'moderate' THEN 3\n                    WHEN 'minor' THEN 4\n                    ELSE 5\n                END,\n                drug_a_name, drug_b_name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "drug_a_atc_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "drug_a_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "drug_b_atc_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "drug_b_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "severity",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "effect",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "mechanism",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "management",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "source",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c38e669f7389f6391bdcaf3f4ffa2d854213c7755a56e49bf1c7040ab2b33e44"
+}

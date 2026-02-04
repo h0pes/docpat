@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                p.medication_name,\n                p.generic_name,\n                m.atc_code\n            FROM prescriptions p\n            LEFT JOIN medications m ON LOWER(m.name) = LOWER(p.medication_name)\n                OR LOWER(m.generic_name) = LOWER(p.medication_name)\n            WHERE p.patient_id = $1\n              AND p.status = 'ACTIVE'\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "medication_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "generic_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "atc_code",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "aa8e6e0ffe7be8e9fc37f2c4c1d7a77c92f3ef9dd066ac0c0b47d41e6237f289"
+}

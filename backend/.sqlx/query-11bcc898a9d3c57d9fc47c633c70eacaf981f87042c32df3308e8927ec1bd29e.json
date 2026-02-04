@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE notification_queue\n            SET status = 'CANCELLED'\n            WHERE appointment_id = $1\n              AND status IN ('PENDING', 'FAILED')\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "11bcc898a9d3c57d9fc47c633c70eacaf981f87042c32df3308e8927ec1bd29e"
+}

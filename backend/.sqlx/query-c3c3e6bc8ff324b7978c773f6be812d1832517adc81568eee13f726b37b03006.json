@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                drug_a_atc_code,\n                drug_a_name,\n                drug_b_atc_code,\n                drug_b_name,\n                severity,\n                effect,\n                mechanism,\n                management,\n                source\n            FROM drug_interactions\n            WHERE is_active = true\n              AND (\n                -- Match by ATC codes (if available)\n                drug_a_atc_code = ANY($1) OR drug_b_atc_code = ANY($1)\n                -- OR match by drug name prefixes (for fuzzy matching candidates)\n                OR EXISTS (\n                    SELECT 1 FROM unnest($2::text[]) AS prefix\n                    WHERE LOWER(drug_a_name) LIKE prefix OR LOWER(drug_b_name) LIKE prefix\n                )\n              )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "drug_a_atc_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "drug_a_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "drug_b_atc_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "drug_b_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "severity",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "effect",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "mechanism",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "management",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "source",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c3c3e6bc8ff324b7978c773f6be812d1832517adc81568eee13f726b37b03006"
+}

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                template_html, header_html, footer_html, css_styles,\n                page_size, page_orientation,\n                margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm\n            FROM document_templates\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "template_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "header_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "footer_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "css_styles",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "page_size",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "page_orientation",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "margin_top_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "margin_bottom_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "margin_left_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "margin_right_mm",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "be88da7fb1698394e5beaacbdf78171e25822d60383799cde75cf60422f76d6a"
+}

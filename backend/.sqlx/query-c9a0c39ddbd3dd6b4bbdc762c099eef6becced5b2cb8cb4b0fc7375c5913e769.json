@@ -1,0 +1,172 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, template_key, template_name, description, document_type,\n                template_html, template_variables, header_html, footer_html, css_styles,\n                page_size, page_orientation,\n                margin_top_mm, margin_bottom_mm, margin_left_mm, margin_right_mm,\n                is_active, is_default, language,\n                version, previous_version_id,\n                created_at, updated_at, created_by, updated_by\n            FROM document_templates\n            WHERE\n                ($1::VARCHAR IS NULL OR document_type = $1)\n                AND ($2::VARCHAR IS NULL OR language = $2)\n                AND ($3::BOOLEAN IS NULL OR is_active = $3)\n                AND ($4::BOOLEAN IS NULL OR is_default = $4)\n                AND ($5::VARCHAR IS NULL OR template_name ILIKE $5 OR template_key ILIKE $5)\n            ORDER BY template_name ASC\n            LIMIT $6 OFFSET $7\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "template_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "template_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "document_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "template_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "template_variables",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "header_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "footer_html",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "css_styles",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "page_size",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "page_orientation",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "margin_top_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "margin_bottom_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "margin_left_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "margin_right_mm",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "is_active",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 17,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 18,
+        "name": "language",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 19,
+        "name": "version",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "previous_version_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 22,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 24,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Bool",
+        "Varchar",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c9a0c39ddbd3dd6b4bbdc762c099eef6becced5b2cb8cb4b0fc7375c5913e769"
+}

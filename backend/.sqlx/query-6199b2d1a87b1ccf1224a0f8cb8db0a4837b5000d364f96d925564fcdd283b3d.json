@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                al.user_id as \"user_id!\",\n                u.email as user_email,\n                COUNT(*)::bigint as \"count!\"\n            FROM audit_logs al\n            LEFT JOIN users u ON al.user_id = u.id\n            WHERE al.user_id IS NOT NULL\n              AND al.created_at >= $1::date\n            GROUP BY al.user_id, u.email\n            ORDER BY 3 DESC\n            LIMIT 10\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "6199b2d1a87b1ccf1224a0f8cb8db0a4837b5000d364f96d925564fcdd283b3d"
+}

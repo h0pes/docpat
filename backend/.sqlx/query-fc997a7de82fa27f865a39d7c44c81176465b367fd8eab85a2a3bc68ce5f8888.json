@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                COUNT(*) as total,\n                COUNT(*) FILTER (WHERE severity = 'contraindicated') as contraindicated,\n                COUNT(*) FILTER (WHERE severity = 'major') as major,\n                COUNT(*) FILTER (WHERE severity = 'moderate') as moderate,\n                COUNT(*) FILTER (WHERE severity = 'minor') as minor,\n                COUNT(*) FILTER (WHERE severity = 'unknown') as unknown,\n                COUNT(DISTINCT source) as sources\n            FROM drug_interactions\n            WHERE is_active = true\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "contraindicated",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "major",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "moderate",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "unknown",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "sources",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fc997a7de82fa27f865a39d7c44c81176465b367fd8eab85a2a3bc68ce5f8888"
+}

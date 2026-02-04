@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO medications (\n                id, aic_code, name, generic_name, form, dosage_strength, route,\n                common_dosages, notes, source, is_custom, created_by, is_active\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'CUSTOM', true, $10, true)\n            ON CONFLICT (name, generic_name, form, dosage_strength, is_custom)\n            DO UPDATE SET\n                updated_at = NOW(),\n                notes = COALESCE(EXCLUDED.notes, medications.notes)\n            RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Jsonb",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5941f2e9be10fcab79964722712defbe4c6d87590f8f160d258bae04442f8cd0"
+}

@@ -1,0 +1,193 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, template_id, patient_id, visit_id, visit_date, provider_id,\n                document_type, document_title, document_filename,\n                file_path, file_size_bytes, file_hash,\n                template_version, generation_data,\n                status, generation_error,\n                delivered_to, delivered_at,\n                expires_at, deleted_at,\n                is_signed, signature_hash, signed_at, signed_by,\n                created_at, updated_at, created_by, updated_by\n            FROM generated_documents\n            WHERE\n                status != 'DELETED'\n                AND ($1::UUID IS NULL OR patient_id = $1)\n                AND ($2::UUID IS NULL OR visit_id = $2)\n                AND ($3::UUID IS NULL OR provider_id = $3)\n                AND ($4::VARCHAR IS NULL OR document_type = $4)\n                AND ($5::VARCHAR IS NULL OR status = $5)\n                AND (($6::BOOLEAN IS NULL) OR (is_signed = $6))\n                AND ($7::TIMESTAMPTZ IS NULL OR created_at >= $7)\n                AND ($8::TIMESTAMPTZ IS NULL OR created_at <= $8)\n            ORDER BY created_at DESC\n            LIMIT $9 OFFSET $10\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "template_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "visit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "visit_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "document_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "document_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "document_filename",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "file_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "file_size_bytes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "file_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "template_version",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "generation_data",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 15,
+        "name": "generation_error",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "delivered_to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 17,
+        "name": "delivered_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "is_signed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
+        "name": "signature_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "signed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "signed_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 24,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 27,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Timestamptz",
+        "Timestamptz",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "7c32351d14291738b1d2315f338e9f50f62c75cae7f1ef48f1b0e4e79f229dfd"
+}

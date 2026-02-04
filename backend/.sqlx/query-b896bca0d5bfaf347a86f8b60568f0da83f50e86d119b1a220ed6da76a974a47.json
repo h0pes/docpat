@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                file_hash, document_title, patient_id, created_at,\n                is_signed, template_id, generation_data, file_path\n            FROM generated_documents\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "file_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "document_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "is_signed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "template_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "generation_data",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "file_path",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b896bca0d5bfaf347a86f8b60568f0da83f50e86d119b1a220ed6da76a974a47"
+}

@@ -1,0 +1,199 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO generated_documents (\n                template_id, patient_id, visit_id, visit_date, provider_id,\n                document_type, document_title, document_filename,\n                file_path, file_size_bytes, file_hash,\n                template_version, generation_data,\n                status, expires_at,\n                created_by\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n            RETURNING\n                id, template_id, patient_id, visit_id, visit_date, provider_id,\n                document_type, document_title, document_filename,\n                file_path, file_size_bytes, file_hash,\n                template_version, generation_data,\n                status, generation_error,\n                delivered_to, delivered_at,\n                expires_at, deleted_at,\n                is_signed, signature_hash, signed_at, signed_by,\n                created_at, updated_at, created_by, updated_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "template_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "visit_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "visit_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "provider_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "document_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "document_title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "document_filename",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "file_path",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "file_size_bytes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "file_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "template_version",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "generation_data",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 14,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 15,
+        "name": "generation_error",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "delivered_to",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 17,
+        "name": "delivered_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "is_signed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 21,
+        "name": "signature_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 22,
+        "name": "signed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 23,
+        "name": "signed_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 24,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 25,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 26,
+        "name": "created_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 27,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Int8",
+        "Varchar",
+        "Int4",
+        "Jsonb",
+        "Varchar",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "169a696b4822e28cae26bce235560c438b6b5133ad08f390b8adfb4f5328f9a6"
+}

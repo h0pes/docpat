@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT document_type, COUNT(*) as \"count!\"\n            FROM generated_documents\n            WHERE status != 'DELETED'\n            GROUP BY document_type\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "document_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "6cf4685b7f208018975d61674eca4460da4e9f05df74eafd8e31740a0ee0c590"
+}

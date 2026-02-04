@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                patient_id, email_enabled, email_address_override,\n                reminder_enabled, reminder_days_before, confirmation_enabled,\n                created_at, updated_at, updated_by\n            FROM patient_notification_preferences\n            WHERE patient_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "email_address_override",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "reminder_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "reminder_days_before",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "confirmation_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7169b7fb5be6e36caa247a0360f81349922d8961f00961769d6ec3ab9debfaad"
+}

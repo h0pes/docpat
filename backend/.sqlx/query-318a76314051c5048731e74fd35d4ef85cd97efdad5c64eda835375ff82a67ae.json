@@ -1,0 +1,202 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE notification_queue\n            SET status = 'PROCESSING'\n            WHERE id = $1\n            RETURNING\n                id, patient_id, appointment_id, user_id, notification_type,\n                delivery_method, recipient_email, recipient_phone, recipient_name,\n                subject, message_body, message_template, scheduled_for, priority,\n                status, retry_count, max_retries, last_retry_at, next_retry_at,\n                sent_at, delivered_at, delivery_status, delivery_receipt,\n                error_message, error_code, provider_name, provider_message_id,\n                metadata, created_at, updated_at, created_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "appointment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "notification_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "delivery_method",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "recipient_email",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "recipient_phone",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "recipient_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "subject",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "message_body",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "message_template",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "scheduled_for",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "priority",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 15,
+        "name": "retry_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 16,
+        "name": "max_retries",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 17,
+        "name": "last_retry_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "next_retry_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 19,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 20,
+        "name": "delivered_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 21,
+        "name": "delivery_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 22,
+        "name": "delivery_receipt",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 23,
+        "name": "error_message",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 24,
+        "name": "error_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 25,
+        "name": "provider_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 26,
+        "name": "provider_message_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 27,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 28,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 29,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 30,
+        "name": "created_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "318a76314051c5048731e74fd35d4ef85cd97efdad5c64eda835375ff82a67ae"
+}

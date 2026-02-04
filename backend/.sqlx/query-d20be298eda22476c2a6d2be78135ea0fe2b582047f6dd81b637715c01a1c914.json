@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, first_name, last_name, middle_name, date_of_birth,\n                   gender, fiscal_code, email, phone_primary\n            FROM patients\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "middle_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "date_of_birth",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "gender",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "fiscal_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "phone_primary",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d20be298eda22476c2a6d2be78135ea0fe2b582047f6dd81b637715c01a1c914"
+}

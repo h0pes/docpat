@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT action, COUNT(*)::bigint as \"count!\"\n            FROM audit_logs\n            WHERE user_id = $1\n            GROUP BY action\n            ORDER BY 2 DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "a2afba5c3f3add912b9ddc052898f604a0dfcea79f73136b37362ebf99234e62"
+}

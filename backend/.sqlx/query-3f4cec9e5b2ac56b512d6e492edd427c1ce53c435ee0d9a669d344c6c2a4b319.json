@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT action, COUNT(*)::bigint as \"count!\"\n            FROM audit_logs\n            GROUP BY action\n            ORDER BY 2 DESC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "3f4cec9e5b2ac56b512d6e492edd427c1ce53c435ee0d9a669d344c6c2a4b319"
+}

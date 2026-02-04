@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO patient_notification_preferences (\n                patient_id, email_enabled, email_address_override,\n                reminder_enabled, reminder_days_before, confirmation_enabled,\n                updated_by\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (patient_id) DO UPDATE SET\n                email_enabled = COALESCE($2, patient_notification_preferences.email_enabled),\n                email_address_override = CASE\n                    WHEN $3 IS NULL THEN patient_notification_preferences.email_address_override\n                    ELSE $3\n                END,\n                reminder_enabled = COALESCE($4, patient_notification_preferences.reminder_enabled),\n                reminder_days_before = COALESCE($5, patient_notification_preferences.reminder_days_before),\n                confirmation_enabled = COALESCE($6, patient_notification_preferences.confirmation_enabled),\n                updated_by = $7,\n                updated_at = NOW()\n            RETURNING\n                patient_id, email_enabled, email_address_override,\n                reminder_enabled, reminder_days_before, confirmation_enabled,\n                created_at, updated_at, updated_by\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "email_address_override",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "reminder_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "reminder_days_before",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "confirmation_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Varchar",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "69a13c959e0d82016264461d6a343f26418defe248ef1fd8f1790987584979fb"
+}

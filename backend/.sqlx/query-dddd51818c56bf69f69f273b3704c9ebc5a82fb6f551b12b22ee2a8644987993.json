@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, setting_key, setting_group, setting_name, setting_value,\n                value_type, description, default_value, validation_rules,\n                is_public, is_encrypted, is_readonly, created_at, updated_at, updated_by\n            FROM system_settings\n            WHERE setting_key = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "setting_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "setting_group",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "setting_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "setting_value",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 5,
+        "name": "value_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "default_value",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "validation_rules",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 9,
+        "name": "is_public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "is_encrypted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_readonly",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_by",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "dddd51818c56bf69f69f273b3704c9ebc5a82fb6f551b12b22ee2a8644987993"
+}

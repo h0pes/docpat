@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                setting_group,\n                COUNT(*) as count\n            FROM system_settings\n            GROUP BY setting_group\n            ORDER BY setting_group\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "setting_group",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "50d7a91e440fecde1481aaad2988a0f48f2511ee1f150b2b247c3374ba895040"
+}

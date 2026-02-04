@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(*) as \"count!\"\n            FROM document_templates\n            WHERE\n                ($1::VARCHAR IS NULL OR document_type = $1)\n                AND ($2::VARCHAR IS NULL OR language = $2)\n                AND ($3::BOOLEAN IS NULL OR is_active = $3)\n                AND ($4::BOOLEAN IS NULL OR is_default = $4)\n                AND ($5::VARCHAR IS NULL OR template_name ILIKE $5 OR template_key ILIKE $5)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Bool",
+        "Bool",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d68ba1ba022e657f3e36fe866054f1ce8162689e40a63f33a9b337c880ddf035"
+}

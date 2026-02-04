@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE notification_queue\n            SET status = 'FAILED',\n                error_message = $2,\n                error_code = $3\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dea11d2964e840ae8c3c07a70412ed3bd5809533e11df48d5db387bc301f5165"
+}

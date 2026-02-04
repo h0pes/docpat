@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                a.id as appointment_id,\n                a.patient_id,\n                a.scheduled_start,\n                a.type as appointment_type,\n                a.reason,\n                p.first_name as patient_first_name,\n                p.last_name as patient_last_name,\n                p.email as patient_email,\n                u.first_name as provider_first_name,\n                u.last_name as provider_last_name,\n                pnp.email_enabled,\n                pnp.reminder_enabled,\n                pnp.reminder_days_before,\n                pnp.email_address_override\n            FROM appointments a\n            INNER JOIN patients p ON p.id = a.patient_id\n            INNER JOIN users u ON u.id = a.provider_id\n            LEFT JOIN patient_notification_preferences pnp ON pnp.patient_id = a.patient_id\n            WHERE a.status IN ('SCHEDULED', 'CONFIRMED')\n              AND a.scheduled_start > NOW()\n              AND a.scheduled_start <= NOW() + INTERVAL '7 days'\n              AND (pnp.email_enabled IS NULL OR pnp.email_enabled = true)\n              AND (pnp.reminder_enabled IS NULL OR pnp.reminder_enabled = true)\n            ORDER BY a.scheduled_start ASC\n            LIMIT $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "appointment_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "patient_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "scheduled_start",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "appointment_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "patient_first_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "patient_last_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "patient_email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "provider_first_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "provider_last_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
+        "name": "email_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "reminder_enabled",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "reminder_days_before",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 13,
+        "name": "email_address_override",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "460216a0ca1b078ceb4e920dbae3f2831580c6908fe7836fd7f31283bbf9f1ef"
+}

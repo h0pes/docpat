@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                al.id,\n                al.user_id,\n                al.action,\n                al.entity_type,\n                al.entity_id,\n                al.changes,\n                al.ip_address,\n                al.user_agent,\n                al.request_id,\n                al.created_at,\n                u.email as user_email\n            FROM audit_logs al\n            LEFT JOIN users u ON al.user_id = u.id\n            WHERE al.user_id = $1\n            ORDER BY al.created_at DESC\n            LIMIT 20\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "action",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "entity_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "entity_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "changes",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "ip_address",
+        "type_info": "Inet"
+      },
+      {
+        "ordinal": 7,
+        "name": "user_agent",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "request_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "user_email",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1c1c0504b71436ff097951183d0a7b75d1314e76a800f3de1d0d7a85158864fa"
+}
