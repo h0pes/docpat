@@ -8,7 +8,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // API base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Use nullish coalescing (??) so empty string is valid (for production behind nginx)
+// Empty string means relative URLs, which lets the browser use the current origin
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 /**
  * Axios instance with default configuration
