@@ -37,7 +37,9 @@ COPY frontend/components.json ./
 
 # Build-time environment variable for API URL
 # This gets baked into the JavaScript bundle at build time
-ARG VITE_API_BASE_URL=/api
+# Note: Frontend routes already include /api/v1/... prefix, so base URL should be empty
+# When running behind nginx, requests to /api/* are proxied to the backend
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 # Build application for production
