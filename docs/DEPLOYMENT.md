@@ -1,7 +1,7 @@
 # DocPat Deployment Guide
 
-**Version:** 2.1.0
-**Last Updated:** 2026-02-02
+**Version:** 2.2.0
+**Last Updated:** 2026-02-05
 
 ---
 
@@ -433,17 +433,37 @@ docpat-backend      latest    789ghi012jkl   5 minutes ago    150MB
 
 ## A.7 Start All Services
 
-**Match your choice from A.6:**
+**IMPORTANT: Use the nginx profile for production.** Without nginx, ports are not exposed to the host and you cannot access the application from outside Docker.
+
+**Before starting, check if port 80 is in use:**
 
 ```bash
-# Option A: Without Nginx
-docker compose up -d
+sudo lsof -i :80
+# or
+sudo ss -tlnp | grep :80
+```
 
-# Option B: With Nginx (RECOMMENDED)
+If another service (e.g., Apache) is using port 80, stop it first:
+
+```bash
+# For Apache
+sudo systemctl stop apache2
+sudo systemctl disable apache2  # Optional: prevent auto-start on boot
+```
+
+**Start with Nginx profile (REQUIRED for production):**
+
+```bash
 docker compose --profile with-nginx up -d
 
 # Watch the logs to see startup progress
 docker compose logs -f
+```
+
+**Alternative: Without Nginx (for testing only - ports not exposed):**
+
+```bash
+docker compose up -d
 ```
 
 **Wait until you see healthy status for all services.** Press `Ctrl+C` to exit logs.
@@ -492,15 +512,20 @@ The PostgreSQL container automatically:
 
 > **Note:** Migrations automatically seed required default data including system settings, working hours, holidays, and document templates. No separate seeding step is needed.
 
+**Recommended Method - Copy migrations into postgres container and run them:**
+
 ```bash
-# Connect to the backend container and run migrations
-docker compose exec backend /bin/sh -c "cd /app && ./docpat-backend migrate"
+# Copy migration files into the postgres container
+docker cp /opt/docpat/backend/migrations docpat-postgres:/tmp/migrations
+
+# Run all migrations in order
+docker compose exec postgres sh -c 'for f in /tmp/migrations/*.sql; do echo "Running $f..."; psql -U mpms_user -d mpms_prod -f "$f"; done'
 ```
 
-If the above command doesn't work (migration subcommand not implemented), run migrations from your local machine:
+**Alternative - Run from local machine (requires Rust/sqlx-cli):**
 
 ```bash
-# On your LOCAL development machine (not the server), if you have Rust installed:
+# On your LOCAL development machine, if you have Rust installed:
 cd backend
 export DATABASE_URL="postgresql://mpms_user:YOUR_POSTGRES_PASSWORD@YOUR_SERVER_IP:5432/mpms_prod"
 cargo sqlx migrate run
@@ -509,16 +534,10 @@ cargo sqlx migrate run
 **Verify tables were created:**
 
 ```bash
-# Connect to PostgreSQL
-docker compose exec postgres psql -U mpms_user -d mpms_prod
+# List tables
+docker compose exec postgres psql -U mpms_user -d mpms_prod -c "\dt"
 
-# List tables (inside psql)
-\dt
-
-# Expected: users, patients, appointments, visits, prescriptions, etc.
-
-# Exit psql
-\q
+# Expected: ~30 tables including users, patients, appointments, visits, prescriptions, etc.
 ```
 
 ---
@@ -527,74 +546,39 @@ docker compose exec postgres psql -U mpms_user -d mpms_prod
 
 You need at least one user to log in. First, generate a password hash:
 
-**In a separate terminal on any machine with Python:**
+**Step 1: Install argon2 (if needed):**
 
 ```bash
-# Install argon2 if needed
-pip install argon2-cffi
-
-# Generate password hash (CHANGE THE PASSWORD!)
-python3 << 'EOF'
-from argon2 import PasswordHasher
-ph = PasswordHasher()
-password = "YourSecurePassword123!"  # <-- CHANGE THIS
-print("Your password hash:")
-print(ph.hash(password))
-EOF
+pip3 install argon2-cffi
 ```
+
+**Step 2: Generate password hash (single-line command, works in any shell):**
+
+```bash
+python3 -c "from argon2 import PasswordHasher; ph = PasswordHasher(); print(ph.hash('YourSecurePassword123!'))"
+```
+
+Replace `YourSecurePassword123!` with your actual password (keep the quotes).
 
 **Copy the hash output** (starts with `$argon2id$...`).
 
-**Now insert the admin user:**
+**Step 3: Insert the admin user (single command):**
+
+Replace `YOUR_HASH_HERE` with your generated hash. Note: The `$` characters must be escaped with backslashes in the shell:
 
 ```bash
-# Connect to PostgreSQL
-docker compose exec postgres psql -U mpms_user -d mpms_prod
+docker compose exec postgres psql -U mpms_user -d mpms_prod -c "INSERT INTO users (id, username, email, password_hash, role, first_name, last_name, is_active, mfa_enabled, created_at, updated_at) VALUES (gen_random_uuid(), 'admin', 'admin@yourpractice.com', '\$argon2id\$v=19\$m=65536,t=3,p=4\$YOUR_HASH_HERE', 'ADMIN', 'System', 'Administrator', true, false, NOW(), NOW());"
 ```
 
-**Inside psql, run:**
+**Step 4: Verify user was created:**
 
-```sql
-INSERT INTO users (
-    id,
-    username,
-    email,
-    password_hash,
-    role,
-    first_name,
-    last_name,
-    is_active,
-    mfa_enabled,
-    created_at,
-    updated_at
-) VALUES (
-    gen_random_uuid(),
-    'admin',
-    'admin@yourpractice.com',  -- Change this
-    '$argon2id$v=19$m=65536,t=3,p=4$YOUR_HASH_HERE',  -- Paste your hash
-    'ADMIN',
-    'System',
-    'Administrator',
-    true,
-    false,
-    NOW(),
-    NOW()
-);
-
--- Verify user was created
-SELECT username, email, role FROM users;
-
--- Exit
-\q
+```bash
+docker compose exec postgres psql -U mpms_user -d mpms_prod -c "SELECT username, email, role, is_active FROM users;"
 ```
 
 ---
 
 ## A.10 Access Your Application
-
-Based on which option you chose in A.6:
-
-### If You Used Option B (With Nginx - Recommended)
 
 Access via HTTPS on standard ports:
 
@@ -605,56 +589,24 @@ Access via HTTPS on standard ports:
 
 **Note:** You'll see a browser warning about the self-signed certificate. Accept it to proceed. For real SSL certificates, see the [TLS/HTTPS Configuration](#tlshttps-configuration) section.
 
-### If You Used Option A (Without Nginx)
-
-You need to expose ports by editing `docker-compose.yml`:
-
-```bash
-nano docker-compose.yml
-```
-
-Find the `backend` service and uncomment the ports:
-
-```yaml
-    ports:
-      - "8000:8000"
-```
-
-Find the `frontend` service and uncomment the ports:
-
-```yaml
-    ports:
-      - "8080:8080"
-```
-
-Then restart:
-
-```bash
-docker compose up -d
-```
-
-| URL | Description |
-|-----|-------------|
-| `http://your-server-ip:8080/` | Frontend application |
-| `http://your-server-ip:8000/api/health` | Backend health check |
-
-**Warning:** Option A has NO TLS encryption - use only for testing!
+Login with the admin credentials you created in step A.9.
 
 ---
 
 ## A.11 Verify Deployment
 
 ```bash
-# Test backend health endpoint
-curl http://localhost:8000/api/health
-# Expected: {"status":"healthy","timestamp":"..."}
+# Check all containers are running and healthy
+docker compose ps
+# Expected: postgres, backend, frontend, nginx all showing "healthy"
+
+# Test backend health endpoint (via nginx)
+curl -k https://localhost/api/health
+# Expected: {"status":"healthy","version":"1.0.0","database":"connected",...}
 
 # Test frontend loads
-curl -s http://localhost:8080/ | head -20
-# Expected: HTML content with DocPat
-
-# If using Nginx:
-curl -k https://localhost/api/health
+curl -k https://localhost/ | head -20
+# Expected: HTML content with "DocPat - Medical Practice Management"
 ```
 
 **Docker deployment is complete!** Go to [Post-Deployment Tasks](#post-deployment-tasks).
@@ -1713,5 +1665,5 @@ sudo systemctl enable docpat-frontend
 
 ---
 
-**Document Version:** 2.1.0
-**Last Updated:** 2026-02-02
+**Document Version:** 2.2.0
+**Last Updated:** 2026-02-05
