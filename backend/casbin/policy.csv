@@ -1,0 +1,219 @@
+# RBAC Policy Definitions for Medical Practice Management System
+# Format: p, role, resource, action
+# Format: g, user_role, role (role inheritance)
+
+# ============================================================================
+# DOCTOR Role Permissions
+# ============================================================================
+
+# Patients - Create, read, update access (delete restricted to ADMIN only)
+p, DOCTOR, patients, create
+p, DOCTOR, patients, read
+p, DOCTOR, patients, update
+
+# Appointments - Full access
+p, DOCTOR, appointments, create
+p, DOCTOR, appointments, read
+p, DOCTOR, appointments, update
+p, DOCTOR, appointments, delete
+
+# Visits - Full access
+p, DOCTOR, visits, create
+p, DOCTOR, visits, read
+p, DOCTOR, visits, update
+p, DOCTOR, visits, delete
+p, DOCTOR, visits, sign
+p, DOCTOR, visits, lock
+
+# Prescriptions - Create, read, update access (delete restricted to ADMIN only)
+p, DOCTOR, prescriptions, create
+p, DOCTOR, prescriptions, read
+p, DOCTOR, prescriptions, update
+
+# Diagnoses - Create, read, update access (delete restricted to ADMIN only)
+p, DOCTOR, diagnoses, create
+p, DOCTOR, diagnoses, read
+p, DOCTOR, diagnoses, update
+
+# Drug Interactions - Read access (safety-critical reference data for prescribing)
+p, DOCTOR, drug_interactions, read
+
+# Prescription Templates - Create, read, update access (delete restricted to ADMIN only)
+p, DOCTOR, prescription_templates, create
+p, DOCTOR, prescription_templates, read
+p, DOCTOR, prescription_templates, update
+
+# Visit Templates - Create, read, update access (delete restricted to ADMIN only)
+p, DOCTOR, visit_templates, create
+p, DOCTOR, visit_templates, read
+p, DOCTOR, visit_templates, update
+
+# Documents - Full access (legacy resource name)
+p, DOCTOR, documents, create
+p, DOCTOR, documents, read
+p, DOCTOR, documents, update
+p, DOCTOR, documents, delete
+
+# Generated Documents - Full access (new resource name for document handlers)
+# Note: delete permission is granted but handler enforces additional business rule:
+# Doctors can only delete unsigned documents (signed documents protected for audit trail)
+p, DOCTOR, generated_documents, create
+p, DOCTOR, generated_documents, read
+p, DOCTOR, generated_documents, update
+p, DOCTOR, generated_documents, delete
+p, DOCTOR, generated_documents, sign
+p, DOCTOR, generated_documents, deliver
+
+# Templates - Read and use (cannot modify system templates) - legacy
+p, DOCTOR, templates, read
+
+# Document Templates - Read and use (cannot modify system templates) - new resource name
+p, DOCTOR, document_templates, read
+
+# Reports - Read access
+p, DOCTOR, reports, read
+
+# Settings - Read only
+p, DOCTOR, settings, read
+
+# Users - Read own profile, update own profile
+p, DOCTOR, users, read_own
+p, DOCTOR, users, update_own
+
+# MFA - Manage own MFA
+p, DOCTOR, mfa, manage_own
+
+# ============================================================================
+# ADMIN Role Permissions (Full System Access)
+# ============================================================================
+
+# Patients - Full access
+p, ADMIN, patients, create
+p, ADMIN, patients, read
+p, ADMIN, patients, update
+p, ADMIN, patients, delete
+
+# Appointments - Full access
+p, ADMIN, appointments, create
+p, ADMIN, appointments, read
+p, ADMIN, appointments, update
+p, ADMIN, appointments, delete
+
+# Visits - Full access
+p, ADMIN, visits, create
+p, ADMIN, visits, read
+p, ADMIN, visits, update
+p, ADMIN, visits, delete
+p, ADMIN, visits, sign
+p, ADMIN, visits, lock
+
+# Prescriptions - Full access
+p, ADMIN, prescriptions, create
+p, ADMIN, prescriptions, read
+p, ADMIN, prescriptions, update
+p, ADMIN, prescriptions, delete
+
+# Diagnoses - Full access
+p, ADMIN, diagnoses, create
+p, ADMIN, diagnoses, read
+p, ADMIN, diagnoses, update
+p, ADMIN, diagnoses, delete
+
+# Drug Interactions - Read access (reference data)
+p, ADMIN, drug_interactions, read
+
+# Prescription Templates - Full access
+p, ADMIN, prescription_templates, create
+p, ADMIN, prescription_templates, read
+p, ADMIN, prescription_templates, update
+p, ADMIN, prescription_templates, delete
+
+# Visit Templates - Full access
+p, ADMIN, visit_templates, create
+p, ADMIN, visit_templates, read
+p, ADMIN, visit_templates, update
+p, ADMIN, visit_templates, delete
+
+# Documents - Full access (legacy resource name)
+p, ADMIN, documents, create
+p, ADMIN, documents, read
+p, ADMIN, documents, update
+p, ADMIN, documents, delete
+
+# Generated Documents - Full access (new resource name)
+p, ADMIN, generated_documents, create
+p, ADMIN, generated_documents, read
+p, ADMIN, generated_documents, update
+p, ADMIN, generated_documents, delete
+p, ADMIN, generated_documents, sign
+p, ADMIN, generated_documents, deliver
+
+# Templates - Full access (can create/modify templates) - legacy
+p, ADMIN, templates, create
+p, ADMIN, templates, read
+p, ADMIN, templates, update
+p, ADMIN, templates, delete
+
+# Document Templates - Full access (can create/modify templates) - new resource name
+p, ADMIN, document_templates, create
+p, ADMIN, document_templates, read
+p, ADMIN, document_templates, update
+p, ADMIN, document_templates, delete
+
+# Reports - Full access
+p, ADMIN, reports, read
+p, ADMIN, reports, create
+p, ADMIN, reports, export
+
+# Settings - Full access
+p, ADMIN, settings, read
+p, ADMIN, settings, update
+
+# Users - Full user management
+p, ADMIN, users, create
+p, ADMIN, users, read
+p, ADMIN, users, update
+p, ADMIN, users, delete
+p, ADMIN, users, activate
+p, ADMIN, users, deactivate
+p, ADMIN, users, assign_role
+p, ADMIN, users, reset_password
+p, ADMIN, users, reset_mfa
+
+# Audit Logs - Read access
+p, ADMIN, audit_logs, read
+
+# Notifications - Full access
+p, ADMIN, notifications, create
+p, ADMIN, notifications, read
+p, ADMIN, notifications, update
+p, ADMIN, notifications, delete
+
+# MFA - Manage all user MFA (for support)
+p, ADMIN, mfa, manage_all
+
+# System - System-level operations
+p, ADMIN, system, backup
+p, ADMIN, system, restore
+p, ADMIN, system, maintenance
+p, ADMIN, system, read
+
+# Files - Full access for file upload and management
+p, ADMIN, files, create
+p, ADMIN, files, read
+p, ADMIN, files, update
+p, ADMIN, files, delete
+
+# Files - Doctors can read/download files (for viewing in documents)
+p, DOCTOR, files, read
+
+# Notifications - Create, read, update access (allows viewing, retry, cancel)
+p, DOCTOR, notifications, create
+p, DOCTOR, notifications, read
+p, DOCTOR, notifications, update
+
+# ============================================================================
+# Role Inheritance (if needed in future)
+# ============================================================================
+# Example: g, alice@example.com, DOCTOR
+# Example: g, admin@example.com, ADMIN

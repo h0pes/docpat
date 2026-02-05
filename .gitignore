@@ -321,6 +321,7 @@ generated-docs/
 # Except example/template files
 !docs/**/*.pdf
 !templates/**/*.pdf
+!backend/casbin/policy.csv
 
 # ============================================
 # SECURITY & COMPLIANCE
