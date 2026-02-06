@@ -419,7 +419,7 @@ echo "=== Linting Complete ==="
 | MEDIUM | Backend can reach internet | **FIXED** - Implemented 3-network architecture: edge_network (not internal) for nginx ingress, frontend_network and backend_network (both internal) for app isolation. All app containers blocked from internet. | ✅ Fixed |
 | LOW | Missing .dockerignore | **FIXED** - Created comprehensive .dockerignore excluding .env, .git, node_modules, target/, docs/, and other sensitive/unnecessary files | ✅ Fixed |
 | LOW | Optional hardening not implemented | **DEFERRED** - cap_drop, read_only, tmpfs documented as future enhancement. Current security posture is adequate. | 📅 Future |
-| INFO | Base images have updates | Rebuild images periodically: `docker compose build --no-cache` | 🔲 Scheduled |
+| INFO | Base images have updates | **IN PROGRESS** - Rebuilding all images with latest base layers (2026-02-06) | 🔄 In Progress |
 
 **Overall Assessment:** No critical blocking issues. The identified vulnerabilities are either:
 - Marked "will_not_fix" by upstream (not exploitable in our context)
