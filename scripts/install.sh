@@ -381,19 +381,24 @@ else
             print_step "Generating password hash..."
 
             # Check if argon2 is available
-            if python3 -c "import argon2" 2>/dev/null; then
-                HASH=$(python3 -c "from argon2 import PasswordHasher; ph = PasswordHasher(); print(ph.hash('${ADMIN_PASS}'))")
-            else
+            if ! python3 -c "import argon2" 2>/dev/null; then
                 print_warning "argon2-cffi not installed. Installing..."
                 pip3 install argon2-cffi --quiet
-                HASH=$(python3 -c "from argon2 import PasswordHasher; ph = PasswordHasher(); print(ph.hash('${ADMIN_PASS}'))")
             fi
 
-            # Escape $ signs for SQL
-            HASH_ESCAPED=$(echo "$HASH" | sed 's/\$/\\$/g')
+            # Generate hash
+            HASH=$(python3 -c "from argon2 import PasswordHasher; ph = PasswordHasher(); print(ph.hash('''${ADMIN_PASS}'''))")
 
             print_step "Creating admin user..."
-            docker compose exec -T postgres psql -U mpms_user -d mpms_prod -c "INSERT INTO users (id, username, email, password_hash, role, first_name, last_name, is_active, mfa_enabled, created_at, updated_at) VALUES (gen_random_uuid(), '${ADMIN_USER}', '${ADMIN_EMAIL}', '${HASH_ESCAPED}', 'ADMIN', 'System', 'Administrator', true, false, NOW(), NOW()) ON CONFLICT (username) DO NOTHING;"
+
+            # Write SQL to temp file using printf to avoid shell expansion of $ in hash
+            SQL_FILE=$(mktemp)
+            printf "INSERT INTO users (id, username, email, password_hash, role, first_name, last_name, is_active, mfa_enabled, created_at, updated_at) VALUES (gen_random_uuid(), '%s', '%s', '%s', 'ADMIN', 'System', 'Administrator', true, false, NOW(), NOW()) ON CONFLICT (username) DO NOTHING;\n" "$ADMIN_USER" "$ADMIN_EMAIL" "$HASH" > "$SQL_FILE"
+
+            # Copy SQL file to container and execute
+            docker cp "$SQL_FILE" docpat-postgres:/tmp/create_admin.sql
+            docker compose exec -T postgres psql -U mpms_user -d mpms_prod -f /tmp/create_admin.sql
+            rm "$SQL_FILE"
 
             print_success "Admin user created"
         else
