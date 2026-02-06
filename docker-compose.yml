@@ -314,8 +314,8 @@ services:
       - frontend
 
     networks:
-      - frontend_network
-      - backend_network
+      - edge_network       # For inbound traffic (port publishing)
+      - frontend_network   # To reach backend and frontend services
 
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
@@ -374,22 +374,31 @@ services:
 # Networks - Isolated network segments
 # ==============================================================================
 networks:
-  # Frontend network - Nginx, frontend, and backend (for nginx proxying)
-  # Internal network - no direct internet access, only inbound via port mapping
+  # Edge network - For nginx to receive inbound traffic (port publishing)
+  # NOT internal - allows Docker port mapping to work
+  edge_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/24
+
+  # Frontend network - Internal network for app services
+  # Nginx, frontend, and backend communicate here
   frontend_network:
     driver: bridge
-    internal: true
+    internal: true  # No internet access - blocks outbound
     ipam:
       config:
         - subnet: 172.20.0.0/24
 
-  # Backend network - Backend and database
+  # Backend network - Internal network for database access
+  # Backend and postgres communicate here
   backend_network:
     driver: bridge
+    internal: true  # No internet access - blocks outbound
     ipam:
       config:
         - subnet: 172.21.0.0/24
-    internal: true  # No direct external access
 
 # ==============================================================================
 # Volumes - Persistent data storage

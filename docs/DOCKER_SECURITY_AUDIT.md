@@ -249,9 +249,14 @@ Traffic routes through `frontend_network` which allows external access.
 - Typical attack vector (data exfiltration) would require RCE first
 - Minimal tooling in container (no curl/wget) limits exploitation
 
-**Resolution (2026-02-05):** Changed `frontend_network` to `internal: true` in docker-compose.yml. This blocks all outbound internet access while preserving:
-- Inbound traffic via Docker port mapping (ports 80/443)
-- Inter-container communication (nginx → backend, nginx → frontend)
+**Resolution (2026-02-06):** Implemented 3-network architecture:
+- `edge_network` (NOT internal) - nginx receives inbound traffic via port publishing
+- `frontend_network` (internal: true) - nginx, frontend, backend communicate here
+- `backend_network` (internal: true) - backend, postgres communicate here
+
+This blocks all outbound internet access from application containers while preserving:
+- Inbound traffic via Docker port mapping on edge_network (ports 80/443)
+- Inter-container communication on internal networks
 
 ### Step 4.2: Port Exposure Audit
 
@@ -411,7 +416,7 @@ echo "=== Linting Complete ==="
 | LOW | Backend has 1 CRITICAL CVE (zlib1g CVE-2023-45853) | **ACCEPTED** - Debian marked "will_not_fix"; affects minizip component which is not used by our Rust backend (only uses zlib for HTTP compression) | ✅ Accepted |
 | LOW | Backend has 3 HIGH CVEs (gpgv, libc-bin, libc6) | **ACCEPTED** - Dockerfile already has `apt-get upgrade -y`; Debian hasn't released patches yet (status: "affected"). Monitor and rebuild periodically when patches become available. | ✅ Accepted |
 | LOW | Postgres gosu has 4 HIGH CVEs (Go stdlib) | **ACCEPTED** - gosu only runs at container startup (milliseconds), not network-exposed, DoS-only vulnerabilities. Official image - will be fixed when PostgreSQL team rebuilds with updated Go. | ✅ Accepted |
-| MEDIUM | Backend can reach internet | **FIXED** - Changed `frontend_network` to `internal: true`. All containers now isolated from internet; inbound traffic still works via Docker port mapping. | ✅ Fixed |
+| MEDIUM | Backend can reach internet | **FIXED** - Implemented 3-network architecture: edge_network (not internal) for nginx ingress, frontend_network and backend_network (both internal) for app isolation. All app containers blocked from internet. | ✅ Fixed |
 | LOW | Missing .dockerignore | Create .dockerignore to exclude .env, .git, node_modules, target/ | 🔲 TODO |
 | LOW | Optional hardening not implemented | Future: Add cap_drop, read_only where applicable | 🔲 Future |
 | INFO | Base images have updates | Rebuild images periodically: `docker compose build --no-cache` | 🔲 Scheduled |
