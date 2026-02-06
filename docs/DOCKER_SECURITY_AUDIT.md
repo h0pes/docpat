@@ -160,9 +160,9 @@ docker run --rm -i hadolint/hadolint < infrastructure/docker/Dockerfile.nginx
 | Non-root `USER` specified | ✅ mpms | ✅ nginx | ⚠️ Workers run as nginx, master as root (standard for port 80/443) |
 | No sensitive data in build args | ✅ | ✅ | ✅ |
 | Multi-stage builds used | ✅ | ✅ | N/A (single layer config) |
-| `.dockerignore` excludes sensitive files | ❌ Missing | ❌ Missing | ❌ Missing |
+| `.dockerignore` excludes sensitive files | ✅ Created | ✅ Created | ✅ Created |
 
-**Note:** No `.dockerignore` file exists in the repository. Recommend creating one to exclude `.env`, `.git`, `node_modules`, `target/`, etc.
+**Note (2026-02-06):** Created comprehensive `.dockerignore` file excluding sensitive files (.env, credentials), version control (.git), build artifacts (node_modules, target/), and documentation.
 
 ---
 
@@ -417,8 +417,8 @@ echo "=== Linting Complete ==="
 | LOW | Backend has 3 HIGH CVEs (gpgv, libc-bin, libc6) | **ACCEPTED** - Dockerfile already has `apt-get upgrade -y`; Debian hasn't released patches yet (status: "affected"). Monitor and rebuild periodically when patches become available. | ✅ Accepted |
 | LOW | Postgres gosu has 4 HIGH CVEs (Go stdlib) | **ACCEPTED** - gosu only runs at container startup (milliseconds), not network-exposed, DoS-only vulnerabilities. Official image - will be fixed when PostgreSQL team rebuilds with updated Go. | ✅ Accepted |
 | MEDIUM | Backend can reach internet | **FIXED** - Implemented 3-network architecture: edge_network (not internal) for nginx ingress, frontend_network and backend_network (both internal) for app isolation. All app containers blocked from internet. | ✅ Fixed |
-| LOW | Missing .dockerignore | Create .dockerignore to exclude .env, .git, node_modules, target/ | 🔲 TODO |
-| LOW | Optional hardening not implemented | Future: Add cap_drop, read_only where applicable | 🔲 Future |
+| LOW | Missing .dockerignore | **FIXED** - Created comprehensive .dockerignore excluding .env, .git, node_modules, target/, docs/, and other sensitive/unnecessary files | ✅ Fixed |
+| LOW | Optional hardening not implemented | **DEFERRED** - cap_drop, read_only, tmpfs documented as future enhancement. Current security posture is adequate. | 📅 Future |
 | INFO | Base images have updates | Rebuild images periodically: `docker compose build --no-cache` | 🔲 Scheduled |
 
 **Overall Assessment:** No critical blocking issues. The identified vulnerabilities are either:
