@@ -374,9 +374,11 @@ services:
 # Networks - Isolated network segments
 # ==============================================================================
 networks:
-  # Frontend network - Nginx and frontend only
+  # Frontend network - Nginx, frontend, and backend (for nginx proxying)
+  # Internal network - no direct internet access, only inbound via port mapping
   frontend_network:
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 172.20.0.0/24
