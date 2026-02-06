@@ -11,7 +11,7 @@ Perform a comprehensive security audit of all Docker images and configurations t
 
 ## Execution Context
 
-- **Scan Location**: VM Server (10.0.160.11) - scan actual deployed images
+- **Scan Location**: VM Server (your-server-ip) - scan actual deployed images
 - **CI/CD**: Manual scripts only (no GitHub Actions workflow for now)
 - **Focus**: Immediate vulnerability identification and remediation
 
@@ -494,7 +494,7 @@ curl -k https://localhost/api/health
 
 ## Execution Checklist
 
-### On VM Server (10.0.160.11)
+### On VM Server (your-server-ip)
 
 - [x] **Step 1**: Install Trivy on the server ✅ (2026-02-05)
 - [x] **Step 2**: Run vulnerability scans on all 4 images ✅ (2026-02-05)
