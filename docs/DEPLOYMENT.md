@@ -1,7 +1,7 @@
 # DocPat Deployment Guide
 
-**Version:** 2.2.0
-**Last Updated:** 2026-02-05
+**Version:** 2.4.0
+**Last Updated:** 2026-02-06
 
 ---
 
@@ -13,39 +13,52 @@
 4. [Understanding Development vs Production](#understanding-development-vs-production)
 5. [SCENARIO A: Docker Deployment](#scenario-a-docker-deployment-synologyportainerlocal-server)
 6. [SCENARIO B: Artifacts Deployment](#scenario-b-artifacts-deployment-no-docker)
-7. [TLS/HTTPS Configuration](#tlshttps-configuration)
-8. [Post-Deployment Tasks](#post-deployment-tasks)
-9. [Maintenance Procedures](#maintenance-procedures)
-10. [Troubleshooting](#troubleshooting)
-11. [Appendix](#appendix)
+7. [SCENARIO C: Bundle Distribution](#scenario-c-bundle-distribution-easiest)
+8. [TLS/HTTPS Configuration](#tlshttps-configuration)
+9. [Post-Deployment Tasks](#post-deployment-tasks)
+10. [Maintenance Procedures](#maintenance-procedures)
+11. [Troubleshooting](#troubleshooting)
+12. [Appendix](#appendix)
 
 ---
 
 ## Overview
 
-This guide provides **two independent deployment procedures**. Choose ONE:
+This guide provides **three deployment options**. Choose ONE:
 
 | Scenario | Use When | What You Need |
 |----------|----------|---------------|
-| **A: Docker** | Synology NAS with Portainer, any Docker host | Docker, Docker Compose |
+| **A: Docker** | Synology NAS with Portainer, any Docker host | Docker, Docker Compose, build from source |
 | **B: Artifacts** | Bare metal server, VPS, no containers | Rust, Node.js, PostgreSQL installed |
+| **C: Bundle** | Easy distribution to others | Docker, Docker Compose only (pre-built images) |
 
 **IMPORTANT**: Each scenario is COMPLETE and SELF-CONTAINED. Follow only ONE scenario from start to finish.
 
+**Recommended for most users:** Scenario C (Bundle) for the easiest installation experience.
+
 ### What You're Deploying
 
+**Docker Deployment Architecture (with Nginx - REQUIRED for production):**
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Internet                                 │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-        ┌───────────────────┴───────────────────┐
-        ▼                                       ▼
-┌─────────────────────┐               ┌─────────────────────┐
-│  Frontend (React)   │               │  Backend (Rust)     │
-│   Port 8080         │               │  Port 8000          │
-└─────────────────────┘               └──────────┬──────────┘
+                              Internet
+                                 │
+                                 ▼
+                    ┌────────────────────────┐
+                    │   Nginx Reverse Proxy  │ ← edge_network (external)
+                    │   Ports 80, 443        │
+                    └───────────┬────────────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              │                 │                 │
+              ▼                 │                 ▼
+    ┌─────────────────┐         │       ┌─────────────────┐
+    │ Frontend (React)│◄────────┼───────│ Backend (Rust)  │
+    │  Port 8080      │  frontend_network│  Port 8000      │
+    └─────────────────┘  (internal)     └────────┬────────┘
                                                  │
+                                                 │ backend_network
+                                                 │ (internal)
                                       ┌──────────┴──────────┐
                                       ▼                     ▼
                           ┌─────────────────┐    ┌──────────────┐
@@ -54,12 +67,20 @@ This guide provides **two independent deployment procedures**. Choose ONE:
                           └─────────────────┘    └──────────────┘
 ```
 
+**Network Security Design:**
+- **edge_network**: External-facing network for Nginx (port publishing enabled)
+- **frontend_network**: Internal network connecting Nginx, frontend, and backend (no internet access)
+- **backend_network**: Internal network for database access only (no internet access)
+
+This isolation ensures containers cannot reach the internet (exfiltration protection).
+
 ### Key Technical Facts
 
 - **Backend binary name**: `docpat-backend`
 - **Redis**: NOT implemented (ignore any Redis references)
-- **Nginx**: OPTIONAL - backend has native TLS via rustls
+- **Nginx**: REQUIRED for production (exposes ports, handles TLS termination)
 - **Required PostgreSQL extensions**: uuid-ossp, pgcrypto, btree_gist, pg_trgm
+- **Health endpoints**: `/health` (backend and frontend)
 
 ---
 
@@ -86,7 +107,8 @@ docpat/
 |----------|---------|----------------|
 | **Local Development** | `cd backend && cargo run` | `backend/.env` |
 | **Local Development** | `cd frontend && npm run dev` | `frontend/.env` |
-| **Docker (any environment)** | `docker compose up` | Root `.env` |
+| **Docker (testing)** | `docker compose up` | Root `.env` |
+| **Docker (production)** | `docker compose --profile with-nginx up` | Root `.env` |
 | **Artifacts Production** | `systemctl start docpat-backend` | `/opt/docpat/config/backend.env` |
 
 ### Why Does `backend/.env` Have 300+ Lines?
@@ -456,11 +478,11 @@ sudo systemctl disable apache2  # Optional: prevent auto-start on boot
 ```bash
 docker compose --profile with-nginx up -d
 
-# Watch the logs to see startup progress
-docker compose logs -f
+# Watch the logs to see startup progress (include profile to see nginx logs)
+docker compose --profile with-nginx logs -f
 ```
 
-**Alternative: Without Nginx (for testing only - ports not exposed):**
+**Alternative: Without Nginx (for testing only - ports NOT exposed to host):**
 
 ```bash
 docker compose up -d
@@ -469,8 +491,8 @@ docker compose up -d
 **Wait until you see healthy status for all services.** Press `Ctrl+C` to exit logs.
 
 ```bash
-# Check service status
-docker compose ps
+# Check service status (IMPORTANT: include --profile to see nginx)
+docker compose --profile with-nginx ps
 ```
 
 **Expected output (all should show "healthy"):**
@@ -515,8 +537,11 @@ The PostgreSQL container automatically:
 **Recommended Method - Copy migrations into postgres container and run them:**
 
 ```bash
+# Make sure you're in the docpat directory
+cd /opt/docpat
+
 # Copy migration files into the postgres container
-docker cp /opt/docpat/backend/migrations docpat-postgres:/tmp/migrations
+docker cp ./backend/migrations docpat-postgres:/tmp/migrations
 
 # Run all migrations in order
 docker compose exec postgres sh -c 'for f in /tmp/migrations/*.sql; do echo "Running $f..."; psql -U mpms_user -d mpms_prod -f "$f"; done'
@@ -580,12 +605,14 @@ docker compose exec postgres psql -U mpms_user -d mpms_prod -c "SELECT username,
 
 ## A.10 Access Your Application
 
+**IMPORTANT:** You must use the `--profile with-nginx` when starting services, otherwise ports 80/443 are not exposed and you cannot access the application from outside the Docker network.
+
 Access via HTTPS on standard ports:
 
 | URL | Description |
 |-----|-------------|
 | `https://your-server-ip/` | Frontend application |
-| `https://your-server-ip/api/health` | Backend health check |
+| `https://your-server-ip/health` | Backend health check (proxied through Nginx) |
 
 **Note:** You'll see a browser warning about the self-signed certificate. Accept it to proceed. For real SSL certificates, see the [TLS/HTTPS Configuration](#tlshttps-configuration) section.
 
@@ -596,17 +623,21 @@ Login with the admin credentials you created in step A.9.
 ## A.11 Verify Deployment
 
 ```bash
-# Check all containers are running and healthy
-docker compose ps
+# Check all containers are running and healthy (use --profile to see nginx)
+docker compose --profile with-nginx ps
 # Expected: postgres, backend, frontend, nginx all showing "healthy"
 
 # Test backend health endpoint (via nginx)
-curl -k https://localhost/api/health
+curl -k https://localhost/health
 # Expected: {"status":"healthy","version":"1.0.0","database":"connected",...}
 
 # Test frontend loads
 curl -k https://localhost/ | head -20
 # Expected: HTML content with "DocPat - Medical Practice Management"
+
+# Verify network isolation (containers cannot reach internet)
+docker compose exec backend timeout 5 bash -c "echo > /dev/tcp/8.8.8.8/53" 2>&1 || echo "BLOCKED - GOOD"
+# Expected: "BLOCKED - GOOD" (connection should timeout/fail)
 ```
 
 **Docker deployment is complete!** Go to [Post-Deployment Tasks](#post-deployment-tasks).
@@ -1149,8 +1180,8 @@ sudo systemctl reload nginx
 # Check backend is running
 sudo systemctl status docpat-backend
 
-# Test backend API
-curl http://localhost:8000/api/health
+# Test backend API health endpoint
+curl http://localhost:8000/health
 
 # Check frontend is running
 sudo systemctl status docpat-frontend
@@ -1163,6 +1194,111 @@ sudo tail -f /opt/docpat/logs/backend-error.log
 ```
 
 **Artifacts deployment is complete!**
+
+---
+
+# SCENARIO C: Bundle Distribution (Easiest)
+
+**Use this when**: You want to distribute DocPat to someone else with minimal setup, or deploy without building from source.
+
+**Time estimate**: 10-15 minutes
+
+**Prerequisites on target machine**: Docker Engine 24+ and Docker Compose v2.20+ only
+
+---
+
+## C.1 Create the Distribution Bundle (One-time, on your build machine)
+
+Run this on the machine where you've already built the Docker images:
+
+```bash
+cd /opt/docpat  # or wherever your repo is
+
+# Ensure all images are built
+docker compose --profile with-nginx build
+
+# Create the distribution bundle
+./scripts/create-bundle.sh
+
+# Output: docpat-bundle-YYYYMMDD.tar.gz (approximately 500MB-1GB)
+```
+
+This creates a self-contained archive with:
+- All 4 Docker images (pre-built)
+- docker-compose.yml
+- Configuration files
+- Database migrations
+- Automated install script
+
+---
+
+## C.2 Transfer the Bundle
+
+Copy the bundle to the target machine:
+
+```bash
+# Using scp
+scp docpat-bundle-YYYYMMDD.tar.gz user@target-server:/opt/
+
+# Or using rsync
+rsync -avP docpat-bundle-YYYYMMDD.tar.gz user@target-server:/opt/
+```
+
+---
+
+## C.3 Install on Target Machine
+
+On the target machine:
+
+```bash
+# Extract the bundle
+cd /opt
+tar -xzf docpat-bundle-YYYYMMDD.tar.gz
+cd docpat-bundle-YYYYMMDD
+
+# Run the installer
+./install.sh
+```
+
+The installer will:
+1. Check prerequisites (Docker, ports)
+2. Load all Docker images
+3. Create data directories with correct permissions
+4. Generate secure secrets automatically
+5. Create the .env configuration
+6. Start all services
+7. Run database migrations
+8. Optionally create an admin user
+
+---
+
+## C.4 Verify Installation
+
+```bash
+# Check all services are running
+docker compose --profile with-nginx ps
+
+# Test the application
+curl -k https://localhost/health
+```
+
+Access the application at `https://your-server-ip/`
+
+---
+
+## C.5 Non-Interactive Installation
+
+For automated deployments:
+
+```bash
+./install.sh --non-interactive
+```
+
+This uses all defaults and skips prompts. You'll need to create the admin user manually afterward.
+
+---
+
+**Bundle deployment is complete!** Go to [Post-Deployment Tasks](#post-deployment-tasks).
 
 ---
 
@@ -1420,6 +1556,31 @@ SMTP_FROM_NAME=Dr. Your Name
 
 Restart the backend after changing configuration.
 
+## Run Security Scans (Recommended)
+
+After deployment, run security scans to verify image integrity:
+
+```bash
+cd /opt/docpat
+
+# Install Trivy (if not already installed)
+curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+# Run comprehensive security scan (all images)
+./scripts/security-scan.sh
+
+# Or scan individual images
+trivy image docpat-backend:latest --severity HIGH,CRITICAL
+trivy image docpat-frontend:latest --severity HIGH,CRITICAL
+trivy image docpat-nginx:latest --severity HIGH,CRITICAL
+trivy image postgres:18-alpine --severity HIGH,CRITICAL
+
+# Lint Dockerfiles
+./scripts/dockerfile-lint.sh
+```
+
+See `docs/DOCKER_SECURITY_AUDIT.md` for the complete security audit documentation.
+
 ---
 
 # Maintenance Procedures
@@ -1448,16 +1609,64 @@ gunzip -c backup.sql.gz | docker compose exec -T postgres psql -U mpms_user -d m
 gunzip -c backup.sql.gz | psql -U mpms_user -h localhost -d mpms_prod
 ```
 
+## Export Docker Images
+
+Export images to the filesystem for backup, transfer to another machine, or offline deployment. This can be done safely while containers are running - images are immutable and read-only.
+
+```bash
+# Create directory for exported images
+mkdir -p /opt/docpat/images
+
+# Export all 4 required images (compressed)
+docker save docpat-backend:latest | gzip > /opt/docpat/images/docpat-backend-latest.tar.gz
+docker save docpat-frontend:latest | gzip > /opt/docpat/images/docpat-frontend-latest.tar.gz
+docker save docpat-nginx:latest | gzip > /opt/docpat/images/docpat-nginx-latest.tar.gz
+docker save postgres:18-alpine | gzip > /opt/docpat/images/postgres-18-alpine.tar.gz
+
+# Verify exported files
+ls -lh /opt/docpat/images/
+```
+
+## Load Docker Images
+
+Load previously exported images (on the same or different machine):
+
+```bash
+# Load all images from exported files
+docker load < /opt/docpat/images/docpat-backend-latest.tar.gz
+docker load < /opt/docpat/images/docpat-frontend-latest.tar.gz
+docker load < /opt/docpat/images/docpat-nginx-latest.tar.gz
+docker load < /opt/docpat/images/postgres-18-alpine.tar.gz
+
+# Verify images are loaded
+docker images | grep -E "docpat|postgres"
+```
+
 ## Update Application
 
 ### Docker Update
 
 ```bash
 cd /opt/docpat
+
+# Pull latest code
 git pull
-docker compose build
-docker compose down
-docker compose up -d
+
+# Rebuild all images (including nginx if using)
+docker compose --profile with-nginx build
+
+# Stop all services
+docker compose --profile with-nginx down
+
+# Start updated services
+docker compose --profile with-nginx up -d
+
+# Run any new migrations
+docker cp ./backend/migrations docpat-postgres:/tmp/migrations
+docker compose exec postgres sh -c 'for f in /tmp/migrations/*.sql; do psql -U mpms_user -d mpms_prod -f "$f"; done'
+
+# Verify all services are healthy
+docker compose --profile with-nginx ps
 ```
 
 ### Artifacts Update
@@ -1493,6 +1702,106 @@ sudo systemctl start docpat-backend docpat-frontend
 
 # Troubleshooting
 
+## Docker-Specific Issues
+
+### Cannot Access Application from Browser (Connection Refused)
+
+**Symptom:** `curl: (7) Failed to connect to localhost port 443`
+
+**Cause:** You started services without the `--profile with-nginx` flag.
+
+**Solution:**
+```bash
+# Stop current services
+docker compose down
+
+# Start with nginx profile (REQUIRED for port exposure)
+docker compose --profile with-nginx up -d
+```
+
+### Nginx Not Showing in `docker compose ps`
+
+**Cause:** Profile services only show when you include the profile flag.
+
+**Solution:**
+```bash
+# Use the profile flag to see nginx
+docker compose --profile with-nginx ps
+```
+
+### Old Container Still Running After Changes
+
+**Symptom:** Changes to docker-compose.yml not taking effect.
+
+**Solution:**
+```bash
+# Full teardown
+docker compose --profile with-nginx down
+
+# Remove old networks
+docker network rm docpat_edge_network docpat_frontend_network docpat_backend_network 2>/dev/null || true
+
+# Start fresh
+docker compose --profile with-nginx up -d
+```
+
+### Health Check Failing
+
+**Symptom:** Container shows "unhealthy" status.
+
+**Debug steps:**
+```bash
+# Check container logs
+docker compose logs backend
+
+# Test health endpoint manually from inside container
+docker compose exec backend /app/docpat-backend --health-check
+
+# For nginx health check
+docker compose exec nginx wget --quiet --tries=1 --spider http://localhost:80/health
+```
+
+### Port 80/443 Already in Use
+
+**Symptom:** Nginx fails to start with "address already in use".
+
+**Solution:**
+```bash
+# Find what's using the port
+sudo lsof -i :80
+sudo lsof -i :443
+
+# Stop the conflicting service (e.g., Apache)
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+```
+
+### Network Isolation Not Working
+
+**Symptom:** Containers can reach the internet when they shouldn't.
+
+**Cause:** Old networks were reused with wrong configuration.
+
+**Solution:**
+```bash
+# Full cleanup
+docker compose --profile with-nginx down
+docker network rm docpat_edge_network docpat_frontend_network docpat_backend_network
+
+# Verify networks are removed
+docker network ls | grep docpat
+# Should show nothing
+
+# Recreate
+docker compose --profile with-nginx up -d
+
+# Verify isolation
+docker compose exec backend timeout 5 bash -c "echo > /dev/tcp/8.8.8.8/53" 2>&1 || echo "BLOCKED"
+# Should print "BLOCKED"
+```
+
+---
+
 ## Backend Won't Start
 
 ```bash
@@ -1513,7 +1822,13 @@ sudo cat /opt/docpat/logs/backend-error.log
 ## Database Connection Failed
 
 ```bash
-# Test PostgreSQL is running
+# Docker - Test from backend container
+docker compose exec backend nc -zv postgres 5432
+
+# Docker - Test PostgreSQL directly
+docker compose exec postgres pg_isready -U mpms_user -d mpms_prod
+
+# Artifacts - Test PostgreSQL is running
 sudo systemctl status postgresql
 
 # Test connection
@@ -1525,6 +1840,7 @@ psql -U mpms_user -h localhost -d mpms_prod -c "SELECT 1;"
 - Check browser console for JavaScript errors
 - Verify VITE_API_BASE_URL in frontend build matches your setup
 - Check backend is accessible at the configured URL
+- For Docker: ensure you're accessing via Nginx (https://server-ip/) not direct ports
 
 ---
 
@@ -1603,44 +1919,89 @@ psql -U mpms_user -h localhost -d mpms_prod -c "SELECT 1;"
 ## Which .env File to Use - Quick Reference
 
 ```
-┌───────────────────────────────────────────────────────────────────────────┐
-│  WHERE ARE YOU?            │  WHICH .env?          │  WHICH COMMAND?      │
-├────────────────────────────┼───────────────────────┼──────────────────────┤
-│  Your laptop (development) │  backend/.env         │  cargo run           │
-│  Your laptop (development) │  frontend/.env        │  npm run dev         │
-│  Your laptop (Docker test) │  .env (root)          │  docker compose up   │
-│  Server (Docker)           │  .env (root)          │  docker compose up   │
-│  Server (Artifacts)        │  /opt/.../backend.env │  systemctl start     │
-└───────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│  WHERE ARE YOU?            │  WHICH .env?          │  WHICH COMMAND?                      │
+├────────────────────────────┼───────────────────────┼──────────────────────────────────────┤
+│  Your laptop (development) │  backend/.env         │  cargo run                           │
+│  Your laptop (development) │  frontend/.env        │  npm run dev                         │
+│  Your laptop (Docker test) │  .env (root)          │  docker compose up (no nginx)        │
+│  Server (Docker PROD)      │  .env (root)          │  docker compose --profile with-nginx │
+│  Server (Artifacts)        │  /opt/.../backend.env │  systemctl start                     │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**IMPORTANT:** For Docker production, you MUST use `--profile with-nginx` to expose ports 80/443.
 
 ## Docker Compose Commands Reference
 
+**IMPORTANT:** For production, ALWAYS use `--profile with-nginx` to expose ports 80/443.
+
 ```bash
-# Core services (no Nginx)
+# ============================================================
+# STARTING SERVICES
+# ============================================================
+
+# Core services only (no Nginx) - FOR TESTING ONLY, ports NOT exposed
 docker compose up -d
 
-# With Nginx (self-signed certs)
+# Production with Nginx (self-signed certs) - REQUIRED for external access
 docker compose --profile with-nginx up -d
 
-# With Nginx + Let's Encrypt
+# Production with Nginx + Let's Encrypt (real certificates)
 docker compose --profile with-certbot up -d
 
-# Stop all services
+# ============================================================
+# STOPPING SERVICES
+# ============================================================
+
+# Stop core services only
 docker compose down
 
-# View logs
-docker compose logs -f [service]
+# Stop ALL services including Nginx (IMPORTANT: include profile!)
+docker compose --profile with-nginx down
 
-# Check status
-docker compose ps
+# Full cleanup (removes networks too - use when changing network config)
+docker compose --profile with-nginx down
+docker network rm docpat_edge_network docpat_frontend_network docpat_backend_network 2>/dev/null || true
+
+# ============================================================
+# MONITORING
+# ============================================================
+
+# View logs (all services)
+docker compose --profile with-nginx logs -f
+
+# View logs (specific service)
+docker compose logs -f backend
+docker compose logs -f postgres
+
+# Check status (use --profile to see nginx)
+docker compose --profile with-nginx ps
+
+# ============================================================
+# DATABASE
+# ============================================================
 
 # Database shell
 docker compose exec postgres psql -U mpms_user -d mpms_prod
 
-# Rebuild images after code changes
-docker compose build
-docker compose up -d
+# Run migrations
+docker cp ./backend/migrations docpat-postgres:/tmp/migrations
+docker compose exec postgres sh -c 'for f in /tmp/migrations/*.sql; do psql -U mpms_user -d mpms_prod -f "$f"; done'
+
+# ============================================================
+# REBUILDING
+# ============================================================
+
+# Rebuild all images (after code changes)
+docker compose --profile with-nginx build
+
+# Rebuild and restart
+docker compose --profile with-nginx up -d --build
+
+# Rebuild specific image
+docker compose build backend
+docker compose build frontend
 ```
 
 ## Systemd Commands Reference (Artifacts)
@@ -1665,5 +2026,5 @@ sudo systemctl enable docpat-frontend
 
 ---
 
-**Document Version:** 2.2.0
-**Last Updated:** 2026-02-05
+**Document Version:** 2.4.0
+**Last Updated:** 2026-02-06
