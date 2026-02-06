@@ -95,7 +95,8 @@ confirm() {
 }
 
 generate_secret() {
-    openssl rand -base64 "$1" 2>/dev/null || head -c "$1" /dev/urandom | base64
+    # Generate base64 secret and remove any newlines (openssl wraps at 76 chars)
+    openssl rand -base64 "$1" 2>/dev/null | tr -d '\n' || head -c "$1" /dev/urandom | base64 | tr -d '\n'
 }
 
 # ==============================================================================
@@ -290,7 +291,7 @@ DATA_DIR=${DATA_DIR}
 BACKUP_DIR=${BACKUP_DIR}
 
 # Logging
-RUST_LOG=info
+RUST_LOG=debug
 
 # CORS (update with your domain if needed)
 CORS_ALLOWED_ORIGINS=https://localhost
@@ -460,5 +461,5 @@ echo "  Database data: ${DATA_DIR}/postgres"
 echo "  Backups: ${BACKUP_DIR}/postgres"
 echo ""
 
-print_warning "SECURITY REMINDER: Change the default admin password after first login!"
+print_warning "SECURITY REMINDER: Keep your admin credentials secure!"
 echo ""
