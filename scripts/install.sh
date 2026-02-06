@@ -99,6 +99,11 @@ generate_secret() {
     openssl rand -base64 "$1" 2>/dev/null | tr -d '\n' || head -c "$1" /dev/urandom | base64 | tr -d '\n'
 }
 
+generate_password() {
+    # Generate URL-safe password (hex only - no special characters that break URLs)
+    openssl rand -hex "$1" 2>/dev/null || head -c "$1" /dev/urandom | xxd -p | tr -d '\n'
+}
+
 # ==============================================================================
 # Pre-flight Checks
 # ==============================================================================
@@ -261,7 +266,7 @@ fi
 if [ ! -f "${INSTALL_DIR}/.env" ]; then
     print_step "Generating security keys..."
 
-    POSTGRES_PASSWORD=$(generate_secret 24)
+    POSTGRES_PASSWORD=$(generate_password 24)
     JWT_SECRET=$(generate_secret 64)
     JWT_REFRESH_SECRET=$(generate_secret 64)
     ENCRYPTION_KEY=$(generate_secret 32)
