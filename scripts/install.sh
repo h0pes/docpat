@@ -349,6 +349,13 @@ docker compose exec -T postgres sh -c 'for f in /tmp/migrations/*.sql; do echo "
 
 print_success "Migrations complete"
 
+# Disable global MFA requirement so admin can log in without being forced to set up MFA.
+# The admin can re-enable this later via Settings > Security in the UI.
+print_step "Disabling global MFA requirement for initial setup..."
+docker compose exec -T postgres psql -U mpms_user -d mpms_prod -c \
+    "UPDATE system_settings SET setting_value = 'false' WHERE setting_key = 'security.mfa_required';"
+print_success "Global MFA requirement disabled (can be re-enabled in Settings > Security)"
+
 # ==============================================================================
 # Create Admin User
 # ==============================================================================
