@@ -25,7 +25,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Support running from both bundle root (./install.sh) and git repo (./scripts/install.sh)
+if [ -f "${SCRIPT_DIR}/docker-compose.yml" ]; then
+    INSTALL_DIR="${SCRIPT_DIR}"
+else
+    INSTALL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
 DATA_DIR="${INSTALL_DIR}/data"
 BACKUP_DIR="${INSTALL_DIR}/backups"
 IMAGES_DIR="${INSTALL_DIR}/images"
