@@ -330,7 +330,8 @@ pub async fn list_document_templates(
 
     let service = DocumentService::new(state.pool.clone(), encryption_key.clone(), storage_path);
     let result = service
-        .list_templates(filter, query.limit.unwrap_or(20), query.offset.unwrap_or(0))
+        // Clamp page size to prevent uncontrolled allocation (CWE-770)
+        .list_templates(filter, query.limit.unwrap_or(20).min(100), query.offset.unwrap_or(0))
         .await
         .map_err(|e| {
             tracing::error!("Failed to list document templates: {}", e);
@@ -634,7 +635,8 @@ pub async fn list_generated_documents(
 
     let service = DocumentService::new(state.pool.clone(), encryption_key.clone(), storage_path);
     let result = service
-        .list_documents(filter, query.limit.unwrap_or(20), query.offset.unwrap_or(0), auth_user.user_id)
+        // Clamp page size to prevent uncontrolled allocation (CWE-770)
+        .list_documents(filter, query.limit.unwrap_or(20).min(100), query.offset.unwrap_or(0), auth_user.user_id)
         .await
         .map_err(|e| {
             tracing::error!("Failed to list documents: {}", e);

@@ -16,8 +16,8 @@ use crate::{
     handlers::auth::AppState,
     models::{AuthUser, UserRole},
     services::{
-        CheckInteractionsRequest, CheckInteractionsResponse, CheckNewMedicationRequest,
-        CheckNewMedicationForPatientRequest, DrugInteractionService, InteractionStatistics,
+        CheckInteractionsRequest, CheckNewMedicationRequest,
+        CheckNewMedicationForPatientRequest, DrugInteractionService,
     },
     utils::{AppError, Result},
 };

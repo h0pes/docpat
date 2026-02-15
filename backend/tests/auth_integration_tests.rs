@@ -69,7 +69,7 @@ async fn body_to_bytes(body: axum::body::Body) -> bytes::Bytes {
 #[tokio::test]
 async fn test_login_success() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor1", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor1", "Zk9$mX2vL!", false).await;
 
     let response = app
         .clone()
@@ -81,7 +81,7 @@ async fn test_login_success() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!"
+                        "password": "Zk9$mX2vL!"
                     })
                     .to_string(),
                 ))
@@ -142,7 +142,8 @@ async fn test_login_invalid_password() {
     teardown_test_db(&pool).await;
 }
 
-/// Test login with non-existent user
+/// Test login with non-existent user returns same error as wrong password
+/// (prevents user enumeration — AUTH-VULN-01)
 #[tokio::test]
 async fn test_login_user_not_found() {
     let (app, pool) = TestApp::new().await;
@@ -157,7 +158,7 @@ async fn test_login_user_not_found() {
                 .body(Body::from(
                     json!({
                         "username": "nonexistent_user",
-                        "password": "Password123!"
+                        "password": "ValidPass123!"
                     })
                     .to_string(),
                 ))
@@ -166,16 +167,25 @@ async fn test_login_user_not_found() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    // Returns 401 (not 404) to prevent user enumeration
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let body = body_to_bytes(response.into_body()).await;
+    let json: Value = serde_json::from_slice(&body).unwrap();
+
+    // Same generic message as wrong password
+    assert_eq!(json["error"], "UNAUTHORIZED");
+    assert!(json["message"].as_str().unwrap().contains("Invalid username or password"));
 
     teardown_test_db(&pool).await;
 }
 
-/// Test login with inactive account
+/// Test login with inactive account returns same error as wrong password
+/// (prevents account status enumeration — AUTH-VULN-01/02)
 #[tokio::test]
 async fn test_login_inactive_account() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_inactive_user(&pool, "doctor3", "Password123!").await;
+    let test_user = TestUser::create_inactive_user(&pool, "doctor3", "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -187,7 +197,7 @@ async fn test_login_inactive_account() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!"
+                        "password": "ValidPass123!"
                     })
                     .to_string(),
                 ))
@@ -196,24 +206,28 @@ async fn test_login_inactive_account() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    // Returns 401 (not 403) to prevent account status enumeration
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let body = body_to_bytes(response.into_body()).await;
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert!(json["message"].as_str().unwrap().contains("inactive"));
+    // Same generic message — does NOT reveal account is inactive
+    assert_eq!(json["error"], "UNAUTHORIZED");
+    assert!(json["message"].as_str().unwrap().contains("Invalid username or password"));
 
     teardown_test_db(&pool).await;
 }
 
 /// Test account lockout after multiple failed login attempts
+/// All responses return 401 with same message to prevent lockout status enumeration (AUTH-VULN-02)
 #[tokio::test]
 async fn test_account_lockout_after_failed_attempts() {
     let (app, pool) = TestApp::new().await;
     let test_user = TestUser::create_active_user(&pool, "doctor4", "CorrectPass123!", false).await;
 
     // Attempt 5 failed logins (default max_failed_login_attempts)
-    for i in 0..5 {
+    for _i in 0..5 {
         let response = app
             .clone()
             .oneshot(
@@ -233,15 +247,12 @@ async fn test_account_lockout_after_failed_attempts() {
             .await
             .unwrap();
 
-        if i < 4 {
-            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        } else {
-            // After 5th attempt, account should be locked
-            assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        }
+        // All failed attempts return same 401 — no status leakage
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
-    // 6th attempt should return account locked error
+    // 6th attempt with correct password — account is locked but response is
+    // still 401 with same generic message (prevents lockout enumeration)
     let response = app
         .clone()
         .oneshot(
@@ -261,12 +272,15 @@ async fn test_account_lockout_after_failed_attempts() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    // Returns 401 (not 403) to prevent lockout status enumeration
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     let body = body_to_bytes(response.into_body()).await;
     let json: Value = serde_json::from_slice(&body).unwrap();
 
-    assert!(json["message"].as_str().unwrap().contains("locked"));
+    // Same generic message — does NOT reveal account is locked
+    assert_eq!(json["error"], "UNAUTHORIZED");
+    assert!(json["message"].as_str().unwrap().contains("Invalid username or password"));
 
     teardown_test_db(&pool).await;
 }
@@ -279,7 +293,7 @@ async fn test_account_lockout_after_failed_attempts() {
 #[tokio::test]
 async fn test_login_mfa_enabled_missing_code() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor5", "Password123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor5", "ValidPass123!", true).await;
 
     let response = app
         .clone()
@@ -291,7 +305,7 @@ async fn test_login_mfa_enabled_missing_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!"
+                        "password": "ValidPass123!"
                     })
                     .to_string(),
                 ))
@@ -320,7 +334,7 @@ async fn test_login_mfa_enabled_missing_code() {
 #[tokio::test]
 async fn test_login_mfa_enabled_invalid_code() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor6", "Password123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor6", "ValidPass123!", true).await;
 
     let response = app
         .clone()
@@ -332,7 +346,7 @@ async fn test_login_mfa_enabled_invalid_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!",
+                        "password": "ValidPass123!",
                         "mfa_code": "000000"  // Invalid code
                     })
                     .to_string(),
@@ -356,7 +370,7 @@ async fn test_login_mfa_enabled_invalid_code() {
 #[tokio::test]
 async fn test_login_mfa_enabled_valid_code() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor7", "Password123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor7", "ValidPass123!", true).await;
 
     // Generate valid TOTP code
     let valid_code = test_user.generate_totp_code();
@@ -371,7 +385,7 @@ async fn test_login_mfa_enabled_valid_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!",
+                        "password": "ValidPass123!",
                         "mfa_code": valid_code
                     })
                     .to_string(),
@@ -396,7 +410,7 @@ async fn test_login_mfa_enabled_valid_code() {
 #[tokio::test]
 async fn test_refresh_token_success() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor8", "Password123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor8", "ValidPass123!", false).await;
 
     // First, login to get tokens
     let login_response = app
@@ -409,7 +423,7 @@ async fn test_refresh_token_success() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!"
+                        "password": "ValidPass123!"
                     })
                     .to_string(),
                 ))
@@ -487,7 +501,7 @@ async fn test_refresh_token_invalid() {
 #[tokio::test]
 async fn test_refresh_token_inactive_user() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor9", "Password123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor9", "ValidPass123!", false).await;
 
     // First, login to get tokens
     let login_response = app
@@ -500,7 +514,7 @@ async fn test_refresh_token_inactive_user() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Password123!"
+                        "password": "ValidPass123!"
                     })
                     .to_string(),
                 ))
@@ -643,7 +657,7 @@ async fn test_expired_access_token_rejected() {
 
     // Create a user (we need a valid user_id for the token, even though
     // the token will be rejected before user lookup)
-    let test_user = TestUser::create_active_user(&pool, "doctor_expired", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_expired", "Zk9$mX2vL!", false).await;
 
     // Create an expired token
     let expired_token = create_expired_token(&test_user.id, "DOCTOR");
@@ -676,7 +690,7 @@ async fn test_expired_access_token_rejected() {
 async fn test_expired_token_cannot_perform_operations() {
     let (app, pool) = TestApp::new().await;
 
-    let test_user = TestUser::create_active_user(&pool, "doctor_exp_ops", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_exp_ops", "Zk9$mX2vL!", false).await;
 
     // Create an expired token
     let expired_token = create_expired_token(&test_user.id, "DOCTOR");
@@ -719,7 +733,7 @@ async fn test_expired_token_cannot_perform_operations() {
 async fn test_tampered_token_rejected() {
     let (app, pool) = TestApp::new().await;
 
-    let test_user = TestUser::create_active_user(&pool, "doctor_tamper", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_tamper", "Zk9$mX2vL!", false).await;
 
     // First, login to get a valid token
     let login_response = app
@@ -732,7 +746,7 @@ async fn test_tampered_token_rejected() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!"
+                        "password": "Zk9$mX2vL!"
                     })
                     .to_string(),
                 ))
@@ -778,6 +792,174 @@ async fn test_tampered_token_rejected() {
         // Should be rejected with 401 Unauthorized
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    teardown_test_db(&pool).await;
+}
+
+/// Test that access token is rejected after logout (AUTH-VULN-04)
+#[tokio::test]
+async fn test_token_rejected_after_logout() {
+    let (app, pool) = TestApp::new().await;
+    let test_user =
+        TestUser::create_active_user(&pool, "doctor_logout_test", "Zk9$mX2vL!", false).await;
+
+    // Login to get tokens
+    let login_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "username": test_user.username,
+                        "password": "Zk9$mX2vL!"
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(login_response.status(), StatusCode::OK);
+
+    let login_body = body_to_bytes(login_response.into_body()).await;
+    let login_json: Value = serde_json::from_slice(&login_body).unwrap();
+    let access_token = login_json["tokens"]["access_token"].as_str().unwrap().to_string();
+
+    // Verify token works BEFORE logout
+    let pre_logout_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/users/{}", test_user.id))
+                .header("authorization", format!("Bearer {}", access_token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(pre_logout_response.status(), StatusCode::OK);
+
+    // Logout with access token
+    let logout_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/logout")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "access_token": access_token
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(logout_response.status(), StatusCode::OK);
+
+    // Try to use the same token AFTER logout — should be rejected
+    let post_logout_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(&format!("/api/v1/users/{}", test_user.id))
+                .header("authorization", format!("Bearer {}", access_token))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(post_logout_response.status(), StatusCode::UNAUTHORIZED);
+
+    teardown_test_db(&pool).await;
+}
+
+/// Test that refresh token is rejected after logout (AUTH-VULN-04 + AUTH-VULN-13)
+#[tokio::test]
+async fn test_refresh_token_rejected_after_logout() {
+    let (app, pool) = TestApp::new().await;
+    let test_user =
+        TestUser::create_active_user(&pool, "doctor_refresh_logout", "Zk9$mX2vL!", false).await;
+
+    // Login to get tokens
+    let login_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "username": test_user.username,
+                        "password": "Zk9$mX2vL!"
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(login_response.status(), StatusCode::OK);
+
+    let login_body = body_to_bytes(login_response.into_body()).await;
+    let login_json: Value = serde_json::from_slice(&login_body).unwrap();
+    let access_token = login_json["tokens"]["access_token"].as_str().unwrap().to_string();
+    let refresh_token = login_json["tokens"]["refresh_token"].as_str().unwrap().to_string();
+
+    // Logout with access token
+    let logout_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/logout")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "access_token": access_token
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(logout_response.status(), StatusCode::OK);
+
+    // Try to use refresh token AFTER logout — should be rejected
+    let refresh_response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/refresh")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "refresh_token": refresh_token
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(refresh_response.status(), StatusCode::UNAUTHORIZED);
 
     teardown_test_db(&pool).await;
 }

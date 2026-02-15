@@ -20,7 +20,7 @@ use crate::{
         AuditAction, AuditLog, AuthUser, CreateAuditLog, CreateVisitDiagnosisRequest,
         EntityType, RequestContext, UpdateVisitDiagnosisRequest, UserRole,
     },
-    services::{ICD10SearchResult, VisitDiagnosisService},
+    services::VisitDiagnosisService,
     utils::{AppError, Result},
 };
 

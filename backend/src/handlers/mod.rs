@@ -35,7 +35,7 @@ pub use appointments::{
     get_daily_schedule, get_monthly_schedule, get_weekly_schedule, list_appointments,
     update_appointment,
 };
-pub use auth::{login_handler, logout_handler, refresh_token_handler, AppState};
+pub use auth::{login_handler, logout_handler, refresh_token_handler};
 pub use diagnoses::{
     create_diagnosis, delete_diagnosis, get_diagnosis, get_patient_diagnoses,
     get_visit_diagnoses, search_icd10, update_diagnosis,
@@ -77,36 +77,4 @@ pub use settings::{
     bulk_update_settings, get_setting, get_settings_by_group, list_groups, list_settings,
     reset_setting, update_setting,
 };
-pub use working_hours::{
-    check_working_day, create_override, delete_override, get_effective_hours, get_override,
-    get_weekly_schedule as get_working_hours_schedule, list_overrides, update_all_working_hours,
-    update_day_working_hours, update_override,
-};
-pub use holidays::{
-    check_holiday, create_holiday, delete_holiday, get_holiday, get_holidays_range,
-    import_national_holidays, list_holidays, update_holiday,
-};
-pub use audit_logs::{
-    export_audit_logs, get_audit_log, get_filter_options, get_statistics as get_audit_statistics,
-    get_user_activity, list_audit_logs,
-};
-pub use system_health::{
-    get_backup_status, get_detailed_health, get_storage_stats, get_system_info,
-};
-pub use files::{
-    delete_file, delete_logo, download_file, get_file_metadata, get_logo, list_files,
-    serve_file, serve_logo, update_file, upload_file, upload_logo,
-};
-pub use notifications::{
-    cancel_notification, create_notification, get_email_status, get_notification,
-    get_notification_statistics, get_patient_preferences, list_notifications, retry_notification,
-    send_test_email, update_patient_preferences,
-};
 
-#[cfg(feature = "pdf-export")]
-pub use documents::{
-    create_document_template, delete_document_template, delete_generated_document,
-    deliver_document, download_document, generate_document, get_default_document_template,
-    get_document_statistics, get_generated_document, get_document_template, list_document_templates,
-    list_generated_documents, sign_document, update_document_template,
-};

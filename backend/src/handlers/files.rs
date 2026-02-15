@@ -220,11 +220,16 @@ pub async fn upload_file(
 ///
 /// GET /api/v1/files/:id
 ///
+/// **RBAC**: Requires 'read' permission on 'files' resource
 /// Returns: UploadedFileResponse with file metadata
 pub async fn get_file_metadata(
     State(state): State<AppState>,
+    Extension(_user_role): Extension<UserRole>,
     Path(file_id): Path<Uuid>,
 ) -> Result<Json<UploadedFileResponse>, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    check_permission(&state.enforcer, &_user_role, "files", "read").await?;
+
     let file = FileUploadService::get_file(&state.pool, file_id)
         .await
         .map_err(|e| {
@@ -248,11 +253,16 @@ pub async fn get_file_metadata(
 ///
 /// GET /api/v1/files/:id/download
 ///
+/// **RBAC**: Requires 'read' permission on 'files' resource
 /// Returns: File content with appropriate Content-Type header
 pub async fn download_file(
     State(state): State<AppState>,
+    Extension(_user_role): Extension<UserRole>,
     Path(file_id): Path<Uuid>,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    check_permission(&state.enforcer, &_user_role, "files", "read").await?;
+
     let (file, content) = FileUploadService::get_file_with_content(&state.pool, file_id)
         .await
         .map_err(|e| {
@@ -313,11 +323,16 @@ pub async fn download_file(
 ///
 /// GET /api/v1/files/:id/serve
 ///
+/// **RBAC**: Requires 'read' permission on 'files' resource
 /// Returns: File content for inline display (no download prompt)
 pub async fn serve_file(
     State(state): State<AppState>,
+    Extension(_user_role): Extension<UserRole>,
     Path(file_id): Path<Uuid>,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
+    #[cfg(feature = "rbac")]
+    check_permission(&state.enforcer, &_user_role, "files", "read").await?;
+
     let (file, content) = FileUploadService::get_file_with_content(&state.pool, file_id)
         .await
         .map_err(|e| {

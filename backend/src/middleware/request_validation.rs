@@ -15,7 +15,7 @@
  */
 
 use axum::{
-    body::{Body, Bytes},
+    body::Body,
     extract::Request,
     http::{HeaderMap, Method, StatusCode},
     middleware::Next,

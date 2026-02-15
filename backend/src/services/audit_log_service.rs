@@ -12,14 +12,13 @@
  * - User activity tracking
  */
 
-use chrono::{DateTime, Duration, NaiveDate, Utc};
+use chrono::{DateTime, Duration, Utc};
 use sqlx::PgPool;
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::models::audit_log::{
-    ActionCount, AuditLog, AuditLogResponse, AuditLogStatistics, AuditLogsFilter,
-    EntityTypeCount, ExportAuditLogsRequest, ExportFormat, ListAuditLogsResponse,
+    ActionCount, AuditLogResponse, AuditLogStatistics, AuditLogsFilter,
+    EntityTypeCount, ExportAuditLogsRequest, ListAuditLogsResponse,
     UserActivityCount, UserActivitySummary,
 };
 
@@ -122,7 +121,7 @@ impl AuditLogService {
         let total = count_builder.fetch_one(&self.pool).await?;
 
         // Get paginated results
-        let data_query = format!(
+        let _data_query = format!(
             r#"
             SELECT
                 al.id, al.user_id, al.action, al.entity_type, al.entity_id,

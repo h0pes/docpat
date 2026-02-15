@@ -80,8 +80,8 @@ async fn test_detailed_health_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hlth_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hlth_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -131,8 +131,8 @@ async fn test_detailed_health_as_doctor() {
     let suffix = unique_suffix();
 
     // Create doctor user (non-admin)
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hlth_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hlth_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -182,8 +182,8 @@ async fn test_system_info_as_admin() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_info_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_info_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -234,8 +234,8 @@ async fn test_system_info_as_doctor() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_info_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_info_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -264,8 +264,8 @@ async fn test_storage_stats_as_admin() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_stor_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_stor_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -316,8 +316,8 @@ async fn test_storage_stats_as_doctor() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_stor_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_stor_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -346,8 +346,8 @@ async fn test_backup_status_as_admin() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_bkup_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_bkup_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -393,8 +393,8 @@ async fn test_backup_status_as_doctor() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_bkup_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_bkup_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -423,8 +423,8 @@ async fn test_health_check_includes_pool_metrics() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_pool_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_pool_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -459,8 +459,8 @@ async fn test_health_check_includes_system_resources() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_res_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_res_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -505,8 +505,8 @@ async fn test_system_info_database_version() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_dbv_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_dbv_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()

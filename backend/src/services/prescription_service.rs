@@ -13,13 +13,12 @@
 use crate::{
     models::{
         AuditAction, CreatePrescriptionRequest, DrugInteractionWarning, MedicationForm,
-        Prescription, PrescriptionResponse, PrescriptionStatus, RouteOfAdministration,
+        Prescription, PrescriptionResponse, PrescriptionStatus,
         UpdatePrescriptionRequest,
     },
     utils::encryption::EncryptionKey,
 };
 use anyhow::{Context, Result};
-use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -1459,7 +1458,7 @@ impl PrescriptionService {
     async fn log_audit(
         &self,
         prescription_id: Uuid,
-        patient_id: Uuid,
+        _patient_id: Uuid,
         action: AuditAction,
         user_id: Uuid,
         details: Option<String>,
@@ -1498,6 +1497,7 @@ impl PrescriptionService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::prescription::RouteOfAdministration;
 
     // ============================================================================
     // MedicationSearchResult Tests

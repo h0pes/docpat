@@ -4,11 +4,10 @@
 //! It checks if a user has permission to perform an action on a resource.
 
 use axum::{
-    body::Body,
     extract::{Request, State},
     http::StatusCode,
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::Response,
     Json,
 };
 use casbin::{CoreApi, DefaultModel, Enforcer, FileAdapter};
@@ -18,7 +17,8 @@ use tokio::sync::RwLock;
 
 use crate::models::user::UserRole;
 
-/// Permission requirement for a route
+/// Permission requirement for a route (used by require_permission middleware)
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct RequirePermission {
     pub resource: String,
@@ -27,6 +27,7 @@ pub struct RequirePermission {
 
 impl RequirePermission {
     /// Create a new permission requirement
+    #[allow(dead_code)]
     pub fn new(resource: impl Into<String>, action: impl Into<String>) -> Self {
         Self {
             resource: resource.into(),
@@ -89,6 +90,7 @@ impl CasbinEnforcer {
     // }
 
     /// Reload policies from file (useful for dynamic policy updates)
+    #[allow(dead_code)]
     pub async fn reload_policies(&self) -> Result<(), casbin::Error> {
         let mut enforcer = self.enforcer.write().await;
         enforcer.load_policy().await
@@ -97,6 +99,7 @@ impl CasbinEnforcer {
 
 /// Extract user role from request extensions
 /// This assumes the auth middleware has already validated the JWT and set the user role
+#[allow(dead_code)]
 fn extract_user_role(req: &Request) -> Result<UserRole, (StatusCode, Json<serde_json::Value>)> {
     req.extensions()
         .get::<UserRole>()
@@ -113,6 +116,7 @@ fn extract_user_role(req: &Request) -> Result<UserRole, (StatusCode, Json<serde_
 }
 
 /// Authorization middleware that checks RBAC permissions
+#[allow(dead_code)]
 pub async fn require_permission(
     State(enforcer): State<CasbinEnforcer>,
     req: Request,

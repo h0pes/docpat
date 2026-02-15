@@ -6,7 +6,7 @@
 
 use axum::{
     middleware,
-    routing::{delete, get, post, put},
+    routing::{get, post, put},
     Router,
 };
 
@@ -62,9 +62,16 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
     let auth_routes = Router::new()
         .route("/login", post(login_handler))
         .route("/refresh", post(refresh_token_handler))
-        .route("/logout", post(logout_handler))
+        .route("/logout", post(logout_handler));
+
+    // MFA routes - require authentication (AUTH-VULN-03, AUTH-VULN-14)
+    let mfa_routes = Router::new()
         .route("/mfa/setup", post(mfa_setup_handler))
-        .route("/mfa/enroll", post(mfa_enroll_handler));
+        .route("/mfa/enroll", post(mfa_enroll_handler))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            jwt_auth_middleware,
+        ));
 
     // User management routes (RBAC feature) - requires authentication
     #[cfg(feature = "rbac")]
@@ -330,7 +337,7 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
 
     // Combine all v1 routes
     let mut router = Router::new()
-        .nest("/auth", auth_routes)
+        .nest("/auth", auth_routes.merge(mfa_routes))
         .nest("/patients", patient_routes)
         .nest("/appointments", appointment_routes)
         .nest("/visits", visit_routes)
@@ -361,10 +368,22 @@ pub fn create_api_v1_routes(state: AppState) -> Router {
             .nest("/documents", document_routes);
     }
 
-    // Apply request context middleware to all routes
-    // This extracts IP address, user agent, and generates request ID
+    // Apply global middleware layers to all routes.
+    // Layers are applied in reverse order: last added = outermost = runs first on request.
+    // Execution order: error_redaction → request_context → audit → per-route auth → handler
     router
+        // Audit logging: logs all HTTP requests to audit_logs table (HIPAA compliance)
+        // Extracts user ID directly from JWT header, so works for all routes
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            crate::middleware::audit::audit_middleware,
+        ))
+        // Request context: extracts IP address, user agent, and generates request ID
         .layer(middleware::from_fn(request_context_middleware))
+        // Error redaction: replaces detailed extractor errors with generic JSON (outermost)
+        .layer(middleware::from_fn(
+            crate::middleware::error_redaction::redact_extractor_errors,
+        ))
         .with_state(state)
 }
 

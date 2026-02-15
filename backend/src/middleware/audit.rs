@@ -19,19 +19,17 @@
  */
 
 use axum::{
-    body::Body,
-    extract::{ConnectInfo, Request},
-    http::{HeaderMap, StatusCode},
+    extract::{Request, State},
     middleware::Next,
-    response::{IntoResponse, Response},
-    Extension,
+    response::Response,
 };
-use std::net::SocketAddr;
 use ipnetwork::IpNetwork;
-use serde_json::{json, Value};
+use serde_json::Value;
 use sqlx::PgPool;
 use std::time::Instant;
 use uuid::Uuid;
+
+use crate::handlers::auth::AppState;
 
 /// Audit log entry that will be stored in the database
 #[derive(Debug, Clone)]
@@ -149,28 +147,35 @@ fn extract_entity_from_path(path: &str) -> (Option<String>, Option<String>) {
 
 /// Audit logging middleware
 ///
-/// This middleware logs all authenticated API requests to the audit_logs table.
+/// This middleware logs all API requests to the audit_logs table.
 /// It captures:
-/// - User ID (if authenticated)
+/// - User ID (extracted from JWT Authorization header if present)
 /// - Action performed (method + path)
 /// - Entity type and ID
 /// - IP address and user agent
 /// - Request duration
 /// - Response status code
 ///
-/// The middleware runs after the request is processed to capture the response status.
+/// Skips logging for health checks and other non-sensitive paths.
+/// The middleware runs as a global layer and does not depend on per-route
+/// auth middleware — it extracts user identity directly from the JWT token.
 pub async fn audit_middleware(
-    Extension(pool): Extension<PgPool>,
-    user_id: Option<Extension<Uuid>>,
-    connect_info: Option<ConnectInfo<SocketAddr>>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Response {
-    // Extract user ID from extension (set by auth middleware)
-    let user_id_value = user_id.map(|Extension(id)| id);
+    let path = request.uri().path().to_string();
 
-    // Extract IP address from headers or connection info
-    // Priority: X-Forwarded-For > X-Real-IP > Direct connection
+    // Skip audit logging for non-sensitive paths
+    if path == "/health" || path == "/metrics" || path == "/api/health" {
+        return next.run(request).await;
+    }
+
+    // Extract user ID from JWT Authorization header (if present)
+    let user_id_value = extract_user_id_from_auth_header(&request, &state);
+
+    // Extract IP address from request headers
+    // Priority: X-Forwarded-For > X-Real-IP (behind reverse proxy, these are always set)
     let ip_address = request
         .headers()
         .get("x-forwarded-for")
@@ -183,10 +188,6 @@ pub async fn audit_middleware(
                 .get("x-real-ip")
                 .and_then(|v| v.to_str().ok())
                 .and_then(|s| s.parse::<std::net::IpAddr>().ok())
-        })
-        .or_else(|| {
-            // Fallback to direct connection IP (for development without reverse proxy)
-            connect_info.map(|ConnectInfo(addr)| addr.ip())
         })
         .map(|ip| IpNetwork::from(ip));
 
@@ -207,46 +208,32 @@ pub async fn audit_middleware(
 
     // Save audit log asynchronously (don't wait for it to complete)
     // This prevents audit logging from slowing down requests
-    let pool_clone = pool.clone();
+    let pool = state.pool.clone();
     tokio::spawn(async move {
-        if let Err(e) = audit_entry.save(&pool_clone, status_code, duration_ms).await {
-            tracing::error!("Failed to save audit log: {}", e);
+        if let Err(e) = audit_entry.save(&pool, status_code, duration_ms).await {
+            tracing::error!("Failed to save audit log ({})", e.to_string().chars().take(100).collect::<String>());
         }
     });
 
     response
 }
 
-/// Helper middleware to exclude certain paths from audit logging
-///
-/// Use this to skip logging for health checks, metrics, or other
-/// non-sensitive endpoints that would clutter the audit log.
-pub async fn skip_audit_for_path(
-    request: Request,
-    next: Next,
-) -> Response {
-    let path = request.uri().path();
-
-    // Skip audit logging for these paths
-    let skip_paths = [
-        "/health",
-        "/metrics",
-        "/api/health",
-    ];
-
-    if skip_paths.contains(&path) {
-        // Skip audit logging for this request
-        return next.run(request).await;
-    }
-
-    // Continue with normal audit logging
-    next.run(request).await
+/// Extract user ID from JWT Authorization header without requiring auth middleware.
+/// Returns None if no valid token is present (unauthenticated requests).
+fn extract_user_id_from_auth_header(request: &Request, state: &AppState) -> Option<Uuid> {
+    let auth_header = request.headers().get("authorization")?;
+    let auth_str = auth_header.to_str().ok()?;
+    let token = auth_str.strip_prefix("Bearer ")?;
+    let claims = state.auth_service.validate_token(token).ok()?;
+    Uuid::parse_str(&claims.sub).ok()
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::http::{Method, Uri};
+    use axum::body::Body;
+    use axum::http::Method;
 
     #[test]
     fn test_extract_entity_from_path() {

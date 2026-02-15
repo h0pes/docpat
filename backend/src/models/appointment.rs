@@ -435,7 +435,7 @@ pub struct AppointmentSearchFilter {
     pub start_date: Option<DateTime<Utc>>,
     pub end_date: Option<DateTime<Utc>>,
 
-    #[validate(range(min = 1, max = 1000))]
+    #[validate(range(min = 1, max = 100))]
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }

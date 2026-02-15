@@ -115,8 +115,8 @@ async fn test_list_audit_logs_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_audit_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_audit_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create some test audit logs
     create_test_audit_logs(&pool, admin.id, 10).await;
@@ -157,8 +157,8 @@ async fn test_list_audit_logs_as_doctor_forbidden() {
     let suffix = unique_suffix();
 
     // Create doctor user (non-admin)
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_audit_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_audit_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Try to list audit logs - should be forbidden
     let response = app
@@ -206,8 +206,8 @@ async fn test_list_audit_logs_with_filters() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_filt_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_filt_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 20).await;
@@ -243,8 +243,8 @@ async fn test_list_audit_logs_with_pagination() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_page_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_page_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create many test audit logs
     create_test_audit_logs(&pool, admin.id, 30).await;
@@ -283,8 +283,8 @@ async fn test_get_audit_log() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_get_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_get_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit log and get its ID
     create_test_audit_logs(&pool, admin.id, 1).await;
@@ -325,8 +325,8 @@ async fn test_get_audit_log_not_found() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_nf_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_nf_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Try to get non-existent audit log
     let response = app
@@ -355,8 +355,8 @@ async fn test_get_audit_statistics() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_stat_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_stat_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 15).await;
@@ -402,8 +402,8 @@ async fn test_get_user_activity() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_act_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_act_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs for the admin
     create_test_audit_logs(&pool, admin.id, 10).await;
@@ -441,8 +441,8 @@ async fn test_get_user_activity_not_found() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_anf_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_anf_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Try to get activity for non-existent user
     let fake_user_id = Uuid::new_v4();
@@ -472,8 +472,8 @@ async fn test_export_audit_logs_csv() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_csv_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_csv_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 5).await;
@@ -523,8 +523,8 @@ async fn test_export_audit_logs_json() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_json_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_json_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 5).await;
@@ -569,8 +569,8 @@ async fn test_get_filter_options() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_opt_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_opt_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Get filter options
     let response = app
@@ -619,8 +619,8 @@ async fn test_list_audit_logs_with_date_filter() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_date_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_date_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 10).await;
@@ -662,8 +662,8 @@ async fn test_list_audit_logs_filter_by_entity_type() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_ent_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_ent_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs
     create_test_audit_logs(&pool, admin.id, 15).await;
@@ -703,8 +703,8 @@ async fn test_list_audit_logs_filter_by_user() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_usr_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_usr_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create test audit logs for admin
     create_test_audit_logs(&pool, admin.id, 10).await;

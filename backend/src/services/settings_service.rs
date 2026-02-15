@@ -13,12 +13,11 @@ use crate::models::{
     AuditAction, AuditLog, CreateAuditLog, EntityType, RequestContext,
 };
 use crate::models::system_setting::{
-    BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse, SettingChangeAudit,
+    BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse,
     SettingGroupInfo, SettingsFilter, SettingValueType, SystemSetting, SystemSettingResponse,
     UpdateSettingRequest,
 };
 use anyhow::{anyhow, Context, Result};
-use chrono::Utc;
 use sqlx::PgPool;
 use std::collections::HashMap;
 use std::sync::RwLock;

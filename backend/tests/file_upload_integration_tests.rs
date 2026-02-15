@@ -176,9 +176,9 @@ async fn test_upload_file_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let png_data = create_test_png();
     let (content_type, body) = create_multipart_body("test.png", &png_data, Some("ATTACHMENT"));
@@ -213,11 +213,11 @@ async fn test_upload_file_as_doctor_forbidden() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("doctor_file_{}", suffix),
-        "Test123!",
+        "Zk9$mX2vL!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let png_data = create_test_png();
     let (content_type, body) = create_multipart_body("test.png", &png_data, None);
@@ -259,9 +259,9 @@ async fn test_upload_invalid_file_type() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file2_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file2_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create a file with invalid content (not a real image)
     let invalid_content = b"This is not an image file";
@@ -293,9 +293,9 @@ async fn test_list_files_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file3_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file3_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // First upload a file
     let png_data = create_test_png();
@@ -339,11 +339,11 @@ async fn test_list_files_as_doctor_allowed() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("doctor_file2_{}", suffix),
-        "Test123!",
+        "Zk9$mX2vL!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Doctors should be able to read/list files
     let request = Request::builder()
@@ -365,9 +365,9 @@ async fn test_get_file_metadata() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file4_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file4_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Upload a file
     let png_data = create_test_png();
@@ -412,9 +412,9 @@ async fn test_download_file() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file5_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file5_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Upload a file
     let png_data = create_test_png();
@@ -459,9 +459,9 @@ async fn test_update_file_metadata() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file6_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file6_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Upload a file
     let png_data = create_test_png();
@@ -511,9 +511,9 @@ async fn test_delete_file() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_file7_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_file7_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Upload a file
     let png_data = create_test_png();
@@ -566,9 +566,9 @@ async fn test_upload_logo_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let png_data = create_test_png();
     let (content_type, body) = create_multipart_body("logo.png", &png_data, None);
@@ -602,11 +602,11 @@ async fn test_upload_logo_as_doctor_forbidden() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("doctor_logo_{}", suffix),
-        "Test123!",
+        "Zk9$mX2vL!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let png_data = create_test_png();
     let (content_type, body) = create_multipart_body("logo.png", &png_data, None);
@@ -630,9 +630,9 @@ async fn test_get_logo() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo2_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo2_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // First upload a logo
     let png_data = create_test_png();
@@ -673,9 +673,9 @@ async fn test_get_logo_not_set() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo3_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo3_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let request = Request::builder()
         .method("GET")
@@ -695,9 +695,9 @@ async fn test_serve_logo_image() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo4_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo4_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // First upload a logo
     let png_data = create_test_png();
@@ -739,9 +739,9 @@ async fn test_delete_logo() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo5_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo5_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // First upload a logo
     let png_data = create_test_png();
@@ -787,9 +787,9 @@ async fn test_upload_logo_replaces_previous() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo6_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_logo6_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Upload first logo
     let png_data = create_test_png();
@@ -857,9 +857,9 @@ async fn test_upload_with_path_traversal_filename() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_sec_{}", suffix), "Test123!")
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_sec_{}", suffix), "Zk9$mX2vL!")
         .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let png_data = create_test_png();
     let (content_type, body) = create_multipart_body("../../../etc/passwd.png", &png_data, None);

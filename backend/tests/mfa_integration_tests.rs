@@ -26,6 +26,32 @@ async fn body_to_bytes(body: axum::body::Body) -> bytes::Bytes {
     body.collect().await.unwrap().to_bytes()
 }
 
+/// Helper function to login and get JWT token for authenticated requests
+async fn login_and_get_token(app: &axum::Router, username: &str, password: &str) -> String {
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/login")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    json!({
+                        "username": username,
+                        "password": password
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    let body = body_to_bytes(response.into_body()).await;
+    let json: Value = serde_json::from_slice(&body).unwrap();
+    json["tokens"]["access_token"].as_str().unwrap().to_string()
+}
+
 /// Generate a valid TOTP code for testing
 fn generate_totp_code(secret: &str) -> String {
     eprintln!("Generating TOTP code for secret: {} (length: {})", secret, secret.len());
@@ -51,10 +77,14 @@ fn generate_totp_code(secret: &str) -> String {
 }
 
 /// Test MFA setup - should generate secret, QR code, and backup codes
+/// Requires JWT authentication
 #[tokio::test]
 async fn test_mfa_setup_success() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_setup", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_setup", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -63,6 +93,7 @@ async fn test_mfa_setup_success() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -109,10 +140,14 @@ async fn test_mfa_setup_success() {
 }
 
 /// Test MFA enrollment with valid code
+/// Requires JWT authentication for both setup and enroll endpoints
 #[tokio::test]
 async fn test_mfa_enrollment_success() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_enroll", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_enroll", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     // Step 1: Setup MFA
     let setup_response = app
@@ -122,6 +157,7 @@ async fn test_mfa_enrollment_success() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -157,6 +193,7 @@ async fn test_mfa_enrollment_success() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/enroll")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id,
@@ -183,10 +220,14 @@ async fn test_mfa_enrollment_success() {
 }
 
 /// Test MFA enrollment with invalid code
+/// Requires JWT authentication for both setup and enroll endpoints
 #[tokio::test]
 async fn test_mfa_enrollment_invalid_code() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_invalid", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_invalid", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     // Setup MFA
     let setup_response = app
@@ -196,6 +237,7 @@ async fn test_mfa_enrollment_invalid_code() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -225,6 +267,7 @@ async fn test_mfa_enrollment_invalid_code() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/enroll")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id,
@@ -256,7 +299,7 @@ async fn test_login_with_mfa_success() {
     let (app, pool) = TestApp::new().await;
 
     // Create user with MFA already enabled
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_login", "Test123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_login", "Zk9$mX2vL!", true).await;
 
     // Generate valid TOTP code
     let totp_code = generate_totp_code(&test_user.mfa_secret.clone().unwrap());
@@ -273,7 +316,7 @@ async fn test_login_with_mfa_success() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": totp_code
                     })
                     .to_string(),
@@ -311,7 +354,7 @@ async fn test_login_with_mfa_missing_code() {
     let (app, pool) = TestApp::new().await;
 
     // Create user with MFA enabled
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_missing", "Test123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_missing", "Zk9$mX2vL!", true).await;
 
     // Try to login without MFA code
     let response = app
@@ -324,7 +367,7 @@ async fn test_login_with_mfa_missing_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!"
+                        "password": "Zk9$mX2vL!"
                     })
                     .to_string(),
                 ))
@@ -355,7 +398,7 @@ async fn test_login_with_mfa_invalid_code() {
     let (app, pool) = TestApp::new().await;
 
     // Create user with MFA enabled
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_wrong_code", "Test123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_wrong_code", "Zk9$mX2vL!", true).await;
 
     // Try to login with invalid MFA code
     let response = app
@@ -368,7 +411,7 @@ async fn test_login_with_mfa_invalid_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": "999999"  // Invalid code
                     })
                     .to_string(),
@@ -395,7 +438,7 @@ async fn test_login_with_backup_code() {
     let (app, pool) = TestApp::new().await;
 
     // Create user with MFA and backup codes
-    let test_user = TestUser::create_user_with_backup_codes(&pool, "doctor_backup", "Test123!").await;
+    let test_user = TestUser::create_user_with_backup_codes(&pool, "doctor_backup", "Zk9$mX2vL!").await;
 
     // Get one of the backup codes (before it's hashed)
     let backup_code = test_user.backup_code_plaintext.clone().unwrap();
@@ -411,7 +454,7 @@ async fn test_login_with_backup_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": backup_code
                     })
                     .to_string(),
@@ -440,7 +483,7 @@ async fn test_login_with_backup_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": backup_code
                     })
                     .to_string(),
@@ -460,13 +503,15 @@ async fn test_login_with_backup_code() {
 // MFA Edge Case Tests
 // ============================================================================
 
-/// Test MFA setup for non-existent user returns 404
+/// Test MFA setup for non-existent user returns 401 UNAUTHORIZED
+/// Since the user doesn't exist, they cannot authenticate and get a valid JWT token
 #[tokio::test]
 async fn test_mfa_setup_nonexistent_user() {
     let (app, pool) = TestApp::new().await;
 
     let fake_user_id = Uuid::new_v4();
 
+    // No auth header since user doesn't exist and can't login
     let response = app
         .clone()
         .oneshot(
@@ -485,22 +530,20 @@ async fn test_mfa_setup_nonexistent_user() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    let body = body_to_bytes(response.into_body()).await;
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"], "NOT_FOUND");
+    // The important part is that it returns 401, not the body content
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     teardown_test_db(&pool).await;
 }
 
-/// Test MFA setup for inactive user returns 403 Forbidden
+/// Test MFA setup for inactive user returns 401 UNAUTHORIZED
+/// Inactive users cannot login and therefore cannot get a valid JWT token
 #[tokio::test]
 async fn test_mfa_setup_inactive_user() {
     let (app, pool) = TestApp::new().await;
-    let inactive_user = TestUser::create_inactive_user(&pool, "inactive_mfa_setup", "Test123!").await;
+    let _inactive_user = TestUser::create_inactive_user(&pool, "inactive_mfa_setup", "Zk9$mX2vL!").await;
 
+    // No auth header since inactive users can't login
     let response = app
         .clone()
         .oneshot(
@@ -509,9 +552,7 @@ async fn test_mfa_setup_inactive_user() {
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
                 .body(Body::from(
-                    json!({
-                        "user_id": inactive_user.id
-                    })
+                    json!({})
                     .to_string(),
                 ))
                 .unwrap(),
@@ -519,24 +560,21 @@ async fn test_mfa_setup_inactive_user() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-
-    let body = body_to_bytes(response.into_body()).await;
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"], "FORBIDDEN");
-    assert!(json["message"].as_str().unwrap().contains("inactive"));
+    // The important part is that it returns 401, not the body content
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     teardown_test_db(&pool).await;
 }
 
-/// Test MFA enrollment for non-existent user returns 404
+/// Test MFA enrollment for non-existent user returns 401 UNAUTHORIZED
+/// Since the user doesn't exist, they cannot authenticate and get a valid JWT token
 #[tokio::test]
 async fn test_mfa_enroll_nonexistent_user() {
     let (app, pool) = TestApp::new().await;
 
     let fake_user_id = Uuid::new_v4();
 
+    // No auth header since user doesn't exist and can't login
     let response = app
         .clone()
         .oneshot(
@@ -558,22 +596,20 @@ async fn test_mfa_enroll_nonexistent_user() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-    let body = body_to_bytes(response.into_body()).await;
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"], "NOT_FOUND");
+    // The important part is that it returns 401, not the body content
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     teardown_test_db(&pool).await;
 }
 
-/// Test MFA enrollment for inactive user returns 403 Forbidden
+/// Test MFA enrollment for inactive user returns 401 UNAUTHORIZED
+/// Inactive users cannot login and therefore cannot get a valid JWT token
 #[tokio::test]
 async fn test_mfa_enroll_inactive_user() {
     let (app, pool) = TestApp::new().await;
-    let inactive_user = TestUser::create_inactive_user(&pool, "inactive_mfa_enroll", "Test123!").await;
+    let _inactive_user = TestUser::create_inactive_user(&pool, "inactive_mfa_enroll", "Zk9$mX2vL!").await;
 
+    // No auth header since inactive users can't login
     let response = app
         .clone()
         .oneshot(
@@ -583,7 +619,6 @@ async fn test_mfa_enroll_inactive_user() {
                 .header("content-type", "application/json")
                 .body(Body::from(
                     json!({
-                        "user_id": inactive_user.id,
                         "secret": "JBSWY3DPEHPK3PXP",
                         "code": "123456",
                         "backup_codes": ["ABC12345", "DEF67890"]
@@ -595,22 +630,21 @@ async fn test_mfa_enroll_inactive_user() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::FORBIDDEN);
-
-    let body = body_to_bytes(response.into_body()).await;
-    let json: Value = serde_json::from_slice(&body).unwrap();
-
-    assert_eq!(json["error"], "FORBIDDEN");
-    assert!(json["message"].as_str().unwrap().contains("inactive"));
+    // The important part is that it returns 401, not the body content
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 
     teardown_test_db(&pool).await;
 }
 
 /// Test MFA enrollment with invalid secret format returns 400 Bad Request
+/// Requires JWT authentication
 #[tokio::test]
 async fn test_mfa_enroll_invalid_secret_format() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_invalid_secret", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_invalid_secret", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     // Use an invalid base32 secret (contains invalid characters)
     let response = app
@@ -620,6 +654,7 @@ async fn test_mfa_enroll_invalid_secret_format() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/enroll")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id,
@@ -649,7 +684,7 @@ async fn test_mfa_enroll_invalid_secret_format() {
 #[tokio::test]
 async fn test_login_with_mfa_code_too_short() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_short", "Test123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_short", "Zk9$mX2vL!", true).await;
 
     // Try to login with MFA code that's too short (5 digits)
     let response = app
@@ -662,7 +697,7 @@ async fn test_login_with_mfa_code_too_short() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": "12345"  // Too short - only 5 digits
                     })
                     .to_string(),
@@ -686,7 +721,7 @@ async fn test_login_with_mfa_code_too_short() {
 #[tokio::test]
 async fn test_login_with_mfa_code_too_long() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_long", "Test123!", true).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_mfa_long", "Zk9$mX2vL!", true).await;
 
     // Try to login with MFA code that's too long (10 digits)
     let response = app
@@ -699,7 +734,7 @@ async fn test_login_with_mfa_code_too_long() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": "1234567890"  // Too long - 10 digits
                     })
                     .to_string(),
@@ -723,7 +758,7 @@ async fn test_login_with_mfa_code_too_long() {
 #[tokio::test]
 async fn test_login_with_invalid_backup_code() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_user_with_backup_codes(&pool, "doctor_bad_backup", "Test123!").await;
+    let test_user = TestUser::create_user_with_backup_codes(&pool, "doctor_bad_backup", "Zk9$mX2vL!").await;
 
     // Try to login with a fake backup code (8 char alphanumeric, correct format)
     let response = app
@@ -736,7 +771,7 @@ async fn test_login_with_invalid_backup_code() {
                 .body(Body::from(
                     json!({
                         "username": test_user.username,
-                        "password": "Test123!",
+                        "password": "Zk9$mX2vL!",
                         "mfa_code": "FAKECODE"  // Valid format but wrong code
                     })
                     .to_string(),
@@ -757,10 +792,14 @@ async fn test_login_with_invalid_backup_code() {
 }
 
 /// Test MFA setup returns different secrets on each call
+/// Requires JWT authentication
 #[tokio::test]
 async fn test_mfa_setup_generates_unique_secrets() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_unique_secret", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_unique_secret", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     // First setup call
     let response1 = app
@@ -770,6 +809,7 @@ async fn test_mfa_setup_generates_unique_secrets() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -794,6 +834,7 @@ async fn test_mfa_setup_generates_unique_secrets() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -817,10 +858,14 @@ async fn test_mfa_setup_generates_unique_secrets() {
 }
 
 /// Test MFA enrollment with empty backup codes array
+/// Requires JWT authentication for both setup and enroll endpoints
 #[tokio::test]
 async fn test_mfa_enroll_empty_backup_codes() {
     let (app, pool) = TestApp::new().await;
-    let test_user = TestUser::create_active_user(&pool, "doctor_empty_backup", "Test123!", false).await;
+    let test_user = TestUser::create_active_user(&pool, "doctor_empty_backup", "Zk9$mX2vL!", false).await;
+
+    // Login to get JWT token
+    let token = login_and_get_token(&app, &test_user.username, "Zk9$mX2vL!").await;
 
     // Setup MFA first
     let setup_response = app
@@ -830,6 +875,7 @@ async fn test_mfa_enroll_empty_backup_codes() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/setup")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id
@@ -854,6 +900,7 @@ async fn test_mfa_enroll_empty_backup_codes() {
                 .method("POST")
                 .uri("/api/v1/auth/mfa/enroll")
                 .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token))
                 .body(Body::from(
                     json!({
                         "user_id": test_user.id,
@@ -874,6 +921,42 @@ async fn test_mfa_enroll_empty_backup_codes() {
     let enroll_body = body_to_bytes(enroll_response.into_body()).await;
     let enroll_json: Value = serde_json::from_slice(&enroll_body).unwrap();
     assert_eq!(enroll_json["mfa_enabled"], true);
+
+    teardown_test_db(&pool).await;
+}
+
+/// Test that a user cannot set up MFA for a different user (AUTH-VULN-03)
+/// When user_id in request body doesn't match JWT token user_id, should return 403 FORBIDDEN
+#[tokio::test]
+async fn test_mfa_setup_different_user_forbidden() {
+    let (app, pool) = TestApp::new().await;
+    let user_a = TestUser::create_active_user(&pool, "doctor_mfa_a", "Zk9$mX2vL!", false).await;
+    let user_b = TestUser::create_active_user(&pool, "doctor_mfa_b", "Zk9$mX2vL!", false).await;
+
+    // Login as user_a
+    let token_a = login_and_get_token(&app, &user_a.username, "Zk9$mX2vL!").await;
+
+    // Try to set up MFA for user_b using user_a's token
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/v1/auth/mfa/setup")
+                .header("content-type", "application/json")
+                .header("authorization", format!("Bearer {}", token_a))
+                .body(Body::from(
+                    json!({
+                        "user_id": user_b.id
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
 
     teardown_test_db(&pool).await;
 }

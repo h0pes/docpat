@@ -350,9 +350,9 @@ impl PatientInsurance {
     pub async fn update(
         pool: &PgPool,
         id: Uuid,
-        data: UpdateInsuranceRequest,
+        _data: UpdateInsuranceRequest,
         updated_by_id: Uuid,
-        key: &EncryptionKey,
+        _key: &EncryptionKey,
     ) -> Result<Self> {
         // For simplicity, just update the updated_by and updated_at
         // In production, you'd handle all fields

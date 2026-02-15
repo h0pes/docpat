@@ -3,11 +3,11 @@
 
 use crate::models::{
     AuditAction, AuditLog, CreateAuditLog, CreatePatientRequest, EntityType, Patient, PatientDto,
-    PatientSearchFilter, PatientStatus, RequestContext, UpdatePatientRequest,
+    PatientSearchFilter, RequestContext, UpdatePatientRequest,
 };
 use crate::utils::encryption::EncryptionKey;
 use anyhow::{Context, Result};
-use chrono::{NaiveDate, Utc};
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 use validator::Validate;
@@ -207,12 +207,12 @@ impl PatientService {
         let mut param_index = 1;
 
         // Build WHERE clause based on filters
-        if let Some(status) = &filter.status {
+        if let Some(_status) = &filter.status {
             conditions.push(format!("status = ${}", param_index));
             param_index += 1;
         }
 
-        if let Some(gender) = &filter.gender {
+        if let Some(_gender) = &filter.gender {
             conditions.push(format!("gender = ${}", param_index));
             param_index += 1;
         }
@@ -259,7 +259,8 @@ impl PatientService {
         // the text search happens in-memory (names are encrypted).
         // We'll apply limit AFTER the in-memory filtering.
         let has_text_query = filter.query.is_some();
-        let requested_limit = filter.limit.unwrap_or(50);
+        // Clamp page size to prevent uncontrolled allocation (CWE-770)
+        let requested_limit = filter.limit.unwrap_or(50).min(100);
         let offset = filter.offset.unwrap_or(0);
 
         let query_str = if has_text_query {
@@ -342,8 +343,14 @@ impl PatientService {
             decrypted.retain(|p| p.date_of_birth >= min_dob);
         }
 
-        // Apply limit AFTER in-memory filtering (for text search queries)
-        if has_text_query && decrypted.len() > requested_limit as usize {
+        // Apply pagination AFTER in-memory filtering (for text search queries)
+        if has_text_query {
+            // Apply offset first
+            if offset > 0 {
+                let skip = (offset as usize).min(decrypted.len());
+                decrypted.drain(..skip);
+            }
+            // Then apply limit
             decrypted.truncate(requested_limit as usize);
         }
 

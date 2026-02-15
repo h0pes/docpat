@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test admin credentials
     let username = "testadmin";
     let email = "admin@docpat.local";
-    let password = "Test123!";
+    let password = "Zk9$mX2vL!";
     let role = "ADMIN";
     let first_name = "Test";
     let last_name = "Admin";

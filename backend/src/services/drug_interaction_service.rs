@@ -222,7 +222,7 @@ impl DrugInteractionService {
         .context("Failed to query drug interactions")?;
 
         // Convert to response type and apply severity filter
-        let mut result_interactions: Vec<DrugInteraction> = interactions
+        let result_interactions: Vec<DrugInteraction> = interactions
             .into_iter()
             .map(|row| DrugInteraction {
                 id: row.id,

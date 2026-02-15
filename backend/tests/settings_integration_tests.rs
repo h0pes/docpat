@@ -84,9 +84,9 @@ async fn test_list_settings_as_admin() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // List all settings
     let response = app
@@ -132,11 +132,11 @@ async fn test_list_settings_as_doctor_sees_public_only() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("doctor_settings_{}", suffix),
-        "Test123!",
+        "Zk9$mX2vL!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // List settings (should only see public ones)
     let response = app
@@ -172,9 +172,9 @@ async fn test_list_settings_with_group_filter() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings2_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings2_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // List settings filtered by clinic group
     let response = app
@@ -215,9 +215,9 @@ async fn test_get_setting_by_key() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings3_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings3_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Get specific setting
     let response = app
@@ -251,9 +251,9 @@ async fn test_get_nonexistent_setting() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings4_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings4_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Get nonexistent setting
     let response = app
@@ -284,9 +284,9 @@ async fn test_update_setting_as_admin() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings5_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings5_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Update setting
     let response = app
@@ -351,11 +351,11 @@ async fn test_update_setting_as_doctor_forbidden() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("doctor_settings2_{}", suffix),
-        "Test123!",
+        "Zk9$mX2vL!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Try to update setting (should be forbidden)
     let response = app
@@ -388,9 +388,9 @@ async fn test_update_setting_with_invalid_type() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings6_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings6_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Try to update an integer setting with a string (should fail)
     let response = app
@@ -427,9 +427,9 @@ async fn test_reset_setting_to_default() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings7_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings7_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // First, update the setting
     let _ = app
@@ -486,9 +486,9 @@ async fn test_list_setting_groups() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings8_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings8_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // List all groups
     let response = app
@@ -534,9 +534,9 @@ async fn test_get_settings_by_group() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings9_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings9_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Get security settings group
     let response = app
@@ -579,9 +579,9 @@ async fn test_bulk_update_settings() {
 
     // Create admin user
     let admin =
-        TestUser::create_admin_user(&pool, &format!("admin_settings10_{}", suffix), "Test123!")
+        TestUser::create_admin_user(&pool, &format!("admin_settings10_{}", suffix), "Zk9$mX2vL!")
             .await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Bulk update multiple settings
     let response = app

@@ -123,6 +123,11 @@ services:
       JWT_REFRESH_SECRET: dev_jwt_refresh_secret_change_in_production
       ENCRYPTION_KEY: dev_encryption_key_32_bytes_b64=
 
+      # Argon2 password hashing parameters
+      ARGON2_MEMORY_COST: ${ARGON2_MEMORY_COST:-65536}
+      ARGON2_TIME_COST: ${ARGON2_TIME_COST:-3}
+      ARGON2_PARALLELISM: ${ARGON2_PARALLELISM:-4}
+
     volumes:
       # Mount source code for hot-reloading
       - ./backend/src:/app/src:ro

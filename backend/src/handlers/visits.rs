@@ -71,10 +71,10 @@ async fn check_permission(
     // Simple role-based check without Casbin
     match action {
         "delete" => {
-            // Only ADMIN can delete visits
-            if !matches!(user_role, UserRole::Admin) {
+            // ADMIN can delete any visit; DOCTOR can delete own DRAFT (enforced by RLS)
+            if !matches!(user_role, UserRole::Admin | UserRole::Doctor) {
                 return Err(AppError::Forbidden(
-                    "Only administrators can delete visits".to_string(),
+                    "Only doctors and administrators can delete visits".to_string(),
                 ));
             }
         }
@@ -246,7 +246,7 @@ pub async fn update_visit(
 /// DELETE /api/v1/visits/:id
 ///
 /// **RBAC**: Requires 'delete' permission on 'visits' resource
-/// **Roles**: ADMIN only
+/// **Roles**: ADMIN (any visit) or DOCTOR (own DRAFT visits only, enforced by RLS)
 /// **Business Rule**: Only DRAFT visits can be deleted
 pub async fn delete_visit(
     State(state): State<AppState>,

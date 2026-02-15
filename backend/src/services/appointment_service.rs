@@ -10,8 +10,7 @@
  */
 
 use crate::models::{
-    Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics,
-    AppointmentStatus, AppointmentType, AuditAction, AuditLog, CreateAuditLog,
+    Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics, AuditAction, AuditLog, CreateAuditLog,
     CreateAppointmentRequest, EntityType, RecurringPattern, RequestContext, TimeSlot,
     UpdateAppointmentRequest,
 };
@@ -500,7 +499,8 @@ impl AppointmentService {
         filter.validate()
             .context("Invalid search filter")?;
 
-        let limit = filter.limit.unwrap_or(50);
+        // Clamp page size to prevent uncontrolled allocation (CWE-770)
+        let limit = filter.limit.unwrap_or(50).min(100);
         let offset = filter.offset.unwrap_or(0);
 
         // Build query dynamically

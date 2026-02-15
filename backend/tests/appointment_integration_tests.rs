@@ -22,7 +22,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Datelike, DateTime, Duration, Utc};
 use http_body_util::BodyExt;
 use serde_json::{json, Value};
 use tower::ServiceExt;
@@ -157,20 +157,28 @@ async fn create_test_appointment(
     serde_json::from_slice(&body).unwrap_or_else(|_| json!({"error": "Failed to parse response"}))
 }
 
-/// Helper to get tomorrow at 10:00 AM
+/// Helper to get the next working day at 10:00 AM (skips weekends)
 fn tomorrow_10am() -> DateTime<Utc> {
     let now = Utc::now();
-    let tomorrow = now.date_naive() + chrono::Duration::days(1);
+    let mut day = now.date_naive() + chrono::Duration::days(1);
+    // Skip Saturday (6) and Sunday (7)
+    while day.weekday() == chrono::Weekday::Sat || day.weekday() == chrono::Weekday::Sun {
+        day += chrono::Duration::days(1);
+    }
     let time = chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap();
-    DateTime::<Utc>::from_naive_utc_and_offset(tomorrow.and_time(time), Utc)
+    DateTime::<Utc>::from_naive_utc_and_offset(day.and_time(time), Utc)
 }
 
-/// Helper to get next week at 10:00 AM
+/// Helper to get a working day next week at 10:00 AM (skips weekends)
 fn next_week_10am() -> DateTime<Utc> {
     let now = Utc::now();
-    let next_week = now.date_naive() + chrono::Duration::weeks(1);
+    let mut day = now.date_naive() + chrono::Duration::weeks(1);
+    // Skip Saturday (6) and Sunday (7)
+    while day.weekday() == chrono::Weekday::Sat || day.weekday() == chrono::Weekday::Sun {
+        day += chrono::Duration::days(1);
+    }
     let time = chrono::NaiveTime::from_hms_opt(10, 0, 0).unwrap();
-    DateTime::<Utc>::from_naive_utc_and_offset(next_week.and_time(time), Utc)
+    DateTime::<Utc>::from_naive_utc_and_offset(day.and_time(time), Utc)
 }
 
 // ============================================================================

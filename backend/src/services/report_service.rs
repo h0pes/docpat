@@ -155,21 +155,12 @@ impl ReportService {
             (None, None) => None, // All Time - no date filtering
         };
 
-        // Build date filter clause based on whether we have a date range
-        let (date_clause, provider_param_offset) = if date_range.is_some() {
-            (" WHERE scheduled_start::DATE >= $1 AND scheduled_start::DATE <= $2", 3)
-        } else {
-            (" WHERE 1=1", 1)
-        };
+        // Extract optional filter values for parameterized queries
+        let start_date = date_range.map(|(s, _)| s);
+        let end_date = date_range.map(|(_, e)| e);
 
-        // Build provider filter clause
-        let provider_clause = filter
-            .provider_id
-            .map(|_| format!(" AND provider_id = ${}", provider_param_offset))
-            .unwrap_or_default();
-
-        // Count by status
-        let status_query = format!(
+        // Count by status — fully parameterized, no dynamic SQL
+        let status_row = sqlx::query(
             r#"
             SELECT
                 COALESCE(SUM(CASE WHEN status IN ('SCHEDULED', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW') THEN 1 ELSE 0 END), 0)::BIGINT as total_scheduled,
@@ -177,39 +168,16 @@ impl ReportService {
                 COALESCE(SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END), 0)::BIGINT as cancelled,
                 COALESCE(SUM(CASE WHEN status = 'NO_SHOW' THEN 1 ELSE 0 END), 0)::BIGINT as no_shows
             FROM appointments
-            {}{}
+            WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
             "#,
-            date_clause, provider_clause
-        );
-
-        let status_row = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&status_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&status_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&status_query)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&status_query)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
         let total_scheduled: i64 = status_row.try_get("total_scheduled").unwrap_or(0);
         let completed: i64 = status_row.try_get("completed").unwrap_or(0);
@@ -260,44 +228,21 @@ impl ReportService {
         };
 
         // Get breakdown by type
-        let type_query = format!(
+        let type_rows = sqlx::query(
             r#"
             SELECT type::TEXT as appointment_type, COUNT(*)::BIGINT as count
             FROM appointments
-            {}{}
+            WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
             GROUP BY type
             "#,
-            date_clause, provider_clause
-        );
-
-        let type_rows = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&type_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&type_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&type_query)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&type_query)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut by_type = HashMap::new();
         for row in type_rows {
@@ -307,45 +252,22 @@ impl ReportService {
         }
 
         // Get breakdown by day of week (PostgreSQL: 0=Sunday, 6=Saturday)
-        let dow_query = format!(
+        let dow_rows = sqlx::query(
             r#"
             SELECT EXTRACT(DOW FROM scheduled_start)::INTEGER as dow, COUNT(*)::BIGINT as count
             FROM appointments
-            {}{}
+            WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
             GROUP BY dow
             ORDER BY dow
             "#,
-            date_clause, provider_clause
-        );
-
-        let dow_rows = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&dow_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&dow_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&dow_query)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&dow_query)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut by_day_of_week = Vec::new();
         for row in dow_rows {
@@ -359,45 +281,22 @@ impl ReportService {
         }
 
         // Get breakdown by hour
-        let hour_query = format!(
+        let hour_rows = sqlx::query(
             r#"
             SELECT EXTRACT(HOUR FROM scheduled_start)::INTEGER as hour, COUNT(*)::BIGINT as count
             FROM appointments
-            {}{}
+            WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
             GROUP BY hour
             ORDER BY hour
             "#,
-            date_clause, provider_clause
-        );
-
-        let hour_rows = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&hour_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&hour_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&hour_query)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&hour_query)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut by_hour = Vec::new();
         for row in hour_rows {
@@ -407,7 +306,7 @@ impl ReportService {
         }
 
         // Get daily trend
-        let daily_query = format!(
+        let daily_rows = sqlx::query(
             r#"
             SELECT
                 scheduled_start::DATE as date,
@@ -416,41 +315,18 @@ impl ReportService {
                 SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END)::BIGINT as cancelled,
                 SUM(CASE WHEN status = 'NO_SHOW' THEN 1 ELSE 0 END)::BIGINT as no_shows
             FROM appointments
-            {}{}
+            WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
             GROUP BY scheduled_start::DATE
             ORDER BY date
             "#,
-            date_clause, provider_clause
-        );
-
-        let daily_rows = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&daily_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&daily_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&daily_query)
-                    .bind(provider_id)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&daily_query)
-                    .fetch_all(&mut *tx)
-                    .await?
-            }
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let today = Utc::now().date_naive();
         let mut daily_trend = Vec::new();
@@ -687,42 +563,31 @@ impl ReportService {
             _ => None,
         };
 
-        let limit = filter.limit.unwrap_or(20) as i64;
+        // Clamp page size to prevent uncontrolled allocation (CWE-770)
+        let limit = filter.limit.unwrap_or(20).min(100) as i64;
 
-        // Build date filter clause
-        let date_clause = match (&filter.start_date, &filter.end_date) {
-            (Some(_), Some(_)) => " AND v.visit_date >= $1 AND v.visit_date <= $2",
-            _ => "",
-        };
-
-        // Total and unique diagnoses
-        let count_query = format!(
+        // Total and unique diagnoses — fully parameterized, no dynamic SQL
+        let count_row = sqlx::query(
             r#"
             SELECT
                 COUNT(*)::BIGINT as total,
                 COUNT(DISTINCT vd.icd10_code)::BIGINT as unique_codes
             FROM visit_diagnoses vd
             JOIN visits v ON vd.visit_id = v.id
-            WHERE 1=1{}
+            WHERE ($1::DATE IS NULL OR v.visit_date >= $1)
+              AND ($2::DATE IS NULL OR v.visit_date <= $2)
             "#,
-            date_clause
-        );
-
-        let count_row = if let (Some(start), Some(end)) = (filter.start_date, filter.end_date) {
-            sqlx::query(&count_query)
-                .bind(start)
-                .bind(end)
-                .fetch_one(&mut *tx)
-                .await?
-        } else {
-            sqlx::query(&count_query).fetch_one(&mut *tx).await?
-        };
+        )
+        .bind(filter.start_date)
+        .bind(filter.end_date)
+        .fetch_one(&mut *tx)
+        .await?;
 
         let total_diagnoses: i64 = count_row.try_get("total").unwrap_or(0);
         let unique_codes: i64 = count_row.try_get("unique_codes").unwrap_or(0);
 
         // Top diagnoses
-        let top_query = format!(
+        let top_rows = sqlx::query(
             r#"
             SELECT
                 vd.icd10_code,
@@ -730,28 +595,18 @@ impl ReportService {
                 COUNT(*)::BIGINT as count
             FROM visit_diagnoses vd
             JOIN visits v ON vd.visit_id = v.id
-            WHERE 1=1{}
+            WHERE ($1::DATE IS NULL OR v.visit_date >= $1)
+              AND ($2::DATE IS NULL OR v.visit_date <= $2)
             GROUP BY vd.icd10_code, vd.icd10_description
             ORDER BY count DESC
-            LIMIT ${}
+            LIMIT $3
             "#,
-            date_clause,
-            if date_clause.is_empty() { "1" } else { "3" }
-        );
-
-        let top_rows = if let (Some(start), Some(end)) = (filter.start_date, filter.end_date) {
-            sqlx::query(&top_query)
-                .bind(start)
-                .bind(end)
-                .bind(limit)
-                .fetch_all(&mut *tx)
-                .await?
-        } else {
-            sqlx::query(&top_query)
-                .bind(limit)
-                .fetch_all(&mut *tx)
-                .await?
-        };
+        )
+        .bind(filter.start_date)
+        .bind(filter.end_date)
+        .bind(limit)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut top_diagnoses = Vec::new();
         for row in top_rows {
@@ -800,29 +655,23 @@ impl ReportService {
         }
 
         // Diagnoses by category (ICD-10 chapter)
-        let category_query = format!(
+        let category_rows = sqlx::query(
             r#"
             SELECT
                 UPPER(SUBSTRING(vd.icd10_code, 1, 1)) as category,
                 COUNT(*)::BIGINT as count
             FROM visit_diagnoses vd
             JOIN visits v ON vd.visit_id = v.id
-            WHERE 1=1{}
+            WHERE ($1::DATE IS NULL OR v.visit_date >= $1)
+              AND ($2::DATE IS NULL OR v.visit_date <= $2)
             GROUP BY category
             ORDER BY count DESC
             "#,
-            date_clause
-        );
-
-        let category_rows = if let (Some(start), Some(end)) = (filter.start_date, filter.end_date) {
-            sqlx::query(&category_query)
-                .bind(start)
-                .bind(end)
-                .fetch_all(&mut *tx)
-                .await?
-        } else {
-            sqlx::query(&category_query).fetch_all(&mut *tx).await?
-        };
+        )
+        .bind(filter.start_date)
+        .bind(filter.end_date)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut by_category = Vec::new();
         for row in category_rows {
@@ -869,75 +718,42 @@ impl ReportService {
             (None, None) => None, // All Time - no date filtering
         };
 
-        // Build provider filter clause - parameter position depends on whether dates are present
-        let provider_param_pos = if date_range.is_some() { 3 } else { 1 };
+        // Extract optional filter values for parameterized queries
+        let start_date = date_range.map(|(s, _)| s);
+        let end_date = date_range.map(|(_, e)| e);
 
-        // Summary statistics - different queries based on whether we have date filters
-        let summary_query = if let Some(_) = date_range {
-            let provider_clause = filter
-                .provider_id
-                .map(|_| format!(" AND provider_id = ${}", provider_param_pos))
-                .unwrap_or_default();
-
-            format!(
-                r#"
-                SELECT
-                    (SELECT COUNT(*)::BIGINT FROM appointments WHERE scheduled_start::DATE >= $1 AND scheduled_start::DATE <= $2{0}) as total_appointments,
-                    (SELECT COUNT(*)::BIGINT FROM appointments WHERE scheduled_start::DATE >= $1 AND scheduled_start::DATE <= $2{0} AND status = 'COMPLETED') as completed_appointments,
-                    (SELECT COUNT(*)::BIGINT FROM visits WHERE visit_date >= $1 AND visit_date <= $2{0}) as total_visits,
-                    (SELECT COUNT(*)::BIGINT FROM prescriptions WHERE prescribed_date >= $1 AND prescribed_date <= $2{0}) as total_prescriptions,
-                    (SELECT COUNT(*)::BIGINT FROM generated_documents WHERE created_at::DATE >= $1 AND created_at::DATE <= $2 AND status != 'DELETED') as total_documents
-                "#,
-                provider_clause
-            )
-        } else {
-            let provider_clause = filter
-                .provider_id
-                .map(|_| format!(" WHERE provider_id = ${}", provider_param_pos))
-                .unwrap_or_default();
-
-            format!(
-                r#"
-                SELECT
-                    (SELECT COUNT(*)::BIGINT FROM appointments{0}) as total_appointments,
-                    (SELECT COUNT(*)::BIGINT FROM appointments WHERE status = 'COMPLETED'{1}) as completed_appointments,
-                    (SELECT COUNT(*)::BIGINT FROM visits{0}) as total_visits,
-                    (SELECT COUNT(*)::BIGINT FROM prescriptions{0}) as total_prescriptions,
-                    (SELECT COUNT(*)::BIGINT FROM generated_documents WHERE status != 'DELETED') as total_documents
-                "#,
-                provider_clause,
-                if filter.provider_id.is_some() { format!(" AND provider_id = ${}", provider_param_pos) } else { String::new() }
-            )
-        };
-
-        let summary_row = match (date_range, filter.provider_id) {
-            (Some((start, end)), Some(provider_id)) => {
-                sqlx::query(&summary_query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (Some((start, end)), None) => {
-                sqlx::query(&summary_query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (None, Some(provider_id)) => {
-                sqlx::query(&summary_query)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-            (None, None) => {
-                sqlx::query(&summary_query)
-                    .fetch_one(&mut *tx)
-                    .await?
-            }
-        };
+        // Summary statistics — fully parameterized, no dynamic SQL
+        let summary_row = sqlx::query(
+            r#"
+            SELECT
+                (SELECT COUNT(*)::BIGINT FROM appointments
+                    WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+                      AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+                      AND ($3::UUID IS NULL OR provider_id = $3)) as total_appointments,
+                (SELECT COUNT(*)::BIGINT FROM appointments
+                    WHERE ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+                      AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+                      AND ($3::UUID IS NULL OR provider_id = $3)
+                      AND status = 'COMPLETED') as completed_appointments,
+                (SELECT COUNT(*)::BIGINT FROM visits
+                    WHERE ($1::DATE IS NULL OR visit_date >= $1)
+                      AND ($2::DATE IS NULL OR visit_date <= $2)
+                      AND ($3::UUID IS NULL OR provider_id = $3)) as total_visits,
+                (SELECT COUNT(*)::BIGINT FROM prescriptions
+                    WHERE ($1::DATE IS NULL OR prescribed_date >= $1)
+                      AND ($2::DATE IS NULL OR prescribed_date <= $2)
+                      AND ($3::UUID IS NULL OR provider_id = $3)) as total_prescriptions,
+                (SELECT COUNT(*)::BIGINT FROM generated_documents
+                    WHERE ($1::DATE IS NULL OR created_at::DATE >= $1)
+                      AND ($2::DATE IS NULL OR created_at::DATE <= $2)
+                      AND status != 'DELETED') as total_documents
+            "#,
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_one(&mut *tx)
+        .await?;
 
         let total_appointments: i64 = summary_row.try_get("total_appointments").unwrap_or(0);
         let completed_appointments: i64 = summary_row.try_get("completed_appointments").unwrap_or(0);
@@ -945,57 +761,23 @@ impl ReportService {
         let total_prescriptions: i64 = summary_row.try_get("total_prescriptions").unwrap_or(0);
         let total_documents: i64 = summary_row.try_get("total_documents").unwrap_or(0);
 
-        // Average appointment duration - handle with/without date range
-        let avg_duration: f64 = if let Some((start, end)) = date_range {
-            let provider_filter = if filter.provider_id.is_some() { " AND provider_id = $3" } else { "" };
-            let query = format!(
-                r#"
-                SELECT COALESCE(AVG(duration_minutes), 0)::FLOAT as avg_duration
-                FROM appointments
-                WHERE scheduled_start::DATE >= $1 AND scheduled_start::DATE <= $2{} AND status = 'COMPLETED'
-                "#,
-                provider_filter
-            );
-            if let Some(provider_id) = filter.provider_id {
-                sqlx::query_scalar(&query)
-                    .bind(start)
-                    .bind(end)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .unwrap_or(0.0)
-            } else {
-                sqlx::query_scalar(&query)
-                    .bind(start)
-                    .bind(end)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .unwrap_or(0.0)
-            }
-        } else {
-            // All Time - no date filter
-            let provider_filter = if filter.provider_id.is_some() { " AND provider_id = $1" } else { "" };
-            let query = format!(
-                r#"
-                SELECT COALESCE(AVG(duration_minutes), 0)::FLOAT as avg_duration
-                FROM appointments
-                WHERE status = 'COMPLETED'{}
-                "#,
-                provider_filter
-            );
-            if let Some(provider_id) = filter.provider_id {
-                sqlx::query_scalar(&query)
-                    .bind(provider_id)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .unwrap_or(0.0)
-            } else {
-                sqlx::query_scalar(&query)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .unwrap_or(0.0)
-            }
-        };
+        // Average appointment duration — fully parameterized
+        let avg_duration: f64 = sqlx::query_scalar(
+            r#"
+            SELECT COALESCE(AVG(duration_minutes), 0)::FLOAT as avg_duration
+            FROM appointments
+            WHERE status = 'COMPLETED'
+              AND ($1::DATE IS NULL OR scheduled_start::DATE >= $1)
+              AND ($2::DATE IS NULL OR scheduled_start::DATE <= $2)
+              AND ($3::UUID IS NULL OR provider_id = $3)
+            "#,
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap_or(0.0);
 
         let summary = ProductivitySummary {
             total_appointments,
@@ -1150,64 +932,37 @@ impl ReportService {
             end_date,
         });
 
-        // Build provider filter clause
-        let provider_clause = filter
-            .provider_id
-            .map(|_| " AND provider_id = $3")
-            .unwrap_or("");
-
-        // Total visits
-        let visits_query = format!(
+        // Total visits — fully parameterized
+        let total_visits: i64 = sqlx::query_scalar(
             r#"
             SELECT COUNT(*)::BIGINT as total
             FROM visits
-            WHERE visit_date >= $1 AND visit_date <= $2{}
+            WHERE visit_date >= $1 AND visit_date <= $2
+              AND ($3::UUID IS NULL OR provider_id = $3)
             "#,
-            provider_clause
-        );
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap_or(0);
 
-        let total_visits: i64 = if let Some(provider_id) = filter.provider_id {
-            sqlx::query_scalar(&visits_query)
-                .bind(start_date)
-                .bind(end_date)
-                .bind(provider_id)
-                .fetch_one(&mut *tx)
-                .await
-                .unwrap_or(0)
-        } else {
-            sqlx::query_scalar(&visits_query)
-                .bind(start_date)
-                .bind(end_date)
-                .fetch_one(&mut *tx)
-                .await
-                .unwrap_or(0)
-        };
-
-        // Visits by type
-        let type_query = format!(
+        // Visits by type — fully parameterized
+        let type_rows = sqlx::query(
             r#"
             SELECT visit_type::TEXT, COUNT(*)::BIGINT as count
             FROM visits
-            WHERE visit_date >= $1 AND visit_date <= $2{}
+            WHERE visit_date >= $1 AND visit_date <= $2
+              AND ($3::UUID IS NULL OR provider_id = $3)
             GROUP BY visit_type
             "#,
-            provider_clause
-        );
-
-        let type_rows = if let Some(provider_id) = filter.provider_id {
-            sqlx::query(&type_query)
-                .bind(start_date)
-                .bind(end_date)
-                .bind(provider_id)
-                .fetch_all(&mut *tx)
-                .await?
-        } else {
-            sqlx::query(&type_query)
-                .bind(start_date)
-                .bind(end_date)
-                .fetch_all(&mut *tx)
-                .await?
-        };
+        )
+        .bind(start_date)
+        .bind(end_date)
+        .bind(filter.provider_id)
+        .fetch_all(&mut *tx)
+        .await?;
 
         let mut visits_by_type = HashMap::new();
         for row in type_rows {

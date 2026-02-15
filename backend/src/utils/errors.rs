@@ -60,7 +60,8 @@ impl std::error::Error for AppError {}
 /// Convert SQLx errors to AppError
 impl From<sqlx::Error> for AppError {
     fn from(err: sqlx::Error) -> Self {
-        tracing::error!("Database error: {:?}", err);
+        // Log Display (not Debug) to avoid exposing query internals
+        tracing::error!("Database error: {}", err);
         Self::Database(err)
     }
 }
@@ -68,7 +69,8 @@ impl From<sqlx::Error> for AppError {
 /// Convert JWT errors to AppError
 impl From<jsonwebtoken::errors::Error> for AppError {
     fn from(err: jsonwebtoken::errors::Error) -> Self {
-        tracing::error!("JWT error: {:?}", err);
+        // Log generic message — JWT error details could expose token content
+        tracing::error!("JWT authentication error");
         Self::Unauthorized(format!("Invalid token: {}", err))
     }
 }
@@ -76,7 +78,8 @@ impl From<jsonwebtoken::errors::Error> for AppError {
 /// Convert Argon2 password hash errors to AppError
 impl From<argon2::password_hash::Error> for AppError {
     fn from(err: argon2::password_hash::Error) -> Self {
-        tracing::error!("Password hash error: {:?}", err);
+        // Log generic message — hash error details could expose parameters
+        tracing::error!("Password hashing error");
         Self::Internal(format!("Password hashing error: {}", err))
     }
 }
@@ -87,7 +90,7 @@ impl IntoResponse for AppError {
         let (status, error_code, message) = match self {
             Self::Database(ref err) => {
                 // Don't expose internal database errors to clients
-                tracing::error!("Database error: {:?}", err);
+                tracing::error!("Database error: {}", err);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "DATABASE_ERROR",

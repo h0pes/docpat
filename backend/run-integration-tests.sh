@@ -42,7 +42,8 @@ TRUNCATE users, patients, patient_insurance, appointments,
          visits, visit_diagnoses, visit_templates, visit_versions,
          prescriptions, prescription_templates,
          document_templates, generated_documents,
-         holidays, uploaded_files, audit_logs CASCADE;
+         holidays, uploaded_files, audit_logs,
+         notification_queue, patient_notification_preferences CASCADE;
 
 -- Re-seed default working hours (deleted by CASCADE from users.updated_by FK)
 INSERT INTO default_working_hours (day_of_week, start_time, end_time, is_working_day) VALUES
@@ -113,7 +114,8 @@ TRUNCATE users, patients, patient_insurance, appointments,
          prescriptions, prescription_templates,
          document_templates, generated_documents,
          system_settings, default_working_hours, working_hours_overrides,
-         holidays, uploaded_files, audit_logs CASCADE;
+         holidays, uploaded_files, audit_logs,
+         notification_queue, patient_notification_preferences CASCADE;
 
 -- Re-seed default system settings after TRUNCATE
 INSERT INTO system_settings (setting_key, setting_group, setting_name, setting_value, value_type, description, default_value, is_public, is_readonly) VALUES

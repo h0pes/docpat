@@ -131,8 +131,8 @@ async fn test_get_weekly_schedule() {
     let suffix = unique_suffix();
 
     // Create user (any role can view schedule)
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Get weekly schedule
     let response = app
@@ -201,8 +201,8 @@ async fn test_update_day_working_hours_as_admin() {
     let suffix = unique_suffix();
 
     // Create admin user
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Update Monday's hours
     let response = app
@@ -249,8 +249,8 @@ async fn test_update_day_working_hours_as_doctor_forbidden() {
     let suffix = unique_suffix();
 
     // Create doctor user
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Try to update Monday's hours
     let response = app
@@ -284,8 +284,8 @@ async fn test_update_day_invalid_day() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Try invalid day (8)
     let response = app
@@ -323,8 +323,8 @@ async fn test_update_all_working_hours() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Update all days
     let response = app
@@ -379,8 +379,8 @@ async fn test_create_override_closed_day() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let override_date = future_date();
 
@@ -423,8 +423,8 @@ async fn test_create_override_custom_hours() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let override_date = future_date();
 
@@ -468,8 +468,8 @@ async fn test_create_override_duplicate_date() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let override_date = future_date();
 
@@ -530,8 +530,8 @@ async fn test_list_overrides() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create an override
     let override_date = future_date();
@@ -589,8 +589,8 @@ async fn test_get_override() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create an override
     let override_date = future_date();
@@ -648,8 +648,8 @@ async fn test_get_override_not_found() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let fake_id = "00000000-0000-0000-0000-000000000000";
 
@@ -679,8 +679,8 @@ async fn test_update_override() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create an override
     let override_date = future_date();
@@ -753,8 +753,8 @@ async fn test_delete_override() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create an override
     let override_date = future_date();
@@ -826,8 +826,8 @@ async fn test_get_effective_hours() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let (from_date, to_date) = future_date_range();
 
@@ -871,8 +871,8 @@ async fn test_get_effective_hours_range_too_large() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     use chrono::{Duration, Local};
     let from_date = Local::now().format("%Y-%m-%d").to_string();
@@ -904,8 +904,8 @@ async fn test_check_working_day() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Find the next Monday
     use chrono::{Datelike, Duration, Local, Weekday};
@@ -942,8 +942,8 @@ async fn test_check_working_day_invalid_date() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_wh_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -971,8 +971,8 @@ async fn test_override_affects_effective_hours() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_wh_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create an override for a specific date
     let override_date = future_date();

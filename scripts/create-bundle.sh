@@ -143,6 +143,11 @@ RUST_LOG=info
 
 # CORS (update with your domain)
 CORS_ALLOWED_ORIGINS=https://localhost
+
+# Argon2 password hashing parameters
+ARGON2_MEMORY_COST=65536
+ARGON2_TIME_COST=3
+ARGON2_PARALLELISM=4
 EOF
 print_success ".env.example created"
 

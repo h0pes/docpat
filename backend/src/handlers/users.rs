@@ -429,8 +429,11 @@ pub async fn list_users(
         users_builder.push(")");
     }
 
+    // Clamp page size to prevent uncontrolled allocation (CWE-770)
+    let clamped_limit = query.limit.min(100);
+
     users_builder.push(" ORDER BY created_at DESC LIMIT ");
-    users_builder.push_bind(query.limit);
+    users_builder.push_bind(clamped_limit);
     users_builder.push(" OFFSET ");
     users_builder.push_bind(query.offset);
 
@@ -453,7 +456,7 @@ pub async fn list_users(
         users: users.into_iter().map(UserResponse::from).collect(),
         total: total.0,
         offset: query.offset,
-        limit: query.limit,
+        limit: clamped_limit,
     }))
 }
 

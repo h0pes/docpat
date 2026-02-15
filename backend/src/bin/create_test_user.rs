@@ -7,7 +7,7 @@
 
 use docpat_backend::utils::password::PasswordHasherUtil;
 use sqlx::postgres::PgPoolOptions;
-use uuid::Uuid;
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test user credentials
     let username = "testdoctor";
     let email = "test@docpat.local";
-    let password = "Test123!";
+    let password = "Zk9$mX2vL!";
     let role = "DOCTOR";
     let first_name = "Test";
     let last_name = "Doctor";

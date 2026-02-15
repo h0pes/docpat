@@ -83,33 +83,49 @@ impl AuthService {
     ///
     /// # Errors
     ///
-    /// Returns an error if:
-    /// - User not found
-    /// - Invalid password
-    /// - Account is locked
-    /// - Account is inactive
-    /// - MFA is enabled but code is missing or invalid
+    /// Returns `Unauthorized` with a generic message for all credential failures
+    /// (user not found, wrong password, locked, inactive) to prevent user enumeration.
+    /// MFA errors are returned only after successful credential validation.
     pub async fn login(
         &self,
         pool: &PgPool,
         login_req: LoginRequest,
         request_ctx: Option<&RequestContext>,
     ) -> Result<LoginResponse> {
-        // Find user by username
-        let user = User::find_by_username(pool, &login_req.username).await?;
+        // Generic credential error message — identical for all failure modes
+        // to prevent user enumeration (AUTH-VULN-01, AUTH-VULN-02, AUTH-VULN-08)
+        let credential_error = || AppError::Unauthorized("Invalid username or password".to_string());
 
-        // Check if account is active
+        // Find user by username. On NotFound, perform a dummy Argon2 verify
+        // to ensure constant-time response regardless of user existence (mitigates timing attacks).
+        let user = match User::find_by_username(pool, &login_req.username).await {
+            Ok(user) => user,
+            Err(AppError::NotFound(_)) => {
+                // Dummy hash to prevent timing-based user enumeration: spend the same
+                // CPU time as a real password verification would.
+                // Params match env-configured Argon2 settings (m=65536,t=3,p=4) to ensure
+                // consistent timing with real password hashes.
+                let _ = PasswordHasherUtil::verify_password(
+                    &login_req.password,
+                    "$argon2id$v=19$m=65536,t=3,p=4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                );
+                return Err(credential_error());
+            }
+            Err(e) => return Err(e),
+        };
+
+        // Check if account is active — return same generic error as wrong credentials
         if !user.is_active {
-            return Err(AppError::Forbidden(
-                "Account is inactive. Please contact administrator.".to_string(),
-            ));
+            // Still verify password to maintain consistent timing
+            let _ = PasswordHasherUtil::verify_password(&login_req.password, &user.password_hash);
+            return Err(credential_error());
         }
 
-        // Check if account is locked
+        // Check if account is locked — return same generic error as wrong credentials
         if user.is_locked() {
-            return Err(AppError::Forbidden(format!(
-                "Account is locked due to too many failed login attempts. Please try again later."
-            )));
+            // Still verify password to maintain consistent timing
+            let _ = PasswordHasherUtil::verify_password(&login_req.password, &user.password_hash);
+            return Err(credential_error());
         }
 
         // Verify password
@@ -122,9 +138,7 @@ impl AuthService {
             )
             .await?;
 
-            return Err(AppError::Unauthorized(
-                "Invalid username or password".to_string(),
-            ));
+            return Err(credential_error());
         }
 
         // Check MFA if enabled
@@ -252,8 +266,8 @@ impl AuthService {
         // The secret is stored as a Base32-encoded string, so we need to decode it
         let secret = Secret::Encoded(mfa_secret.clone())
             .to_bytes()
-            .map_err(|e| {
-                tracing::error!("Failed to parse MFA secret: {:?}", e);
+            .map_err(|_| {
+                tracing::error!("Failed to parse MFA secret for user {}", user.id);
                 AppError::Internal("Invalid MFA configuration".to_string())
             })?;
 
@@ -266,14 +280,14 @@ impl AuthService {
             Some("DocPat Medical".to_string()),
             user.username.clone(),
         )
-        .map_err(|e| {
-            tracing::error!("Failed to create TOTP: {:?}", e);
+        .map_err(|_| {
+            tracing::error!("Failed to create TOTP for user {}", user.id);
             AppError::Internal("Invalid MFA configuration".to_string())
         })?;
 
         // Verify code
-        let is_valid = totp.check_current(code).map_err(|e| {
-            tracing::warn!("MFA verification failed for user {}: {:?}", user.id, e);
+        let is_valid = totp.check_current(code).map_err(|_| {
+            tracing::warn!("MFA verification failed for user {}", user.id);
             AppError::Unauthorized("Invalid MFA code".to_string())
         })?;
 
@@ -333,8 +347,8 @@ impl AuthService {
                     .bind(&user.id)
                     .execute(pool)
                     .await
-                    .map_err(|e| {
-                        tracing::error!("Failed to remove used backup code: {:?}", e);
+                    .map_err(|_| {
+                        tracing::error!("Failed to remove used backup code for user {}", user.id);
                         // Don't fail the login, just log the error
                     })
                     .ok();

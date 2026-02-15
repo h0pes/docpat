@@ -100,8 +100,8 @@ async fn test_list_holidays() {
     let suffix = unique_suffix();
 
     // Create user (any role can view holidays)
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // List holidays (should be empty after cleanup)
     let response = app
@@ -132,8 +132,8 @@ async fn test_list_holidays_with_year_filter() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create a holiday for 2027
     let _ = app
@@ -210,8 +210,8 @@ async fn test_create_holiday_as_admin() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -257,8 +257,8 @@ async fn test_create_holiday_national() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -297,8 +297,8 @@ async fn test_create_holiday_vacation() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let vacation_date = future_date();
 
@@ -339,8 +339,8 @@ async fn test_create_holiday_as_doctor_forbidden() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -373,8 +373,8 @@ async fn test_create_holiday_duplicate_date() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -437,8 +437,8 @@ async fn test_get_holiday() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -499,8 +499,8 @@ async fn test_get_holiday_not_found() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let fake_id = "00000000-0000-0000-0000-000000000000";
 
@@ -530,8 +530,8 @@ async fn test_update_holiday() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -601,8 +601,8 @@ async fn test_update_holiday_as_doctor_forbidden() {
     let suffix = unique_suffix();
 
     // Create as admin
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let admin_token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let admin_token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -633,8 +633,8 @@ async fn test_update_holiday_as_doctor_forbidden() {
     let holiday_id = create_json["id"].as_str().unwrap();
 
     // Try to update as doctor
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let doctor_token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let doctor_token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -668,8 +668,8 @@ async fn test_delete_holiday() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -739,8 +739,8 @@ async fn test_delete_holiday_not_found() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let fake_id = "00000000-0000-0000-0000-000000000000";
 
@@ -770,8 +770,8 @@ async fn test_check_holiday_is_holiday() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     let holiday_date = future_date();
 
@@ -829,8 +829,8 @@ async fn test_check_holiday_is_not_holiday() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Check a random future date that isn't a holiday
     let random_date = "2099-07-15";
@@ -864,8 +864,8 @@ async fn test_check_holiday_invalid_date() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -893,8 +893,8 @@ async fn test_get_holidays_range() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create a holiday in range
     let _ = app
@@ -949,8 +949,8 @@ async fn test_get_holidays_range_too_large() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     // Try to get more than 1 year range
     let response = app
@@ -979,8 +979,8 @@ async fn test_import_national_holidays() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Import holidays for 2027 (a year unlikely to have conflicts)
     let response = app
@@ -1023,8 +1023,8 @@ async fn test_import_national_holidays_as_doctor_forbidden() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Test123!", false).await;
-    let token = login_and_get_token(&app, &doctor.username, "Test123!").await;
+    let doctor = TestUser::create_active_user(&pool, &format!("doc_hol_{}", suffix), "Zk9$mX2vL!", false).await;
+    let token = login_and_get_token(&app, &doctor.username, "Zk9$mX2vL!").await;
 
     let response = app
         .clone()
@@ -1055,8 +1055,8 @@ async fn test_import_national_holidays_invalid_year() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Try invalid year
     let response = app
@@ -1092,8 +1092,8 @@ async fn test_recurring_holiday_check() {
     let (app, pool) = setup_test().await;
     let suffix = unique_suffix();
 
-    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Test123!").await;
-    let token = login_and_get_token(&app, &admin.username, "Test123!").await;
+    let admin = TestUser::create_admin_user(&pool, &format!("admin_hol_{}", suffix), "Zk9$mX2vL!").await;
+    let token = login_and_get_token(&app, &admin.username, "Zk9$mX2vL!").await;
 
     // Create a recurring holiday (Christmas in 2027)
     let _ = app

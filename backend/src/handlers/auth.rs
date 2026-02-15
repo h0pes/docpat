@@ -145,6 +145,12 @@ pub async fn refresh_token_handler(
     let user_id = uuid::Uuid::parse_str(&claims.sub)
         .map_err(|_| crate::utils::AppError::Unauthorized("Invalid user ID in token".to_string()))?;
 
+    // Reject refresh if session was invalidated (AUTH-VULN-04: token revocation on logout)
+    if !state.session_manager.is_session_active(&user_id) {
+        tracing::warn!("Token refresh rejected: session invalidated for user {}", user_id);
+        return Err(crate::utils::AppError::Unauthorized("Session expired or invalidated".to_string()));
+    }
+
     // Refresh the token
     let tokens = state.auth_service.refresh_token(&state.pool, &req.refresh_token).await?;
 

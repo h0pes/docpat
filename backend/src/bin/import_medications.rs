@@ -252,7 +252,7 @@ async fn main() -> Result<()> {
     info!("Connected to database successfully");
 
     // Parse command line arguments
-    let args: Vec<String> = env::args().collect();
+    let _args: Vec<String> = env::args().collect();
 
     // Get the directory where the binary is located (backend directory)
     let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));

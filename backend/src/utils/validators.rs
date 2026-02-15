@@ -96,7 +96,7 @@ impl FiscalCodeValidator {
         let year_suffix: u32 = year_suffix.parse().ok()?;
 
         // Assume current century if year is < 30, else previous century
-        let current_year = chrono::Utc::now().year();
+        let _current_year = chrono::Utc::now().year();
         let century = if year_suffix < 30 { 2000 } else { 1900 };
         let year = century + year_suffix;
 

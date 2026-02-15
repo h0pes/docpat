@@ -306,6 +306,11 @@ RUST_LOG=debug
 
 # CORS (update with your domain if needed)
 CORS_ALLOWED_ORIGINS=https://localhost
+
+# Argon2 password hashing parameters
+ARGON2_MEMORY_COST=65536
+ARGON2_TIME_COST=3
+ARGON2_PARALLELISM=4
 EOF
 
     chmod 600 "${INSTALL_DIR}/.env"

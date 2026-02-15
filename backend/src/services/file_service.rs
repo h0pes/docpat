@@ -543,7 +543,7 @@ impl FileUploadService {
         let where_clause = conditions.join(" AND ");
 
         // Count total
-        let count_query = format!(
+        let _count_query = format!(
             "SELECT COUNT(*) FROM uploaded_files WHERE {}",
             where_clause
         );
@@ -632,7 +632,7 @@ impl FileUploadService {
     /// Soft delete a file
     pub async fn delete_file_record(pool: &PgPool, file_id: Uuid) -> Result<()> {
         // Get file to find storage path
-        let file = Self::get_file(pool, file_id)
+        let _file = Self::get_file(pool, file_id)
             .await?
             .ok_or_else(|| anyhow!("File not found"))?;
 

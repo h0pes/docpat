@@ -20,7 +20,7 @@ use crate::{
         AuditAction, AuditLog, AuthUser, CreateAuditLog, CreatePrescriptionRequest,
         EntityType, RequestContext, UpdatePrescriptionRequest, UserRole,
     },
-    services::{MedicationSearchResult, PrescriptionService},
+    services::PrescriptionService,
     utils::{AppError, Result},
 };
 

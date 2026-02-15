@@ -18,9 +18,9 @@ use validator::Validate;
 use crate::{
     handlers::auth::AppState,
     models::{
-        AppointmentDto, AppointmentSearchFilter, AppointmentStatistics, AppointmentStatus,
+        AppointmentDto, AppointmentSearchFilter, AppointmentStatus,
         AppointmentType, AvailabilityResponse, CancelAppointmentRequest,
-        CreateAppointmentRequest, Patient, RequestContext, TimeSlot, UpdateAppointmentRequest, UserRole,
+        CreateAppointmentRequest, Patient, RequestContext, UpdateAppointmentRequest, UserRole,
     },
     services::{AppointmentService, NotificationService},
     utils::{AppError, Result},
@@ -130,7 +130,7 @@ pub struct AvailabilityQuery {
 /// Check appointment availability for a provider
 pub async fn check_availability(
     State(state): State<AppState>,
-    Extension(user_id): Extension<Uuid>,
+    Extension(_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
     Query(query): Query<AvailabilityQuery>,
 ) -> Result<impl IntoResponse> {
@@ -668,7 +668,7 @@ pub struct ScheduleQuery {
 /// Get daily schedule for a provider
 pub async fn get_daily_schedule(
     State(state): State<AppState>,
-    Extension(user_id): Extension<Uuid>,
+    Extension(_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
     Query(query): Query<ScheduleQuery>,
 ) -> Result<impl IntoResponse> {
@@ -696,7 +696,7 @@ pub async fn get_daily_schedule(
 /// Get weekly schedule for a provider
 pub async fn get_weekly_schedule(
     State(state): State<AppState>,
-    Extension(user_id): Extension<Uuid>,
+    Extension(_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
     Query(query): Query<ScheduleQuery>,
 ) -> Result<impl IntoResponse> {
@@ -724,7 +724,7 @@ pub async fn get_weekly_schedule(
 /// Get monthly schedule for a provider
 pub async fn get_monthly_schedule(
     State(state): State<AppState>,
-    Extension(user_id): Extension<Uuid>,
+    Extension(_user_id): Extension<Uuid>,
     Extension(user_role): Extension<UserRole>,
     Query(query): Query<ScheduleQuery>,
 ) -> Result<impl IntoResponse> {

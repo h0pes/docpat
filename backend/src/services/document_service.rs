@@ -622,15 +622,11 @@ impl DocumentService {
         // Merge all data with additional_data
         let mut variables = data.additional_data.clone().unwrap_or(serde_json::json!({}));
         if let serde_json::Value::Object(ref mut map) = variables {
+            // Always overwrite system keys to prevent spoofing via additional_data
             map.insert("patient".to_string(), patient_data);
             map.insert("provider".to_string(), provider_data);
-            // Only add clinic/document if not already provided
-            if !map.contains_key("clinic") {
-                map.insert("clinic".to_string(), clinic_data);
-            }
-            if !map.contains_key("document") {
-                map.insert("document".to_string(), document_data);
-            }
+            map.insert("clinic".to_string(), clinic_data);
+            map.insert("document".to_string(), document_data);
             // Add empty default objects for document-type-specific variables
             // This prevents template errors when conditionals check these objects
             if !map.contains_key("certificate") {
@@ -894,6 +890,21 @@ impl DocumentService {
 
         tx.commit().await.context("Failed to commit transaction")?;
 
+        // Validate path is within storage directory to prevent path traversal
+        if let Some(ref record) = result {
+            let file_path = std::path::Path::new(&record.file_path);
+            let canonical_file = file_path
+                .canonicalize()
+                .context("Failed to resolve document file path")?;
+            let canonical_storage = self
+                .storage_path
+                .canonicalize()
+                .context("Failed to resolve storage path")?;
+            if !canonical_file.starts_with(&canonical_storage) {
+                anyhow::bail!("Document file path is outside the storage directory");
+            }
+        }
+
         Ok(result.map(|r| r.file_path))
     }
 
@@ -1091,6 +1102,21 @@ impl DocumentService {
         .fetch_optional(&mut *tx)
         .await
         .context("Failed to fetch template for signing")?;
+
+        // Validate file path is within storage directory (path traversal prevention)
+        {
+            let file_path = std::path::Path::new(&doc.file_path);
+            let canonical_file = file_path
+                .canonicalize()
+                .context("Failed to resolve document file path")?;
+            let canonical_storage = self
+                .storage_path
+                .canonicalize()
+                .context("Failed to resolve storage path")?;
+            if !canonical_file.starts_with(&canonical_storage) {
+                anyhow::bail!("Document file path is outside the storage directory");
+            }
+        }
 
         // Prevent double-signing
         if doc.is_signed.unwrap_or(false) {
@@ -1409,11 +1435,13 @@ impl DocumentService {
     ) -> Result<String> {
         #[cfg(feature = "pdf-export")]
         {
-            use minijinja::{Environment, UndefinedBehavior};
+            use minijinja::{AutoEscape, Environment, UndefinedBehavior};
 
             let mut env = Environment::new();
             // Use lenient undefined behavior - undefined values render as empty string
             env.set_undefined_behavior(UndefinedBehavior::Lenient);
+            // Enable HTML autoescaping to prevent XSS via user-supplied data
+            env.set_auto_escape_callback(|_name| AutoEscape::Html);
             env.add_template("document", template)
                 .context("Failed to parse template")?;
 

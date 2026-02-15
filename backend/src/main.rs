@@ -95,6 +95,18 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Configuration loaded successfully");
     tracing::info!("Environment: {}", config.server.environment);
 
+    // Warn if debug/trace logging is enabled in production
+    let log_level = std::env::var("RUST_LOG").unwrap_or_default();
+    if config.server.environment == "production"
+        && (log_level.contains("debug") || log_level.contains("trace"))
+    {
+        tracing::warn!(
+            "RUST_LOG={} in production environment — consider setting to 'info' or 'warn' \
+             to avoid exposing sensitive data in logs",
+            log_level
+        );
+    }
+
     // Create database connection pool
     let pool = create_pool(&config.database).await?;
     tracing::info!("Database connection pool created successfully");

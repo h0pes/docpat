@@ -17,7 +17,7 @@ use crate::utils::encryption::EncryptionKey;
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, PgPool, Type};
+use sqlx::{FromRow, Type};
 use uuid::Uuid;
 use validator::Validate;
 

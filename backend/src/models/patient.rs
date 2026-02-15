@@ -5,7 +5,7 @@ use crate::utils::{encryption::EncryptionKey, FiscalCodeValidator, PhoneValidato
 use anyhow::{Context, Result};
 use chrono::{NaiveDate, DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, FromRow};
+use sqlx::FromRow;
 use uuid::Uuid;
 use validator::Validate;
 

@@ -16,7 +16,6 @@ use uuid::Uuid;
 use crate::{
     handlers::auth::AppState,
     models::{AuthUser, UserRole},
-    utils::AppError,
 };
 
 /// JWT Authentication Middleware
@@ -71,6 +70,14 @@ pub async fn jwt_auth_middleware(
             ));
         }
     };
+
+    // Verify the user has an active session (AUTH-VULN-04: token revocation on logout)
+    if !state.session_manager.is_session_active(&user_id) {
+        return Err((StatusCode::UNAUTHORIZED, "Session expired or invalidated"));
+    }
+
+    // Refresh session activity timestamp to prevent inactivity timeout
+    state.session_manager.track_activity(&user_id);
 
     // Create AuthUser and add to request extensions
     let auth_user = AuthUser { user_id, role: role.clone() };
@@ -149,10 +156,14 @@ mod tests {
                 .expect("Failed to initialize Casbin enforcer for test")
         };
 
+        let session_manager = crate::middleware::session_timeout::SessionManager::new(1800);
+        // Simulate login by tracking session activity for the user
+        session_manager.track_activity(&user_id);
+
         let app_state = AppState {
             pool: pool.clone(),
             auth_service,
-            session_manager: crate::middleware::session_timeout::SessionManager::new(1800),
+            session_manager,
             encryption_key: None, // Not needed for auth middleware test
             email_service: None,  // Not needed for auth middleware test
             settings_service: Arc::new(SettingsService::new(pool)),

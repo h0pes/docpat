@@ -13,7 +13,7 @@
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{types::ipnetwork::IpNetwork, FromRow, PgPool};
+use sqlx::{types::ipnetwork::IpNetwork, PgPool};
 use uuid::Uuid;
 
 /// Audit action types

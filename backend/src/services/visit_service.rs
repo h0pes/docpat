@@ -11,11 +11,11 @@
 
 use crate::models::{
     AuditAction, AuditLog, CreateAuditLog, CreateVisitRequest, EntityType, RequestContext,
-    UpdateVisitRequest, Visit, VisitResponse, VisitStatus, VisitType, VitalSigns,
+    UpdateVisitRequest, Visit, VisitResponse, VisitStatus, VisitType,
 };
 use crate::utils::encryption::EncryptionKey;
 use anyhow::{Context, Result};
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -910,6 +910,11 @@ impl VisitService {
         .context("Failed to fetch visit")?
         .ok_or_else(|| anyhow::anyhow!("Visit not found"))?;
 
+        // Defense-in-depth: verify the signing user owns this visit
+        if visit.provider_id != signed_by {
+            anyhow::bail!("Cannot sign another provider's visit");
+        }
+
         // Check if it can be signed
         if !visit.can_sign() {
             anyhow::bail!(
@@ -990,6 +995,11 @@ impl VisitService {
         .await
         .context("Failed to fetch visit")?
         .ok_or_else(|| anyhow::anyhow!("Visit not found"))?;
+
+        // Defense-in-depth: verify the locking user owns this visit
+        if visit.provider_id != locked_by {
+            anyhow::bail!("Cannot lock another provider's visit");
+        }
 
         // Check if it can be locked
         if !visit.can_lock() {

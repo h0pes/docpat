@@ -171,7 +171,7 @@ pub async fn teardown_test_db(pool: &PgPool) {
                  prescriptions, prescription_templates,
                  document_templates, generated_documents,
                  holidays, uploaded_files, audit_logs,
-                 notifications, patient_notification_preferences CASCADE
+                 notification_queue, patient_notification_preferences CASCADE
         "#
     )
     .execute(pool)

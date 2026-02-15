@@ -609,7 +609,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let today = Utc::now().date_naive();
     let appointment_types = ["FOLLOW_UP", "CONSULTATION", "NEW_PATIENT", "ROUTINE_CHECKUP", "ACUPUNCTURE"];
-    let appointment_statuses = ["SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"];
+    let _appointment_statuses = ["SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"];
     let mut created_appointments: Vec<(Uuid, Uuid, NaiveDate, String)> = Vec::new();
 
     // Track used time slots to avoid overlaps - (date, hour) ensures no overlap

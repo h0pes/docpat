@@ -5,19 +5,11 @@
  * Sessions are invalidated after 30 minutes of inactivity.
  */
 
-use axum::{
-    body::Body,
-    extract::State,
-    http::{Request, StatusCode},
-    middleware::Next,
-    response::{IntoResponse, Response},
-};
 use chrono::{DateTime, Duration, Utc};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use uuid::Uuid;
 
-use crate::utils::AppError;
 
 /// Session activity tracker
 #[derive(Clone)]

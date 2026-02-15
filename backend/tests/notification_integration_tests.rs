@@ -179,11 +179,11 @@ async fn test_get_email_status_as_doctor() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("status_doc{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -245,11 +245,11 @@ async fn test_create_notification_as_doctor_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("notif_doc{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
 
     let response = app
@@ -298,11 +298,11 @@ async fn test_create_notification_with_appointment() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("appt_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
     let appointment_id = create_test_appointment(&app, &token, patient_id, doctor.id).await;
 
@@ -348,11 +348,11 @@ async fn test_create_notification_invalid_type_fails() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("inv_type{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -420,11 +420,11 @@ async fn test_list_notifications_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("list_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
 
     // Create a notification first
@@ -484,11 +484,11 @@ async fn test_list_notifications_with_filter() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("filter_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     // Create notifications of different types
     for notification_type in ["APPOINTMENT_REMINDER", "CUSTOM"] {
@@ -550,11 +550,11 @@ async fn test_get_notification_by_id_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("get_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     // Create a notification
     let create_response = app
@@ -617,11 +617,11 @@ async fn test_get_nonexistent_notification_returns_404() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("notif_404{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     let fake_id = Uuid::new_v4();
     let response = app
@@ -655,11 +655,11 @@ async fn test_cancel_pending_notification_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("cancel_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     // Create a notification
     let create_response = app
@@ -724,11 +724,11 @@ async fn test_get_notification_statistics_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("stats_notif{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     // Create some notifications
     for _ in 0..3 {
@@ -790,10 +790,10 @@ async fn test_get_notification_statistics_as_admin() {
     let admin = TestUser::create_admin_user(
         &pool,
         &format!("stats_admin{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
     )
     .await;
-    let token = login_and_get_token(&app, &admin.username, "Password123!").await;
+    let token = login_and_get_token(&app, &admin.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -826,11 +826,11 @@ async fn test_get_patient_preferences_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("pref_get{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
 
     let response = app
@@ -870,11 +870,11 @@ async fn test_update_patient_preferences_success() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("pref_update{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
 
     let response = app
@@ -922,11 +922,11 @@ async fn test_update_patient_preferences_invalid_days_fails() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("pref_inv{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
 
     let response = app
@@ -964,11 +964,11 @@ async fn test_get_preferences_nonexistent_patient_returns_404() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("pref_404{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     let fake_patient_id = Uuid::new_v4();
     let response = app
@@ -1005,11 +1005,11 @@ async fn test_send_test_email_as_doctor_forbidden() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("test_email_doc{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -1044,10 +1044,10 @@ async fn test_send_test_email_as_admin() {
     let admin = TestUser::create_admin_user(
         &pool,
         &format!("test_email_admin{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
     )
     .await;
-    let token = login_and_get_token(&app, &admin.username, "Password123!").await;
+    let token = login_and_get_token(&app, &admin.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -1085,10 +1085,10 @@ async fn test_send_test_email_invalid_email_fails() {
     let admin = TestUser::create_admin_user(
         &pool,
         &format!("inv_email_admin{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
     )
     .await;
-    let token = login_and_get_token(&app, &admin.username, "Password123!").await;
+    let token = login_and_get_token(&app, &admin.username, "ValidPass123!").await;
 
     let response = app
         .clone()
@@ -1126,11 +1126,11 @@ async fn test_complete_notification_workflow() {
     let doctor = TestUser::create_active_user(
         &pool,
         &format!("workflow{}", unique_suffix()),
-        "Password123!",
+        "ValidPass123!",
         false,
     )
     .await;
-    let token = login_and_get_token(&app, &doctor.username, "Password123!").await;
+    let token = login_and_get_token(&app, &doctor.username, "ValidPass123!").await;
     let patient_id = create_test_patient(&app, &token).await;
     let appointment_id = create_test_appointment(&app, &token, patient_id, doctor.id).await;
 

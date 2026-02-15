@@ -66,7 +66,7 @@ export function AppointmentCard({
 
   // Get translated status label
   const getStatusLabel = (status: AppointmentStatus): string => {
-    const statusKey = status.toLowerCase().replace('_', '_');
+    const statusKey = status.toLowerCase();
     return t(`appointments.status.${statusKey}`);
   };
 

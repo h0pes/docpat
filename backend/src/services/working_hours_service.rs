@@ -10,7 +10,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::models::working_hours::{
-    parse_time, validate_break_times, validate_time_range, CreateOverrideRequest,
+    validate_break_times, validate_time_range, CreateOverrideRequest,
     DayOfWeek, DefaultWorkingHours, DefaultWorkingHoursResponse, EffectiveHoursQuery,
     EffectiveHoursResponse, EffectiveWorkingHours, ListOverridesResponse, OverrideType,
     OverridesFilter, UpdateAllWorkingHoursRequest, UpdateDayWorkingHoursRequest,

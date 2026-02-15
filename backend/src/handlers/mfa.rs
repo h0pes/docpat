@@ -4,7 +4,7 @@
  * Handles MFA enrollment, setup, and backup code generation.
  */
 
-use axum::{extract::State, Json};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use totp_rs::{Algorithm, Secret, TOTP};
 use uuid::Uuid;
@@ -16,10 +16,14 @@ use crate::{
 };
 
 /// MFA setup request (requires authentication)
+///
+/// The user_id is optional in the request body. If provided, it must match
+/// the authenticated user's ID from the JWT token. If omitted, the JWT user_id
+/// is used automatically. This prevents unauthenticated MFA setup (AUTH-VULN-03).
 #[derive(Debug, Deserialize)]
 pub struct MfaSetupRequest {
-    /// User ID requesting MFA setup
-    pub user_id: Uuid,
+    /// User ID requesting MFA setup (must match authenticated user)
+    pub user_id: Option<Uuid>,
 }
 
 /// MFA setup response with QR code and secret
@@ -36,10 +40,13 @@ pub struct MfaSetupResponse {
 }
 
 /// MFA enrollment request to confirm setup
+///
+/// The user_id is optional. If provided, it must match the authenticated user's
+/// JWT token. If omitted, the JWT user_id is used automatically (AUTH-VULN-14).
 #[derive(Debug, Deserialize)]
 pub struct MfaEnrollRequest {
-    /// User ID enrolling in MFA
-    pub user_id: Uuid,
+    /// User ID enrolling in MFA (must match authenticated user)
+    pub user_id: Option<Uuid>,
     /// TOTP secret from setup step
     pub secret: String,
     /// Verification code from authenticator app
@@ -81,12 +88,23 @@ pub struct MfaEnrollResponse {
 /// ```
 pub async fn mfa_setup_handler(
     State(state): State<AppState>,
+    Extension(auth_user_id): Extension<Uuid>,
     Json(req): Json<MfaSetupRequest>,
 ) -> Result<Json<MfaSetupResponse>> {
-    tracing::info!("MFA setup request for user: {}", req.user_id);
+    // Use authenticated user's ID from JWT; if request body provides user_id, it must match
+    let target_user_id = match req.user_id {
+        Some(id) if id != auth_user_id => {
+            return Err(AppError::Forbidden(
+                "Cannot set up MFA for a different user".to_string(),
+            ));
+        }
+        _ => auth_user_id,
+    };
+
+    tracing::info!("MFA setup request for user: {}", target_user_id);
 
     // Verify user exists and is active
-    let user = User::find_by_id(&state.pool, &req.user_id).await?;
+    let user = User::find_by_id(&state.pool, &target_user_id).await?;
 
     if !user.is_active {
         return Err(AppError::Forbidden("Account is inactive".to_string()));
@@ -105,15 +123,15 @@ pub async fn mfa_setup_handler(
         6,                          // 6-digit codes
         1,                          // 1 time step (30 seconds)
         30,                         // 30 second time step
-        secret.to_bytes().map_err(|e| {
-            tracing::error!("Failed to generate TOTP secret: {:?}", e);
+        secret.to_bytes().map_err(|_| {
+            tracing::error!("Failed to generate TOTP secret");
             AppError::Internal("Failed to generate MFA secret".to_string())
         })?,
         Some(issuer.to_string()),
         account_name.clone(),
     )
-    .map_err(|e| {
-        tracing::error!("Failed to create TOTP: {:?}", e);
+    .map_err(|_| {
+        tracing::error!("Failed to create TOTP configuration");
         AppError::Internal("Failed to create MFA configuration".to_string())
     })?;
 
@@ -161,12 +179,23 @@ pub async fn mfa_setup_handler(
 /// ```
 pub async fn mfa_enroll_handler(
     State(state): State<AppState>,
+    Extension(auth_user_id): Extension<Uuid>,
     Json(req): Json<MfaEnrollRequest>,
 ) -> Result<Json<MfaEnrollResponse>> {
-    tracing::info!("MFA enrollment request for user: {}", req.user_id);
+    // Use authenticated user's ID from JWT; if request body provides user_id, it must match
+    let target_user_id = match req.user_id {
+        Some(id) if id != auth_user_id => {
+            return Err(AppError::Forbidden(
+                "Cannot enroll MFA for a different user".to_string(),
+            ));
+        }
+        _ => auth_user_id,
+    };
+
+    tracing::info!("MFA enrollment request for user: {}", target_user_id);
 
     // Verify user exists
-    let user = User::find_by_id(&state.pool, &req.user_id).await?;
+    let user = User::find_by_id(&state.pool, &target_user_id).await?;
 
     if !user.is_active {
         return Err(AppError::Forbidden("Account is inactive".to_string()));
@@ -175,8 +204,8 @@ pub async fn mfa_enroll_handler(
     // Verify the provided code with the secret
     let secret = Secret::Encoded(req.secret.clone())
         .to_bytes()
-        .map_err(|e| {
-            tracing::error!("Invalid MFA secret format: {:?}", e);
+        .map_err(|_| {
+            tracing::error!("Invalid MFA secret format for user {}", user.id);
             AppError::BadRequest("Invalid MFA secret".to_string())
         })?;
 
@@ -189,14 +218,14 @@ pub async fn mfa_enroll_handler(
         Some("DocPat Medical".to_string()),
         user.username.clone(),
     )
-    .map_err(|e| {
-        tracing::error!("Failed to create TOTP for verification: {:?}", e);
+    .map_err(|_| {
+        tracing::error!("Failed to create TOTP for user {}", user.id);
         AppError::Internal("Failed to verify MFA code".to_string())
     })?;
 
     // Verify the code
-    let is_valid = totp.check_current(&req.code).map_err(|e| {
-        tracing::warn!("MFA verification failed for user {}: {:?}", user.id, e);
+    let is_valid = totp.check_current(&req.code).map_err(|_| {
+        tracing::warn!("MFA verification failed for user {}", user.id);
         AppError::Unauthorized("Invalid MFA code".to_string())
     })?;
 
@@ -212,8 +241,8 @@ pub async fn mfa_enroll_handler(
         .backup_codes
         .iter()
         .map(|code| {
-            PasswordHasherUtil::hash_password(code).map_err(|e| {
-                tracing::error!("Failed to hash backup code: {:?}", e);
+            PasswordHasherUtil::hash_password(code).map_err(|_| {
+                tracing::error!("Failed to hash backup code for user {}", user.id);
                 AppError::Internal("Failed to process backup codes".to_string())
             })
         })
@@ -232,8 +261,8 @@ pub async fn mfa_enroll_handler(
     .bind(&user.id)
     .execute(&state.pool)
     .await
-    .map_err(|e| {
-        tracing::error!("Failed to enable MFA for user {}: {:?}", user.id, e);
+    .map_err(|_| {
+        tracing::error!("Failed to enable MFA for user {}", user.id);
         AppError::Internal("Failed to enable MFA".to_string())
     })?;
 
@@ -258,8 +287,8 @@ fn generate_qr_code(data: &str) -> Result<String> {
     use qrcode::QrCode;
 
     // Generate QR code
-    let code = QrCode::new(data).map_err(|e| {
-        tracing::error!("Failed to generate QR code: {:?}", e);
+    let code = QrCode::new(data).map_err(|_| {
+        tracing::error!("Failed to generate QR code");
         AppError::Internal("Failed to generate QR code".to_string())
     })?;
 
@@ -273,8 +302,8 @@ fn generate_qr_code(data: &str) -> Result<String> {
     let mut png_bytes: Vec<u8> = Vec::new();
     image::DynamicImage::ImageLuma8(image)
         .write_to(&mut std::io::Cursor::new(&mut png_bytes), image::ImageFormat::Png)
-        .map_err(|e| {
-            tracing::error!("Failed to encode QR code as PNG: {:?}", e);
+        .map_err(|_| {
+            tracing::error!("Failed to encode QR code as PNG");
             AppError::Internal("Failed to encode QR code".to_string())
         })?;
 

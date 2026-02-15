@@ -23,7 +23,7 @@ use uuid::Uuid;
 use crate::{
     handlers::auth::AppState,
     models::{
-        AppointmentReportFilter, DiagnosisReportFilter, ExportFormat, ExportReportRequest,
+        AppointmentReportFilter, DiagnosisReportFilter, ExportReportRequest,
         PatientReportFilter, ProductivityReportFilter, ReportType, RevenueReportFilter, UserRole,
     },
     services::{ReportExportService, ReportService},

@@ -336,7 +336,7 @@ impl HolidayService {
 
         if let Some(holiday) = recurring_match {
             // Return a modified response with the queried date
-            let mut response: HolidayResponse = holiday.into();
+            let response: HolidayResponse = holiday.into();
             // Note: We keep the original holiday_date from DB for reference
             return Ok(CheckHolidayResponse {
                 date,
@@ -582,7 +582,7 @@ impl HolidayService {
                     h.holiday_date.month() == month && h.holiday_date.day() == day
                 }) {
                     // Add this recurring holiday for the current date
-                    let mut holiday_response: HolidayResponse = recurring.clone().into();
+                    let holiday_response: HolidayResponse = recurring.clone().into();
                     // Update the date to the actual date in the range
                     // Note: We create a virtual entry for display purposes
                     // The actual DB record keeps its original date

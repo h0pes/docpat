@@ -28,19 +28,15 @@ pub mod visit_version;
 
 pub use appointment::{
     Appointment, AppointmentDto, AppointmentSearchFilter, AppointmentStatistics,
-    AppointmentStatus, AppointmentType, AvailabilityRequest, AvailabilityResponse,
+    AppointmentStatus, AppointmentType, AvailabilityResponse,
     CancelAppointmentRequest, CreateAppointmentRequest, RecurringFrequency, RecurringPattern,
     TimeSlot, UpdateAppointmentRequest,
 };
 pub use audit_log::{AuditAction, AuditLog, CreateAuditLog, EntityType};
 pub use request_context::RequestContext;
 pub use patient::{
-    Address, CreatePatientRequest, EmergencyContact, Gender, Medication, Patient,
-    PatientDto, PatientSearchFilter, PatientStatus, UpdatePatientRequest,
-};
-pub use patient_insurance::{
-    CreateInsuranceRequest, InsuranceType, PatientInsurance, PatientInsuranceDto,
-    PolicyholderRelationship, ProviderAddress, UpdateInsuranceRequest,
+    CreatePatientRequest, Patient,
+    PatientDto, PatientSearchFilter, UpdatePatientRequest,
 };
 pub use user::{User, UserDto, UserRole};
 
@@ -52,16 +48,16 @@ pub struct AuthUser {
     pub role: UserRole,
 }
 pub use visit::{
-    CreateVisitRequest, ReviewOfSystems, UpdateVisitRequest, Visit, VisitResponse, VisitStatus,
-    VisitType, VitalSigns,
+    CreateVisitRequest, UpdateVisitRequest, Visit, VisitResponse, VisitStatus,
+    VisitType,
 };
 pub use visit_diagnosis::{
-    CreateVisitDiagnosisRequest, DiagnosisType, ICD10SearchResult, UpdateVisitDiagnosisRequest,
+    CreateVisitDiagnosisRequest, DiagnosisType, UpdateVisitDiagnosisRequest,
     VisitDiagnosis, VisitDiagnosisResponse,
 };
 pub use prescription::{
-    CreatePrescriptionRequest, DrugInteractionWarning, MedicationForm, MedicationSearchResult,
-    Prescription, PrescriptionResponse, PrescriptionStatus, RouteOfAdministration,
+    CreatePrescriptionRequest, DrugInteractionWarning, MedicationForm,
+    Prescription, PrescriptionResponse, PrescriptionStatus,
     UpdatePrescriptionRequest,
 };
 pub use prescription_template::{
@@ -72,22 +68,21 @@ pub use visit_template::{
     CreateVisitTemplateRequest, UpdateVisitTemplateRequest, VisitTemplate,
     VisitTemplateResponse,
 };
-pub use visit_version::{VisitVersion, VisitVersionResponse, VisitVersionSummary};
+pub use visit_version::{VisitVersionResponse, VisitVersionSummary};
 pub use document_template::{
     CreateDocumentTemplateRequest, DocumentTemplate, DocumentTemplateFilter,
     DocumentTemplateResponse, DocumentTemplateSummary, DocumentType, ListDocumentTemplatesResponse,
     PageOrientation, PageSize, TemplateLanguage, UpdateDocumentTemplateRequest,
 };
 pub use generated_document::{
-    BulkGenerateError, BulkGenerateRequest, BulkGenerateResult, DeliverDocumentRequest,
+    DeliverDocumentRequest,
     DocumentStatistics, DocumentStatus, DocumentStatusCount, DocumentTypeCount,
     GenerateDocumentRequest, GeneratedDocument, GeneratedDocumentFilter,
     GeneratedDocumentResponse, GeneratedDocumentSummary, ListGeneratedDocumentsResponse,
-    SignDocumentRequest,
 };
 pub use report::{
     AgeGroupCount, AppointmentReportFilter, AppointmentUtilizationReport, DailyAppointmentCount,
-    DashboardReport, DateRangeFilter, DayOfWeekCount, DiagnosisCategoryCount, DiagnosisCount,
+    DashboardReport, DayOfWeekCount, DiagnosisCategoryCount, DiagnosisCount,
     DiagnosisReportFilter, DiagnosisTrendsReport, ExportFormat, ExportReportRequest,
     GenderBreakdown, HourlyCount, MonthlyCount, MonthlyDiagnosisCount, NewPatientSummary,
     PatientReportFilter, PatientStatisticsReport, ProductivityReportFilter, ProductivitySummary,
@@ -95,38 +90,14 @@ pub use report::{
     RecentAppointment, RecentVisit, ReportDateRange, ReportType, RevenueReport,
     RevenueReportFilter,
 };
-pub use system_setting::{
-    BulkUpdateSettingsRequest, ListSettingGroupsResponse, ListSettingsResponse, SettingChangeAudit,
-    SettingGroupInfo, SettingsFilter, SettingUpdate, SettingValueType, SystemSetting,
-    SystemSettingResponse, UpdateSettingRequest,
-};
-pub use working_hours::{
-    CreateOverrideRequest, DayOfWeek, DefaultWorkingHours, DefaultWorkingHoursResponse,
-    EffectiveHoursQuery, EffectiveHoursResponse, EffectiveWorkingHours, ListOverridesResponse,
-    OverrideType, OverridesFilter, UpdateAllWorkingHoursRequest, UpdateDayWorkingHoursRequest,
-    UpdateOverrideRequest, WeeklyScheduleResponse, WorkingHoursOverride,
-    WorkingHoursOverrideResponse,
-};
-pub use holiday::{
-    CheckHolidayResponse, CreateHolidayRequest, Holiday, HolidayResponse, HolidayType,
-    HolidaysFilter, ImportHolidaysResponse, ImportNationalHolidaysRequest, ListHolidaysResponse,
-    UpdateHolidayRequest,
-};
 pub use system_health::{
     ApplicationInfo, BackupInfo, BackupStatusFile, BackupStatusResponse, ComponentHealth,
     DatabaseInfo, DatabasePoolMetrics, DatabaseStorageStats, DetailedHealthResponse,
     EnvironmentInfo, FileSystemStats, HealthStatus, ServerInfo, StorageBreakdown,
     StorageStatsResponse, SystemInfoResponse, SystemResources, TableStorageInfo,
 };
-pub use uploaded_file::{
-    FilePurpose, FilesFilter, FileValidationResult, ListFilesResponse, LogoResponse,
-    UpdateFileRequest, UploadedFile, UploadedFileResponse, UploadFileRequest,
-    ALLOWED_DOCUMENT_MIME_TYPES, ALLOWED_IMAGE_MIME_TYPES, ALLOWED_LOGO_MIME_TYPES,
-    MAX_FILE_SIZE, MAX_FILENAME_LENGTH,
-};
 pub use notification::{
-    CreateNotificationRequest, DeliveryMethod, ListNotificationsResponse, Notification,
-    NotificationFilter, NotificationResponse, NotificationStatistics, NotificationStatus,
-    NotificationType, PatientNotificationPreferences, PatientNotificationPreferencesResponse,
+    CreateNotificationRequest, ListNotificationsResponse, Notification,
+    NotificationFilter, NotificationResponse, NotificationStatistics, PatientNotificationPreferences, PatientNotificationPreferencesResponse,
     SendTestEmailRequest, SendTestEmailResponse, UpdateNotificationPreferencesRequest,
 };

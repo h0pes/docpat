@@ -10,13 +10,12 @@
 
 use crate::{
     models::{
-        AuditAction, AuditLog, CreateVisitDiagnosisRequest, DiagnosisType,
+        AuditAction, CreateVisitDiagnosisRequest, DiagnosisType,
         UpdateVisitDiagnosisRequest, VisitDiagnosis, VisitDiagnosisResponse,
     },
     utils::encryption::EncryptionKey,
 };
 use anyhow::{Context, Result};
-use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -551,7 +550,7 @@ impl VisitDiagnosisService {
     async fn log_audit(
         &self,
         diagnosis_id: Uuid,
-        patient_id: Uuid,
+        _patient_id: Uuid,
         action: AuditAction,
         user_id: Uuid,
         details: Option<String>,
