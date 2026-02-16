@@ -1214,8 +1214,11 @@ Run this on the machine where you've already built the Docker images:
 ```bash
 cd /opt/docpat  # or wherever your repo is
 
-# Ensure all images are built
+# Build the 3 application images (backend, frontend, nginx)
 docker compose --profile with-nginx build
+
+# Pull the PostgreSQL image (not built by compose, only referenced by image name)
+docker pull postgres:18-alpine
 
 # Create the distribution bundle
 ./scripts/create-bundle.sh
@@ -1223,8 +1226,10 @@ docker compose --profile with-nginx build
 # Output: docpat-bundle-YYYYMMDD.tar.gz (approximately 500MB-1GB)
 ```
 
+**Note:** `docker compose build` only builds services with a `build:` directive (backend, frontend, nginx). The PostgreSQL service uses a pre-built image (`postgres:18-alpine`) which must be pulled separately. The bundle script requires all 4 images to be present locally.
+
 This creates a self-contained archive with:
-- All 4 Docker images (pre-built)
+- All 4 Docker images (3 built + 1 pulled)
 - docker-compose.yml
 - Configuration files
 - Database migrations

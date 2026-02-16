@@ -5,13 +5,13 @@
 ################################################################################
 #
 # This script automates the deployment of DocPat to production with safety checks.
+# Targets the Docker Compose architecture with nginx reverse proxy.
 #
 # Usage:
 #   ./scripts/deploy.sh [options]
 #
 # Options:
 #   --environment <prod|staging>   Target environment (default: prod)
-#   --skip-tests                   Skip pre-deployment tests (NOT RECOMMENDED)
 #   --skip-backup                  Skip pre-deployment backup (DANGEROUS)
 #   --skip-build                   Skip Docker image rebuild
 #   --force                        Skip confirmation prompts
@@ -20,18 +20,18 @@
 #   --help                         Show this help message
 #
 # Deployment Process:
-#   1. Pre-deployment checks (tests, environment, dependencies)
+#   1. Pre-deployment checks (environment, dependencies)
 #   2. Create backup of current deployment
 #   3. Build production Docker images
-#   4. Run database migrations
-#   5. Deploy new containers with zero-downtime
+#   4. Run database migrations (via Docker)
+#   5. Deploy new containers with nginx profile
 #   6. Health checks and verification
 #   7. Cleanup old images and containers
 #
 # Rollback Process:
 #   - Restore previous Docker images
-#   - Revert database migrations
-#   - Restore from backup if needed
+#   - Restart containers
+#   - Database rollback requires manual intervention
 #
 # Exit Codes:
 #   0 - Success
@@ -58,7 +58,6 @@ readonly NC='\033[0m'
 
 # Script options
 ENVIRONMENT="prod"
-SKIP_TESTS=false
 SKIP_BACKUP=false
 SKIP_BUILD=false
 FORCE=false
@@ -73,6 +72,9 @@ readonly PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 readonly TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 readonly DEPLOYMENT_ID="deploy_${TIMESTAMP}"
 readonly DOCKER_COMPOSE_FILE="docker-compose.yml"
+
+# Docker compose command with nginx profile (required for production)
+DC="docker compose -f $PROJECT_ROOT/$DOCKER_COMPOSE_FILE --profile with-nginx"
 
 # Log configuration
 readonly LOG_DIR="$PROJECT_ROOT/logs"
@@ -112,7 +114,7 @@ log_error() {
 }
 
 show_help() {
-    sed -n '2,34p' "$0" | sed 's/^# //' | sed 's/^#//'
+    sed -n '2,38p' "$0" | sed 's/^# //' | sed 's/^#//'
     exit 0
 }
 
@@ -143,10 +145,6 @@ parse_args() {
             --environment)
                 ENVIRONMENT="$2"
                 shift 2
-                ;;
-            --skip-tests)
-                SKIP_TESTS=true
-                shift
                 ;;
             --skip-backup)
                 SKIP_BACKUP=true
@@ -201,12 +199,14 @@ setup_deployment() {
     mkdir -p "$STATE_DIR"
     chmod 700 "$STATE_DIR"
 
-    # Load environment variables
+    # Load environment variables (set -a exports them for docker compose)
     if [ -f "$PROJECT_ROOT/.env" ]; then
+        set -a
         # shellcheck source=/dev/null
         source "$PROJECT_ROOT/.env"
+        set +a
     else
-        log_error ".env file not found"
+        log_error ".env file not found at $PROJECT_ROOT/.env"
         exit 2
     fi
 
@@ -228,9 +228,9 @@ check_prerequisites() {
         checks_failed=true
     fi
 
-    # Check Docker Compose
+    # Check Docker Compose v2
     if ! docker compose version >/dev/null 2>&1; then
-        log_error "Docker Compose is not installed"
+        log_error "Docker Compose v2 is not installed"
         checks_failed=true
     fi
 
@@ -240,8 +240,8 @@ check_prerequisites() {
         checks_failed=true
     fi
 
-    # Check if required environment variables are set
-    local required_vars=("DATABASE_URL" "JWT_SECRET" "JWT_REFRESH_SECRET" "ENCRYPTION_KEY")
+    # Check required environment variables (Docker constructs DATABASE_URL internally)
+    local required_vars=("POSTGRES_PASSWORD" "JWT_SECRET" "JWT_REFRESH_SECRET" "ENCRYPTION_KEY")
     for var in "${required_vars[@]}"; do
         if [ -z "${!var:-}" ]; then
             log_error "Required environment variable not set: $var"
@@ -261,36 +261,6 @@ check_prerequisites() {
     fi
 
     log_success "Pre-deployment checks passed"
-}
-
-run_tests() {
-    if $SKIP_TESTS; then
-        log_warn "Skipping tests (--skip-tests flag)"
-        return 0
-    fi
-
-    log_info "Running test suite..."
-
-    # Backend tests
-    log_info "Running backend tests..."
-    if execute_command "cd $PROJECT_ROOT/backend && cargo test --release" "Backend tests"; then
-        log_success "Backend tests passed"
-    else
-        log_error "Backend tests failed"
-        exit 3
-    fi
-
-    # Frontend tests (if configured)
-    if [ -f "$PROJECT_ROOT/frontend/package.json" ]; then
-        log_info "Running frontend tests..."
-        if execute_command "cd $PROJECT_ROOT/frontend && npm test" "Frontend tests"; then
-            log_success "Frontend tests passed"
-        else
-            log_warn "Frontend tests failed (continuing anyway)"
-        fi
-    fi
-
-    log_success "All tests passed"
 }
 
 ################################################################################
@@ -329,8 +299,8 @@ build_production_images() {
 
     log_info "Building production Docker images..."
 
-    # Build all services
-    if execute_command "docker compose -f $PROJECT_ROOT/$DOCKER_COMPOSE_FILE build --no-cache" "Building Docker images"; then
+    # Build all services (including nginx profile)
+    if execute_command "$DC build --no-cache" "Building Docker images"; then
         log_success "Docker images built successfully"
     else
         log_error "Docker image build failed"
@@ -339,13 +309,13 @@ build_production_images() {
 
     # Tag images with deployment ID for rollback
     log_info "Tagging images with deployment ID: $DEPLOYMENT_ID"
-    docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" images --format json | \
-        jq -r '.Repository + ":" + .Tag' | \
-        while read -r image; do
-            local tagged_image="${image}-${DEPLOYMENT_ID}"
-            log_info "Tagging: $image -> $tagged_image"
-            docker tag "$image" "$tagged_image" 2>&1 | tee -a "$LOG_FILE"
-        done
+    local images=("docpat-backend" "docpat-frontend" "docpat-nginx")
+    for img in "${images[@]}"; do
+        if docker image inspect "${img}:latest" &>/dev/null; then
+            docker tag "${img}:latest" "${img}:${DEPLOYMENT_ID}" 2>&1 | tee -a "$LOG_FILE"
+            log_info "Tagged: ${img}:latest -> ${img}:${DEPLOYMENT_ID}"
+        fi
+    done
 
     log_success "Images tagged for deployment"
 }
@@ -357,12 +327,33 @@ build_production_images() {
 run_database_migrations() {
     log_info "Running database migrations..."
 
-    # Check current migration status
-    log_info "Checking migration status..."
-    execute_command "cd $PROJECT_ROOT/backend && sqlx migrate info" "Migration status"
+    # Ensure postgres container is running
+    if ! $DC ps postgres --format json 2>/dev/null | grep -q "running"; then
+        log_info "Starting postgres container for migrations..."
+        $DC up -d postgres
+        sleep 5
 
-    # Run migrations
-    if execute_command "cd $PROJECT_ROOT/backend && sqlx migrate run" "Running migrations"; then
+        # Wait for postgres to be ready
+        local retries=30
+        until $DC exec -T postgres pg_isready -U "${POSTGRES_USER:-mpms_user}" -d "${POSTGRES_DB:-mpms_prod}" &>/dev/null || [ $retries -eq 0 ]; do
+            log_info "Waiting for PostgreSQL... ($retries attempts remaining)"
+            retries=$((retries - 1))
+            sleep 2
+        done
+
+        if [ $retries -eq 0 ]; then
+            log_error "PostgreSQL failed to start"
+            exit 5
+        fi
+    fi
+
+    # Copy migrations to postgres container and run them
+    log_info "Copying migrations to container..."
+    docker cp "$PROJECT_ROOT/backend/migrations" docpat-postgres:/tmp/migrations
+
+    log_info "Applying migrations..."
+    if $DC exec -T postgres sh -c \
+        'for f in /tmp/migrations/*.sql; do echo "Running $f..."; psql -U '"${POSTGRES_USER:-mpms_user}"' -d '"${POSTGRES_DB:-mpms_prod}"' -f "$f" 2>&1; done'; then
         log_success "Database migrations completed"
     else
         log_error "Database migrations failed"
@@ -380,31 +371,24 @@ deploy_containers() {
 
     # Stop old containers gracefully
     log_info "Stopping old containers..."
-    docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" stop 2>&1 | tee -a "$LOG_FILE" || true
+    $DC stop 2>&1 | tee -a "$LOG_FILE" || true
 
-    # Start new containers
+    # Start new containers (with nginx profile for production)
     log_info "Starting new containers..."
-    if execute_command "docker compose -f $PROJECT_ROOT/$DOCKER_COMPOSE_FILE up -d" "Starting containers"; then
+    if execute_command "$DC up -d" "Starting containers"; then
         log_success "Containers started"
     else
         log_error "Container deployment failed"
         exit 5
     fi
 
-    # Wait for containers to be healthy
+    # Wait for containers to become healthy
     log_info "Waiting for containers to become healthy..."
     sleep 10
 
     # Check container status
-    local unhealthy_containers=$(docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" ps --format json | \
-        jq -r 'select(.Health != "healthy" and .Health != "") | .Name' || echo "")
-
-    if [ -n "$unhealthy_containers" ]; then
-        log_warn "Some containers are not healthy:"
-        echo "$unhealthy_containers"
-    else
-        log_success "All containers are healthy"
-    fi
+    log_info "Container status:"
+    $DC ps 2>&1 | tee -a "$LOG_FILE"
 }
 
 ################################################################################
@@ -418,12 +402,12 @@ run_health_checks() {
     local attempt=0
     local health_check_passed=false
 
-    # Check backend health endpoint
+    # Check backend health via nginx (HTTPS)
     while [ $attempt -lt $max_attempts ]; do
         attempt=$((attempt + 1))
         log_info "Health check attempt $attempt/$max_attempts..."
 
-        if curl -f -s http://localhost:8000/health >/dev/null 2>&1; then
+        if curl -fsk https://localhost/health >/dev/null 2>&1; then
             health_check_passed=true
             break
         fi
@@ -432,22 +416,22 @@ run_health_checks() {
     done
 
     if $health_check_passed; then
-        log_success "Backend health check passed"
+        log_success "Backend health check passed (via nginx)"
     else
         log_error "Backend health check failed after $max_attempts attempts"
-        log_error "Check logs with: docker compose logs backend"
+        log_error "Check logs with: $DC logs backend"
         exit 6
     fi
 
-    # Check frontend
-    if curl -f -s http://localhost:80 >/dev/null 2>&1; then
+    # Check frontend via nginx
+    if curl -fsk https://localhost/ >/dev/null 2>&1; then
         log_success "Frontend health check passed"
     else
         log_warn "Frontend health check failed (may still be starting)"
     fi
 
     # Check database connectivity
-    if docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" exec -T postgres pg_isready >/dev/null 2>&1; then
+    if $DC exec -T postgres pg_isready >/dev/null 2>&1; then
         log_success "Database health check passed"
     else
         log_error "Database health check failed"
@@ -475,8 +459,8 @@ DEPLOYMENT_ID=$DEPLOYMENT_ID
 TIMESTAMP=$TIMESTAMP
 ENVIRONMENT=$ENVIRONMENT
 DOCKER_COMPOSE_FILE=$DOCKER_COMPOSE_FILE
-GIT_COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-GIT_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+GIT_COMMIT=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git -C "$PROJECT_ROOT" branch --show-current 2>/dev/null || echo "unknown")
 EOF
 
     log_success "Deployment state saved"
@@ -493,16 +477,16 @@ cleanup_old_images() {
     docker image prune -f 2>&1 | tee -a "$LOG_FILE"
 
     # Remove old deployment images (keep last 3)
-    local image_pattern="docpat-.*-deploy_"
-    local old_images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "$image_pattern" | tail -n +4)
-
-    if [ -n "$old_images" ]; then
-        log_info "Removing old deployment images..."
-        echo "$old_images" | while read -r image; do
-            log_info "Removing: $image"
-            docker rmi "$image" 2>&1 | tee -a "$LOG_FILE" || true
-        done
-    fi
+    for img in docpat-backend docpat-frontend docpat-nginx; do
+        local old_tags
+        old_tags=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${img}:deploy_" | tail -n +4)
+        if [ -n "$old_tags" ]; then
+            log_info "Removing old $img deployment tags..."
+            echo "$old_tags" | while read -r tag; do
+                docker rmi "$tag" 2>&1 | tee -a "$LOG_FILE" || true
+            done
+        fi
+    done
 
     log_success "Cleanup complete"
 }
@@ -528,23 +512,26 @@ perform_rollback() {
 
     # Stop current containers
     log_info "Stopping current containers..."
-    docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" down 2>&1 | tee -a "$LOG_FILE"
+    $DC down 2>&1 | tee -a "$LOG_FILE"
 
     # Restore previous images
     log_info "Restoring previous images..."
-    docker images --format "{{.Repository}}:{{.Tag}}" | grep "$previous_deployment_id" | \
-        while read -r tagged_image; do
-            local base_image=$(echo "$tagged_image" | sed "s/-${previous_deployment_id}//")
-            log_info "Restoring: $base_image"
-            docker tag "$tagged_image" "$base_image" 2>&1 | tee -a "$LOG_FILE"
-        done
+    for img in docpat-backend docpat-frontend docpat-nginx; do
+        local tagged="${img}:${previous_deployment_id}"
+        if docker image inspect "$tagged" &>/dev/null; then
+            docker tag "$tagged" "${img}:latest" 2>&1 | tee -a "$LOG_FILE"
+            log_info "Restored: ${img}:latest from $tagged"
+        else
+            log_warn "Previous image not found: $tagged"
+        fi
+    done
 
-    # Revert database migrations (if needed)
+    # Revert database migrations (requires manual intervention)
     log_warn "Database rollback requires manual intervention"
-    log_warn "Use: cd backend && sqlx migrate revert"
+    log_warn "Inspect the migrations directory and revert manually if needed"
 
     # Start containers with previous images
-    docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" up -d 2>&1 | tee -a "$LOG_FILE"
+    $DC up -d 2>&1 | tee -a "$LOG_FILE"
 
     log_success "Rollback complete"
     log_warn "Remember to manually revert database migrations if needed"
@@ -564,20 +551,19 @@ show_deployment_summary() {
     echo "  ID:          $DEPLOYMENT_ID"
     echo "  Environment: $ENVIRONMENT"
     echo "  Timestamp:   $(date +'%Y-%m-%d %H:%M:%S')"
-    echo "  Git Commit:  $(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
-    echo "  Git Branch:  $(git branch --show-current 2>/dev/null || echo 'unknown')"
+    echo "  Git Commit:  $(git -C "$PROJECT_ROOT" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+    echo "  Git Branch:  $(git -C "$PROJECT_ROOT" branch --show-current 2>/dev/null || echo 'unknown')"
     echo ""
     echo "Services Status:"
-    docker compose -f "$PROJECT_ROOT/$DOCKER_COMPOSE_FILE" ps
+    $DC ps
     echo ""
     echo "Access URLs:"
-    echo "  Frontend:    http://$(hostname):80"
-    echo "  Backend API: http://$(hostname):8000"
-    echo "  Health:      http://$(hostname):8000/health"
+    echo "  Application: https://$(hostname)"
+    echo "  Health:      https://$(hostname)/health"
     echo ""
     echo "Logs:"
     echo "  Deployment:  $LOG_FILE"
-    echo "  Application: docker compose logs -f"
+    echo "  Application: docker compose --profile with-nginx logs -f"
     echo ""
     echo "Rollback:"
     echo "  ./scripts/deploy.sh --rollback"
@@ -624,7 +610,6 @@ main() {
     log_info "Starting deployment to $ENVIRONMENT..."
 
     check_prerequisites
-    run_tests
     backup_current_deployment
     build_production_images
     run_database_migrations

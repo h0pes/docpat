@@ -4,7 +4,8 @@
 # Medical Practice Management System - Automated Backup Script
 ################################################################################
 #
-# This script creates encrypted backups of the DocPat database and files.
+# This script creates backups of the DocPat database and files.
+# Supports both Docker and local PostgreSQL deployment modes.
 # Complies with HIPAA requirements for data protection and retention.
 #
 # Usage:
@@ -14,15 +15,16 @@
 #   --type <daily|monthly|yearly>  Backup type (default: daily)
 #   --db-only                      Backup only the database
 #   --files-only                   Backup only files
-#   --no-encrypt                   Skip GPG encryption (NOT RECOMMENDED)
+#   --no-encrypt                   Skip GPG encryption
 #   --verify                       Verify backup after creation
+#   --docker                       Force Docker mode
+#   --local                        Force local mode
 #   --config <path>                Use custom backup configuration file
 #   --help                         Show this help message
 #
 # Environment Variables:
 #   BACKUP_DIR                     Base directory for backups (default: /var/backups/docpat)
-#   DATABASE_URL                   PostgreSQL connection string
-#   GPG_RECIPIENT                  GPG key ID or email for encryption
+#   GPG_RECIPIENT                  GPG key ID or email for encryption (optional)
 #   RETENTION_DAILY                Number of daily backups to keep (default: 30)
 #   RETENTION_MONTHLY              Number of monthly backups to keep (default: 12)
 #   RETENTION_YEARLY               Number of yearly backups to keep (default: 7)
@@ -59,6 +61,7 @@ DB_ONLY=false
 FILES_ONLY=false
 NO_ENCRYPT=false
 VERIFY_BACKUP=false
+FORCE_MODE=""
 CONFIG_FILE=""
 
 # Project paths
@@ -75,12 +78,18 @@ GPG_RECIPIENT="${GPG_RECIPIENT:-}"
 # Backup metadata
 readonly TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 readonly DATE_DAILY=$(date +"%Y-%m-%d")
-readonly DATE_MONTHLY=$(date +"%Y-%m")
-readonly DATE_YEARLY=$(date +"%Y")
 
 # Log file
 readonly LOG_DIR="$BACKUP_DIR/logs"
-readonly LOG_FILE="$LOG_DIR/backup_${TIMESTAMP}.log"
+LOG_FILE=""  # Set in setup_directories after mkdir
+
+# Deployment mode and DB credentials (set during load_configuration)
+DEPLOY_MODE=""
+DB_HOST=""
+DB_PORT=""
+DB_NAME=""
+DB_USER=""
+DB_PASS=""
 
 ################################################################################
 # Helper Functions
@@ -89,29 +98,29 @@ readonly LOG_FILE="$LOG_DIR/backup_${TIMESTAMP}.log"
 log_info() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [INFO] $1"
     echo -e "${BLUE}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_success() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [SUCCESS] $1"
     echo -e "${GREEN}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_warn() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [WARN] $1"
     echo -e "${YELLOW}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_error() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [ERROR] $1"
     echo -e "${RED}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 show_help() {
-    sed -n '2,34p' "$0" | sed 's/^# //' | sed 's/^#//'
+    sed -n '2,38p' "$0" | sed 's/^# //' | sed 's/^#//'
     exit 0
 }
 
@@ -142,6 +151,14 @@ parse_args() {
                 VERIFY_BACKUP=true
                 shift
                 ;;
+            --docker)
+                FORCE_MODE="docker"
+                shift
+                ;;
+            --local)
+                FORCE_MODE="local"
+                shift
+                ;;
             --config)
                 CONFIG_FILE="$2"
                 shift 2
@@ -165,6 +182,27 @@ parse_args() {
 }
 
 ################################################################################
+# Detect Deployment Mode
+################################################################################
+
+detect_mode() {
+    if [ -n "$FORCE_MODE" ]; then
+        echo "$FORCE_MODE"
+        return
+    fi
+
+    # Check if Docker containers are running
+    if docker compose -f "$PROJECT_ROOT/docker-compose.yml" ps --format json 2>/dev/null | grep -q "docpat-postgres"; then
+        echo "docker"
+    elif command -v psql &>/dev/null; then
+        echo "local"
+    else
+        log_error "Cannot detect mode: no Docker containers running and psql not found"
+        exit 2
+    fi
+}
+
+################################################################################
 # Configuration
 ################################################################################
 
@@ -178,47 +216,64 @@ load_configuration() {
         source "$CONFIG_FILE"
     fi
 
-    # Load environment from .env file
-    if [ -f "$PROJECT_ROOT/.env" ]; then
-        # shellcheck source=/dev/null
-        source "$PROJECT_ROOT/.env"
+    # Detect deployment mode
+    DEPLOY_MODE=$(detect_mode)
+    log_info "Deployment mode: $DEPLOY_MODE"
+
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # Docker mode: read credentials from root .env
+        if [ -f "$PROJECT_ROOT/.env" ]; then
+            set -a
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/.env"
+            set +a
+        fi
+        DB_USER="${POSTGRES_USER:-mpms_user}"
+        DB_NAME="${POSTGRES_DB:-mpms_prod}"
+        DB_PASS="${POSTGRES_PASSWORD:-}"
+        DB_HOST="postgres"  # Docker service name (used only for reference)
+        DB_PORT="5432"
+    else
+        # Local mode: read from backend/.env or root .env
+        if [ -f "$PROJECT_ROOT/.env" ]; then
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/.env"
+        fi
+        if [ -f "$PROJECT_ROOT/backend/.env" ]; then
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/backend/.env"
+        fi
+
+        if [ -n "${DATABASE_URL:-}" ]; then
+            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+            DB_PASS=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+        else
+            DB_HOST="localhost"
+            DB_PORT="5432"
+            DB_NAME="mpms_dev"
+            DB_USER="mpms_user"
+            DB_PASS="${POSTGRES_PASSWORD:-dev_password_change_in_production}"
+        fi
     fi
 
-    if [ -f "$PROJECT_ROOT/backend/.env" ]; then
-        # shellcheck source=/dev/null
-        source "$PROJECT_ROOT/backend/.env"
+    # GPG encryption: optional — warn if not configured but don't fail
+    if ! $NO_ENCRYPT && [ -z "$GPG_RECIPIENT" ]; then
+        log_warn "GPG_RECIPIENT not set - backups will NOT be encrypted"
+        log_warn "Set GPG_RECIPIENT in .env for encrypted backups (recommended for production)"
+        NO_ENCRYPT=true
     fi
 
-    # Validate DATABASE_URL
-    if [ -z "${DATABASE_URL:-}" ]; then
-        log_error "DATABASE_URL not set. Please configure in backend/.env"
-        exit 2
-    fi
-
-    # Extract database connection details
-    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-    DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-    DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
-    DB_PASS=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
-
-    # Validate GPG key if encryption is enabled
     if ! $NO_ENCRYPT; then
-        if [ -z "$GPG_RECIPIENT" ]; then
-            log_error "GPG_RECIPIENT not set. Please configure GPG key for encryption"
-            log_error "Generate a key with: gpg --gen-key"
-            log_error "Then set GPG_RECIPIENT=<your-email> in .env"
-            exit 2
-        fi
-
-        # Check if GPG key exists
         if ! gpg --list-keys "$GPG_RECIPIENT" >/dev/null 2>&1; then
-            log_error "GPG key not found for recipient: $GPG_RECIPIENT"
-            exit 2
+            log_warn "GPG key not found for recipient: $GPG_RECIPIENT - skipping encryption"
+            NO_ENCRYPT=true
         fi
     fi
 
-    log_success "Configuration loaded successfully"
+    log_success "Configuration loaded (mode=$DEPLOY_MODE, db=$DB_NAME)"
 }
 
 ################################################################################
@@ -230,7 +285,7 @@ setup_directories() {
 
     # Create base backup directory
     mkdir -p "$BACKUP_DIR"
-    chmod 700 "$BACKUP_DIR"  # Restricted permissions for security
+    chmod 700 "$BACKUP_DIR"
 
     # Create backup type directories
     mkdir -p "$BACKUP_DIR/daily"
@@ -240,6 +295,9 @@ setup_directories() {
     # Create log directory
     mkdir -p "$LOG_DIR"
     chmod 700 "$LOG_DIR"
+
+    # Set log file now that directory exists
+    LOG_FILE="$LOG_DIR/backup_${TIMESTAMP}.log"
 
     # Create temporary directory for this backup
     readonly TEMP_DIR=$(mktemp -d -p "$BACKUP_DIR" backup.XXXXXX)
@@ -261,26 +319,48 @@ backup_database() {
     log_info "Starting database backup..."
     local db_backup_file="$TEMP_DIR/database_${TIMESTAMP}.sql"
 
-    # Use pg_dump with compression
-    export PGPASSWORD="$DB_PASS"
-    if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-        --format=custom \
-        --compress=9 \
-        --verbose \
-        --file="$db_backup_file" 2>&1 | tee -a "$LOG_FILE"; then
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # Docker mode: use docker compose exec
+        log_info "Backing up database via Docker..."
+        if docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+            pg_dump -U "$DB_USER" -d "$DB_NAME" \
+            --format=custom \
+            --compress=9 \
+            --verbose 2>&1 > "$db_backup_file" | tee -a "$LOG_FILE"; then
 
-        local db_size=$(du -h "$db_backup_file" | cut -f1)
-        log_success "Database backup created: $db_size"
-
-        # Calculate and store checksum
-        sha256sum "$db_backup_file" > "$db_backup_file.sha256"
-        log_info "Database backup checksum: $(cat "$db_backup_file.sha256" | cut -d' ' -f1)"
+            local db_size
+            db_size=$(du -h "$db_backup_file" | cut -f1)
+            log_success "Database backup created: $db_size"
+        else
+            log_error "Database backup failed"
+            cleanup
+            exit 3
+        fi
     else
-        log_error "Database backup failed"
-        cleanup
-        exit 3
+        # Local mode: use pg_dump directly
+        log_info "Backing up database locally..."
+        export PGPASSWORD="$DB_PASS"
+        if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            --format=custom \
+            --compress=9 \
+            --verbose \
+            --file="$db_backup_file" 2>&1 | tee -a "$LOG_FILE"; then
+
+            local db_size
+            db_size=$(du -h "$db_backup_file" | cut -f1)
+            log_success "Database backup created: $db_size"
+        else
+            log_error "Database backup failed"
+            unset PGPASSWORD
+            cleanup
+            exit 3
+        fi
+        unset PGPASSWORD
     fi
-    unset PGPASSWORD
+
+    # Calculate and store checksum
+    sha256sum "$db_backup_file" > "$db_backup_file.sha256"
+    log_info "Database backup checksum stored"
 }
 
 ################################################################################
@@ -297,15 +377,27 @@ backup_files() {
     local files_backup="$TEMP_DIR/files_${TIMESTAMP}.tar.gz"
 
     # List of directories to backup
-    local backup_items=(
-        "$PROJECT_ROOT/backend/migrations"
-        "$PROJECT_ROOT/infrastructure"
-        "$PROJECT_ROOT/docs"
-    )
+    local backup_items=()
 
-    # Add uploads directory if it exists
+    # Always backup migrations and infrastructure config
+    [ -d "$PROJECT_ROOT/backend/migrations" ] && backup_items+=("$PROJECT_ROOT/backend/migrations")
+    [ -d "$PROJECT_ROOT/infrastructure" ] && backup_items+=("$PROJECT_ROOT/infrastructure")
+    [ -d "$PROJECT_ROOT/docs" ] && backup_items+=("$PROJECT_ROOT/docs")
+
+    # Backup data directory if it exists (Docker volume bind-mount)
+    local data_dir="${DATA_DIR:-$PROJECT_ROOT/data}"
+    if [ -d "$data_dir" ]; then
+        backup_items+=("$data_dir")
+    fi
+
+    # Add uploads directory if it exists (local mode)
     if [ -d "$PROJECT_ROOT/uploads" ]; then
         backup_items+=("$PROJECT_ROOT/uploads")
+    fi
+
+    if [ ${#backup_items[@]} -eq 0 ]; then
+        log_warn "No files to backup"
+        return 0
     fi
 
     # Create tar archive with compression
@@ -316,12 +408,13 @@ backup_files() {
         --exclude='.git' \
         "${backup_items[@]}" 2>&1 | tee -a "$LOG_FILE"; then
 
-        local files_size=$(du -h "$files_backup" | cut -f1)
+        local files_size
+        files_size=$(du -h "$files_backup" | cut -f1)
         log_success "File backup created: $files_size"
 
         # Calculate and store checksum
         sha256sum "$files_backup" > "$files_backup.sha256"
-        log_info "File backup checksum: $(cat "$files_backup.sha256" | cut -d' ' -f1)"
+        log_info "File backup checksum stored"
     else
         log_error "File backup failed"
         cleanup
@@ -335,7 +428,7 @@ backup_files() {
 
 encrypt_backups() {
     if $NO_ENCRYPT; then
-        log_warn "Skipping encryption (--no-encrypt flag) - NOT RECOMMENDED FOR PRODUCTION"
+        log_warn "Skipping encryption (GPG not configured or --no-encrypt flag)"
         return 0
     fi
 
@@ -396,6 +489,7 @@ DocPat Backup Manifest
 Backup Type:    $BACKUP_TYPE
 Timestamp:      $(date +'%Y-%m-%d %H:%M:%S')
 Database:       $DB_NAME
+Deploy Mode:    $DEPLOY_MODE
 Host:           $(hostname)
 Encrypted:      $(if $NO_ENCRYPT; then echo "No"; else echo "Yes (GPG: $GPG_RECIPIENT)"; fi)
 
@@ -410,6 +504,7 @@ EOF
     echo "Backup Summary:"
     echo "  Location: $final_dir"
     echo "  Type:     $BACKUP_TYPE"
+    echo "  Mode:     $DEPLOY_MODE"
     echo "  Size:     $(du -sh "$final_dir" | cut -f1)"
     echo "  Files:    $(ls -1 "$final_dir" | wc -l)"
     echo ""
@@ -433,7 +528,8 @@ verify_backup() {
     # Verify checksums
     for checksum_file in "$final_dir"/*.sha256; do
         if [ -f "$checksum_file" ]; then
-            local original_file=$(basename "$checksum_file" .sha256)
+            local original_file
+            original_file=$(basename "$checksum_file" .sha256)
             log_info "Verifying checksum for: $original_file"
 
             if (cd "$final_dir" && sha256sum -c "$(basename "$checksum_file")" 2>&1 | tee -a "$LOG_FILE"); then
@@ -472,7 +568,8 @@ cleanup_old_backups() {
     log_info "Applying retention policy..."
 
     # Daily backups: keep RETENTION_DAILY
-    local daily_count=$(ls -1d "$BACKUP_DIR/daily"/backup_* 2>/dev/null | wc -l)
+    local daily_count
+    daily_count=$(ls -1d "$BACKUP_DIR/daily"/backup_* 2>/dev/null | wc -l)
     if [ "$daily_count" -gt "$RETENTION_DAILY" ]; then
         local to_delete=$((daily_count - RETENTION_DAILY))
         log_info "Removing $to_delete old daily backup(s)..."
@@ -483,7 +580,8 @@ cleanup_old_backups() {
     fi
 
     # Monthly backups: keep RETENTION_MONTHLY
-    local monthly_count=$(ls -1d "$BACKUP_DIR/monthly"/backup_* 2>/dev/null | wc -l)
+    local monthly_count
+    monthly_count=$(ls -1d "$BACKUP_DIR/monthly"/backup_* 2>/dev/null | wc -l)
     if [ "$monthly_count" -gt "$RETENTION_MONTHLY" ]; then
         local to_delete=$((monthly_count - RETENTION_MONTHLY))
         log_info "Removing $to_delete old monthly backup(s)..."
@@ -494,7 +592,8 @@ cleanup_old_backups() {
     fi
 
     # Yearly backups: keep RETENTION_YEARLY
-    local yearly_count=$(ls -1d "$BACKUP_DIR/yearly"/backup_* 2>/dev/null | wc -l)
+    local yearly_count
+    yearly_count=$(ls -1d "$BACKUP_DIR/yearly"/backup_* 2>/dev/null | wc -l)
     if [ "$yearly_count" -gt "$RETENTION_YEARLY" ]; then
         local to_delete=$((yearly_count - RETENTION_YEARLY))
         log_info "Removing $to_delete old yearly backup(s)..."
@@ -531,8 +630,8 @@ main() {
     echo ""
 
     parse_args "$@"
-    load_configuration
     setup_directories
+    load_configuration
 
     log_info "Starting backup process..."
     log_info "Backup type: $BACKUP_TYPE"

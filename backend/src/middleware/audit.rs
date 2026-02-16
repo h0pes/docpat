@@ -39,7 +39,7 @@ pub struct AuditLogEntry {
     /// Action being performed (HTTP method + path)
     pub action: String,
     /// Entity type being accessed (extracted from path)
-    pub entity_type: Option<String>,
+    pub entity_type: String,
     /// Entity ID being accessed (extracted from path)
     pub entity_id: Option<String>,
     /// Changes made (for POST/PUT/DELETE requests)
@@ -129,20 +129,21 @@ impl AuditLogEntry {
 /// Extract entity type and ID from a path
 ///
 /// Examples:
-/// - `/api/v1/patients/123` -> (Some("patients"), Some("123"))
-/// - `/api/v1/appointments` -> (Some("appointments"), None)
-/// - `/health` -> (None, None)
-fn extract_entity_from_path(path: &str) -> (Option<String>, Option<String>) {
+/// - `/api/v1/patients/123` -> ("patients", Some("123"))
+/// - `/api/v1/appointments` -> ("appointments", None)
+/// - `/health` -> ("SYSTEM", None)
+fn extract_entity_from_path(path: &str) -> (String, Option<String>) {
     let parts: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
 
     // Look for API paths: /api/v1/{entity_type}/{entity_id?}
     if parts.len() >= 3 && parts[0] == "api" && parts[1] == "v1" {
-        let entity_type = Some(parts[2].to_string());
+        let entity_type = parts[2].to_string();
         let entity_id = parts.get(3).map(|s| s.to_string());
         return (entity_type, entity_id);
     }
 
-    (None, None)
+    // Fallback for non-API paths (should rarely be reached due to middleware skip)
+    ("SYSTEM".to_string(), None)
 }
 
 /// Audit logging middleware
@@ -166,8 +167,14 @@ pub async fn audit_middleware(
 ) -> Response {
     let path = request.uri().path().to_string();
 
-    // Skip audit logging for non-sensitive paths
-    if path == "/health" || path == "/metrics" || path == "/api/health" {
+    // Skip audit logging for non-sensitive paths and non-API routes
+    if path == "/health"
+        || path == "/metrics"
+        || path == "/api/health"
+        || path == "/api/version"
+        || path == "/"
+        || !path.starts_with("/api/v1/")
+    {
         return next.run(request).await;
     }
 
@@ -239,22 +246,22 @@ mod tests {
     fn test_extract_entity_from_path() {
         // Test patient path with ID
         let (entity_type, entity_id) = extract_entity_from_path("/api/v1/patients/123");
-        assert_eq!(entity_type, Some("patients".to_string()));
+        assert_eq!(entity_type, "patients");
         assert_eq!(entity_id, Some("123".to_string()));
 
         // Test appointments path without ID
         let (entity_type, entity_id) = extract_entity_from_path("/api/v1/appointments");
-        assert_eq!(entity_type, Some("appointments".to_string()));
+        assert_eq!(entity_type, "appointments");
         assert_eq!(entity_id, None);
 
         // Test nested path
         let (entity_type, entity_id) = extract_entity_from_path("/api/v1/patients/123/visits");
-        assert_eq!(entity_type, Some("patients".to_string()));
+        assert_eq!(entity_type, "patients");
         assert_eq!(entity_id, Some("123".to_string()));
 
-        // Test health check path
+        // Test non-API path falls back to SYSTEM
         let (entity_type, entity_id) = extract_entity_from_path("/health");
-        assert_eq!(entity_type, None);
+        assert_eq!(entity_type, "SYSTEM");
         assert_eq!(entity_id, None);
     }
 
@@ -274,7 +281,7 @@ mod tests {
 
         assert_eq!(entry.user_id, Some(user_id));
         assert_eq!(entry.action, "GET /api/v1/patients/123");
-        assert_eq!(entry.entity_type, Some("patients".to_string()));
+        assert_eq!(entry.entity_type, "patients");
         assert_eq!(entry.entity_id, Some("123".to_string()));
         assert_eq!(entry.user_agent, Some("TestClient/1.0".to_string()));
         assert_eq!(entry.ip_address, ip_address);
@@ -291,7 +298,7 @@ mod tests {
         let entry = AuditLogEntry::from_request(&request, None, None);
 
         assert_eq!(entry.action, "POST /api/v1/patients");
-        assert_eq!(entry.entity_type, Some("patients".to_string()));
+        assert_eq!(entry.entity_type, "patients");
         assert_eq!(entry.entity_id, None);
     }
 
@@ -306,7 +313,7 @@ mod tests {
         let entry = AuditLogEntry::from_request(&request, None, None);
 
         assert_eq!(entry.action, "DELETE /api/v1/appointments/456");
-        assert_eq!(entry.entity_type, Some("appointments".to_string()));
+        assert_eq!(entry.entity_type, "appointments");
         assert_eq!(entry.entity_id, Some("456".to_string()));
     }
 

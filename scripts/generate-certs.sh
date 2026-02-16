@@ -2,8 +2,9 @@
 #
 # DocPat Certificate Generation Script
 #
-# Generates self-signed certificates for local development TLS/HTTPS.
-# Creates a local CA (Certificate Authority) and signs server certificates.
+# Generates TLS certificates for local development HTTPS.
+# Prefers mkcert (auto-trusted by browsers) when available,
+# falls back to manual OpenSSL CA + signing.
 #
 # Usage:
 #   ./scripts/generate-certs.sh           # Generate all certificates
@@ -13,8 +14,8 @@
 # Output structure:
 #   certs/
 #   ├── ca/
-#   │   ├── ca.crt           # CA certificate (add to browser/system trust)
-#   │   └── ca.key           # CA private key (keep secure)
+#   │   ├── ca.crt           # CA certificate (only with OpenSSL fallback)
+#   │   └── ca.key           # CA private key (only with OpenSSL fallback)
 #   ├── backend/
 #   │   ├── server.crt       # Backend server certificate
 #   │   └── server.key       # Backend server private key
@@ -35,7 +36,7 @@ CA_DIR="$CERTS_DIR/ca"
 BACKEND_DIR="$CERTS_DIR/backend"
 FRONTEND_DIR="$CERTS_DIR/frontend"
 
-# Certificate settings
+# Certificate settings (OpenSSL fallback only)
 CA_DAYS=3650          # CA valid for 10 years
 CERT_DAYS=365         # Server certs valid for 1 year
 KEY_SIZE=4096         # RSA key size (4096 for security)
@@ -75,16 +76,18 @@ show_help() {
     cat << EOF
 DocPat Certificate Generation Script
 
-Generates self-signed TLS certificates for local development.
+Generates TLS certificates for local development.
+Uses mkcert (recommended) when available, falls back to OpenSSL.
 
 Usage:
   $0 [OPTIONS]
 
 Options:
   --clean       Remove existing certificates and regenerate
-  --ca-only     Only generate CA certificate
-  --backend     Only generate backend certificate (requires CA)
-  --frontend    Only generate frontend certificate (requires CA)
+  --ca-only     Only generate CA certificate (OpenSSL fallback only)
+  --backend     Only generate backend certificate
+  --frontend    Only generate frontend certificate
+  --no-mkcert   Force OpenSSL mode even if mkcert is available
   --help, -h    Show this help message
 
 Examples:
@@ -92,32 +95,22 @@ Examples:
   $0 --clean            # Clean and regenerate all
   $0 --backend          # Regenerate only backend cert
 
-After generation:
-  1. For browsers to trust the certificates, import ca/ca.crt:
-     - Chrome: Settings > Privacy and Security > Security > Manage certificates
-     - Firefox: Settings > Privacy & Security > Certificates > View Certificates
-     - System-wide (Linux): sudo cp certs/ca/ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+With mkcert (recommended):
+  Certificates are automatically trusted by browsers.
+  Install mkcert: https://github.com/FiloSottile/mkcert
+    Arch Linux: pacman -S mkcert
+    macOS:      brew install mkcert
+    Ubuntu:     apt install mkcert
 
-  2. Set environment variables:
-     TLS_ENABLED=true
-     TLS_CERT_PATH=./certs/backend/server.crt
-     TLS_KEY_PATH=./certs/backend/server.key
-
-  3. For frontend (Vite), certificates are auto-configured via vite.config.ts
+Without mkcert (OpenSSL fallback):
+  After generation, you must manually trust the CA:
+  1. Import ca/ca.crt into your browser, or
+  2. System-wide (Linux):
+     sudo cp certs/ca/ca.crt /usr/local/share/ca-certificates/docpat-dev-ca.crt
+     sudo update-ca-certificates
 
 EOF
     exit 0
-}
-
-# Check if OpenSSL is installed
-check_openssl() {
-    if ! command -v openssl &> /dev/null; then
-        log_error "OpenSSL is not installed. Please install it first."
-        log_info "Ubuntu/Debian: sudo apt install openssl"
-        log_info "Arch Linux: sudo pacman -S openssl"
-        exit 1
-    fi
-    log_info "OpenSSL version: $(openssl version)"
 }
 
 # Create directory structure
@@ -138,9 +131,60 @@ create_directories() {
 # Ignore OpenSSL temp files
 *.srl
 *.csr
+# Ignore mkcert pem files
+*.pem
 EOF
 
     log_success "Directory structure created at $CERTS_DIR"
+}
+
+# ============================================
+# mkcert-based generation (preferred)
+# ============================================
+
+generate_with_mkcert() {
+    local target="$1"  # "all", "backend", or "frontend"
+
+    log_info "Using mkcert for certificate generation"
+    log_info "mkcert CA root: $(mkcert -CAROOT)"
+
+    # Ensure mkcert CA is installed in trust stores
+    mkcert -install 2>/dev/null || true
+
+    if [[ "$target" == "all" || "$target" == "backend" ]]; then
+        log_info "Generating backend certificate..."
+        mkcert -key-file "$BACKEND_DIR/server.key" \
+               -cert-file "$BACKEND_DIR/server.crt" \
+               localhost 127.0.0.1 ::1
+        chmod 600 "$BACKEND_DIR/server.key"
+        chmod 644 "$BACKEND_DIR/server.crt"
+        log_success "Backend certificate generated (trusted by browsers)"
+    fi
+
+    if [[ "$target" == "all" || "$target" == "frontend" ]]; then
+        log_info "Generating frontend certificate..."
+        mkcert -key-file "$FRONTEND_DIR/server.key" \
+               -cert-file "$FRONTEND_DIR/server.crt" \
+               localhost 127.0.0.1 ::1
+        chmod 600 "$FRONTEND_DIR/server.key"
+        chmod 644 "$FRONTEND_DIR/server.crt"
+        log_success "Frontend certificate generated (trusted by browsers)"
+    fi
+}
+
+# ============================================
+# OpenSSL-based generation (fallback)
+# ============================================
+
+# Check if OpenSSL is installed
+check_openssl() {
+    if ! command -v openssl &> /dev/null; then
+        log_error "OpenSSL is not installed. Please install it first."
+        log_info "Ubuntu/Debian: sudo apt install openssl"
+        log_info "Arch Linux: sudo pacman -S openssl"
+        exit 1
+    fi
+    log_info "OpenSSL version: $(openssl version)"
 }
 
 # Generate CA certificate
@@ -235,14 +279,27 @@ EOF
     log_success "$name certificate generated: $crt_file"
 }
 
-# Generate backend certificate
-generate_backend_cert() {
-    generate_server_cert "backend" "localhost" "$BACKEND_DIR"
-}
+generate_with_openssl() {
+    local target="$1"  # "all", "backend", "frontend", or "ca"
 
-# Generate frontend certificate
-generate_frontend_cert() {
-    generate_server_cert "frontend" "localhost" "$FRONTEND_DIR"
+    check_openssl
+
+    if [[ "$target" == "ca" ]]; then
+        generate_ca
+        return
+    fi
+
+    if [[ "$target" == "all" ]]; then
+        generate_ca
+    fi
+
+    if [[ "$target" == "all" || "$target" == "backend" ]]; then
+        generate_server_cert "backend" "localhost" "$BACKEND_DIR"
+    fi
+
+    if [[ "$target" == "all" || "$target" == "frontend" ]]; then
+        generate_server_cert "frontend" "localhost" "$FRONTEND_DIR"
+    fi
 }
 
 # Clean all certificates
@@ -254,41 +311,62 @@ clean_certs() {
 
 # Verify certificates
 verify_certs() {
+    local use_mkcert="$1"
+
     log_info "Verifying certificates..."
 
     local errors=0
 
-    if [[ -f "$CA_DIR/ca.crt" ]]; then
-        if openssl x509 -in "$CA_DIR/ca.crt" -noout -checkend 0 2>/dev/null; then
-            log_success "CA certificate is valid"
-            # Show expiry
-            local ca_expiry=$(openssl x509 -in "$CA_DIR/ca.crt" -noout -enddate | cut -d= -f2)
-            log_info "  Expires: $ca_expiry"
-        else
-            log_error "CA certificate is invalid or expired"
-            ((errors++))
-        fi
-    fi
+    if [[ "$use_mkcert" == "true" ]]; then
+        # mkcert certs are signed by the mkcert CA
+        local mkcert_ca="$(mkcert -CAROOT)/rootCA.pem"
 
-    if [[ -f "$BACKEND_DIR/server.crt" ]]; then
-        if openssl verify -CAfile "$CA_DIR/ca.crt" "$BACKEND_DIR/server.crt" &>/dev/null; then
-            log_success "Backend certificate is valid and signed by CA"
-            local be_expiry=$(openssl x509 -in "$BACKEND_DIR/server.crt" -noout -enddate | cut -d= -f2)
-            log_info "  Expires: $be_expiry"
-        else
-            log_error "Backend certificate verification failed"
-            ((errors++))
+        for dir_name in backend frontend; do
+            local crt_file="$CERTS_DIR/$dir_name/server.crt"
+            if [[ -f "$crt_file" ]]; then
+                if openssl verify -CAfile "$mkcert_ca" "$crt_file" &>/dev/null; then
+                    log_success "$dir_name certificate is valid (mkcert-signed, trusted by browsers)"
+                    local expiry=$(openssl x509 -in "$crt_file" -noout -enddate | cut -d= -f2)
+                    log_info "  Expires: $expiry"
+                else
+                    log_error "$dir_name certificate verification failed"
+                    ((errors++))
+                fi
+            fi
+        done
+    else
+        # OpenSSL fallback: verify against our custom CA
+        if [[ -f "$CA_DIR/ca.crt" ]]; then
+            if openssl x509 -in "$CA_DIR/ca.crt" -noout -checkend 0 2>/dev/null; then
+                log_success "CA certificate is valid"
+                local ca_expiry=$(openssl x509 -in "$CA_DIR/ca.crt" -noout -enddate | cut -d= -f2)
+                log_info "  Expires: $ca_expiry"
+            else
+                log_error "CA certificate is invalid or expired"
+                ((errors++))
+            fi
         fi
-    fi
 
-    if [[ -f "$FRONTEND_DIR/server.crt" ]]; then
-        if openssl verify -CAfile "$CA_DIR/ca.crt" "$FRONTEND_DIR/server.crt" &>/dev/null; then
-            log_success "Frontend certificate is valid and signed by CA"
-            local fe_expiry=$(openssl x509 -in "$FRONTEND_DIR/server.crt" -noout -enddate | cut -d= -f2)
-            log_info "  Expires: $fe_expiry"
-        else
-            log_error "Frontend certificate verification failed"
-            ((errors++))
+        if [[ -f "$BACKEND_DIR/server.crt" ]]; then
+            if openssl verify -CAfile "$CA_DIR/ca.crt" "$BACKEND_DIR/server.crt" &>/dev/null; then
+                log_success "Backend certificate is valid and signed by CA"
+                local be_expiry=$(openssl x509 -in "$BACKEND_DIR/server.crt" -noout -enddate | cut -d= -f2)
+                log_info "  Expires: $be_expiry"
+            else
+                log_error "Backend certificate verification failed"
+                ((errors++))
+            fi
+        fi
+
+        if [[ -f "$FRONTEND_DIR/server.crt" ]]; then
+            if openssl verify -CAfile "$CA_DIR/ca.crt" "$FRONTEND_DIR/server.crt" &>/dev/null; then
+                log_success "Frontend certificate is valid and signed by CA"
+                local fe_expiry=$(openssl x509 -in "$FRONTEND_DIR/server.crt" -noout -enddate | cut -d= -f2)
+                log_info "  Expires: $fe_expiry"
+            else
+                log_error "Frontend certificate verification failed"
+                ((errors++))
+            fi
         fi
     fi
 
@@ -297,6 +375,8 @@ verify_certs() {
 
 # Show summary
 show_summary() {
+    local use_mkcert="$1"
+
     echo ""
     echo "============================================"
     echo "  Certificate Generation Complete"
@@ -305,32 +385,32 @@ show_summary() {
     echo "Certificates location: $CERTS_DIR"
     echo ""
     echo "Files generated:"
-    echo "  - CA Certificate:       $CA_DIR/ca.crt"
-    echo "  - CA Private Key:       $CA_DIR/ca.key (KEEP SECURE!)"
+    if [[ "$use_mkcert" != "true" ]]; then
+        echo "  - CA Certificate:       $CA_DIR/ca.crt"
+        echo "  - CA Private Key:       $CA_DIR/ca.key (KEEP SECURE!)"
+    fi
     echo "  - Backend Certificate:  $BACKEND_DIR/server.crt"
     echo "  - Backend Key:          $BACKEND_DIR/server.key"
     echo "  - Frontend Certificate: $FRONTEND_DIR/server.crt"
     echo "  - Frontend Key:         $FRONTEND_DIR/server.key"
     echo ""
-    echo "Next steps:"
+
+    if [[ "$use_mkcert" == "true" ]]; then
+        echo "Generated with mkcert - certificates are automatically trusted"
+        echo "by your system and browsers (Firefox, Chrome/Chromium)."
+    else
+        echo "Generated with OpenSSL - you must manually trust the CA:"
+        echo ""
+        echo "  Option 1: Import $CA_DIR/ca.crt into your browser"
+        echo "  Option 2: System-wide (Linux):"
+        echo "    sudo cp $CA_DIR/ca.crt /usr/local/share/ca-certificates/docpat-dev-ca.crt"
+        echo "    sudo update-ca-certificates"
+    fi
+
     echo ""
-    echo "1. (Optional) Trust the CA certificate system-wide:"
-    echo "   Linux:"
-    echo "     sudo cp $CA_DIR/ca.crt /usr/local/share/ca-certificates/docpat-dev-ca.crt"
-    echo "     sudo update-ca-certificates"
-    echo ""
-    echo "2. Update backend .env file:"
-    echo "     TLS_ENABLED=true"
-    echo "     TLS_CERT_PATH=./certs/backend/server.crt"
-    echo "     TLS_KEY_PATH=./certs/backend/server.key"
-    echo ""
-    echo "3. Update CORS_ALLOWED_ORIGINS in .env to include https://localhost:5173"
-    echo ""
-    echo "4. Frontend Vite is auto-configured to use certificates"
-    echo ""
-    echo "5. Start the servers:"
-    echo "   Backend:  cd backend && RUST_LOG=info cargo run --bin docpat-backend --features \"rbac,report-export,pdf-export\""
-    echo "   Frontend: cd frontend && npm run dev"
+    echo "Start the servers:"
+    echo "  Backend:  cd backend && RUST_LOG=info cargo run --bin docpat-backend --features \"rbac,report-export,pdf-export\""
+    echo "  Frontend: cd frontend && npm run dev"
     echo ""
     echo "============================================"
 }
@@ -341,6 +421,7 @@ main() {
     local ca_only=false
     local backend_only=false
     local frontend_only=false
+    local force_no_mkcert=false
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -361,6 +442,10 @@ main() {
                 frontend_only=true
                 shift
                 ;;
+            --no-mkcert)
+                force_no_mkcert=true
+                shift
+                ;;
             --help|-h)
                 show_help
                 ;;
@@ -377,8 +462,17 @@ main() {
     echo "============================================"
     echo ""
 
-    # Check prerequisites
-    check_openssl
+    # Determine generation method
+    local use_mkcert=false
+    if [[ "$force_no_mkcert" != "true" ]] && command -v mkcert &> /dev/null; then
+        use_mkcert=true
+        log_info "mkcert detected - using mkcert for browser-trusted certificates"
+    else
+        log_info "Using OpenSSL for certificate generation"
+        if [[ "$force_no_mkcert" != "true" ]]; then
+            log_warn "Install mkcert for automatic browser trust: https://github.com/FiloSottile/mkcert"
+        fi
+    fi
 
     # Clean if requested
     if $clean; then
@@ -388,26 +482,34 @@ main() {
     # Create directories
     create_directories
 
-    # Generate certificates based on options
+    # Determine target
+    local target="all"
     if $ca_only; then
-        generate_ca
+        target="ca"
     elif $backend_only; then
-        generate_backend_cert
+        target="backend"
     elif $frontend_only; then
-        generate_frontend_cert
+        target="frontend"
+    fi
+
+    # Generate certificates
+    if [[ "$use_mkcert" == "true" ]]; then
+        if [[ "$target" == "ca" ]]; then
+            log_info "mkcert manages its own CA - nothing to do for --ca-only"
+            log_info "Run 'mkcert -install' to ensure the CA is trusted"
+        else
+            generate_with_mkcert "$target"
+        fi
     else
-        # Generate all
-        generate_ca
-        generate_backend_cert
-        generate_frontend_cert
+        generate_with_openssl "$target"
     fi
 
     # Verify
     echo ""
-    verify_certs
+    verify_certs "$use_mkcert"
 
     # Show summary
-    show_summary
+    show_summary "$use_mkcert"
 }
 
 # Run main

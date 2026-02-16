@@ -302,7 +302,7 @@ DATA_DIR=${DATA_DIR}
 BACKUP_DIR=${BACKUP_DIR}
 
 # Logging
-RUST_LOG=debug
+RUST_LOG=info
 
 # CORS (update with your domain if needed)
 CORS_ALLOWED_ORIGINS=https://localhost

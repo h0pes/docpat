@@ -21,7 +21,6 @@
 #   - Rust 1.90+
 #   - Node.js 20+
 #   - PostgreSQL 17+
-#   - Redis 7.2+
 #   - Docker and Docker Compose
 #
 ################################################################################
@@ -155,13 +154,6 @@ check_dependencies() {
         check_version "psql --version" "17.0"
     else
         missing_deps+=("PostgreSQL 17+")
-    fi
-
-    # Check Redis
-    if command_exists redis-cli; then
-        check_version "redis-cli --version" "7.2"
-    else
-        missing_deps+=("Redis 7.2+")
     fi
 
     # Check Docker
@@ -322,34 +314,6 @@ setup_postgresql() {
 }
 
 ################################################################################
-# Redis Setup
-################################################################################
-
-setup_redis() {
-    if $SKIP_DB; then
-        log_warn "Skipping Redis setup (--skip-db flag)"
-        return 0
-    fi
-
-    log_info "Setting up Redis..."
-
-    # Check if Redis is running
-    if ! sudo systemctl is-active --quiet redis; then
-        log_info "Starting Redis service..."
-        sudo systemctl start redis
-        sleep 1
-    fi
-
-    # Test Redis connection
-    if redis-cli ping >/dev/null 2>&1; then
-        log_success "Redis is running and accessible"
-    else
-        log_error "Redis is not accessible"
-        exit 1
-    fi
-}
-
-################################################################################
 # Backend Setup
 ################################################################################
 
@@ -360,7 +324,7 @@ setup_backend() {
 
     # Install dependencies
     log_info "Building backend dependencies (this may take a while on first run)..."
-    if cargo build; then
+    if cargo build --features "rbac,report-export,pdf-export"; then
         log_success "Backend dependencies installed"
     else
         log_error "Backend build failed"
@@ -369,7 +333,7 @@ setup_backend() {
 
     # Run tests
     log_info "Running backend tests..."
-    if cargo test --quiet; then
+    if cargo test --features "rbac,report-export,pdf-export" --quiet; then
         log_success "Backend tests passed"
     else
         log_warn "Some backend tests failed"
@@ -389,7 +353,7 @@ setup_frontend() {
 
     # Install dependencies
     log_info "Installing frontend dependencies (this may take a while)..."
-    if npm install --legacy-peer-deps; then
+    if npm ci; then
         log_success "Frontend dependencies installed"
     else
         log_error "Frontend dependency installation failed"
@@ -469,22 +433,19 @@ show_summary() {
     echo ""
     echo "   Terminal 1 - Backend:"
     echo "   $ cd backend"
-    echo "   $ cargo watch -x run"
+    echo '   $ RUST_LOG=info,tower_http=debug,docpat_backend=debug cargo run --bin docpat-backend --features "rbac,report-export,pdf-export"'
     echo ""
     echo "   Terminal 2 - Frontend:"
     echo "   $ cd frontend"
     echo "   $ npm run dev"
     echo ""
-    echo "   OR use Docker Compose:"
-    echo "   $ docker compose -f docker-compose.dev.yml up"
-    echo ""
     echo "3. Access the application:"
-    echo "   - Frontend: http://localhost:5173"
-    echo "   - Backend:  http://localhost:8000"
-    echo "   - API Docs: http://localhost:8000/api/health"
+    echo "   - Frontend: https://localhost:5173"
+    echo "   - Backend:  https://localhost:8000"
+    echo "   - Health:   https://localhost:8000/health"
     echo ""
     echo "4. Run tests:"
-    echo "   - Backend:  cd backend && cargo test"
+    echo '   - Backend:  cd backend && cargo test --features "rbac,report-export,pdf-export"'
     echo "   - Frontend: cd frontend && npm test"
     echo ""
     echo "For more information, see docs/PLANNING.md"
@@ -506,7 +467,6 @@ main() {
     check_dependencies
     setup_env_files
     setup_postgresql
-    setup_redis
     setup_backend
     setup_frontend
     setup_docker

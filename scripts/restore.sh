@@ -4,7 +4,8 @@
 # Medical Practice Management System - Backup Restoration Script
 ################################################################################
 #
-# This script restores encrypted backups of the DocPat database and files.
+# This script restores backups of the DocPat database and files.
+# Supports both Docker and local PostgreSQL deployment modes.
 # Implements disaster recovery procedures with safety checks.
 #
 # Usage:
@@ -19,12 +20,13 @@
 #   --force                        Skip confirmation prompts (DANGEROUS)
 #   --no-backup                    Skip creating restore point before restoration
 #   --verify-only                  Only verify backup integrity, don't restore
+#   --docker                       Force Docker mode
+#   --local                        Force local mode
 #   --config <path>                Use custom restoration configuration file
 #   --help                         Show this help message
 #
 # Environment Variables:
 #   BACKUP_DIR                     Base directory for backups (default: /var/backups/docpat)
-#   DATABASE_URL                   PostgreSQL connection string
 #   RESTORE_POINT_DIR              Directory for pre-restore backups (default: /var/backups/docpat/restore-points)
 #
 # Safety Features:
@@ -63,6 +65,7 @@ FILES_ONLY=false
 FORCE=false
 NO_BACKUP=false
 VERIFY_ONLY=false
+FORCE_MODE=""
 CONFIG_FILE=""
 BACKUP_TO_RESTORE=""
 
@@ -79,10 +82,18 @@ readonly TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 
 # Log file
 readonly LOG_DIR="$BACKUP_DIR/logs"
-readonly LOG_FILE="$LOG_DIR/restore_${TIMESTAMP}.log"
+LOG_FILE=""  # Set after mkdir
 
 # Temporary working directory
 TEMP_DIR=""
+
+# Deployment mode and DB credentials (set during load_configuration)
+DEPLOY_MODE=""
+DB_HOST=""
+DB_PORT=""
+DB_NAME=""
+DB_USER=""
+DB_PASS=""
 
 ################################################################################
 # Helper Functions
@@ -91,29 +102,29 @@ TEMP_DIR=""
 log_info() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [INFO] $1"
     echo -e "${BLUE}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_success() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [SUCCESS] $1"
     echo -e "${GREEN}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_warn() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [WARN] $1"
     echo -e "${YELLOW}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 log_error() {
     local msg="[$(date +'%Y-%m-%d %H:%M:%S')] [ERROR] $1"
     echo -e "${RED}$msg${NC}"
-    echo "$msg" >> "$LOG_FILE"
+    [ -n "$LOG_FILE" ] && echo "$msg" >> "$LOG_FILE"
 }
 
 show_help() {
-    sed -n '2,35p' "$0" | sed 's/^# //' | sed 's/^#//'
+    sed -n '2,39p' "$0" | sed 's/^# //' | sed 's/^#//'
     exit 0
 }
 
@@ -156,6 +167,14 @@ parse_args() {
                 VERIFY_ONLY=true
                 shift
                 ;;
+            --docker)
+                FORCE_MODE="docker"
+                shift
+                ;;
+            --local)
+                FORCE_MODE="local"
+                shift
+                ;;
             --config)
                 CONFIG_FILE="$2"
                 shift 2
@@ -173,6 +192,27 @@ parse_args() {
 }
 
 ################################################################################
+# Detect Deployment Mode
+################################################################################
+
+detect_mode() {
+    if [ -n "$FORCE_MODE" ]; then
+        echo "$FORCE_MODE"
+        return
+    fi
+
+    # Check if Docker containers are running
+    if docker compose -f "$PROJECT_ROOT/docker-compose.yml" ps --format json 2>/dev/null | grep -q "docpat-postgres"; then
+        echo "docker"
+    elif command -v psql &>/dev/null; then
+        echo "local"
+    else
+        log_error "Cannot detect mode: no Docker containers running and psql not found"
+        exit 2
+    fi
+}
+
+################################################################################
 # Configuration
 ################################################################################
 
@@ -182,6 +222,7 @@ load_configuration() {
     # Create log directory if it doesn't exist
     mkdir -p "$LOG_DIR"
     chmod 700 "$LOG_DIR"
+    LOG_FILE="$LOG_DIR/restore_${TIMESTAMP}.log"
 
     # Load custom config if specified
     if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
@@ -190,31 +231,50 @@ load_configuration() {
         source "$CONFIG_FILE"
     fi
 
-    # Load environment from .env file
-    if [ -f "$PROJECT_ROOT/.env" ]; then
-        # shellcheck source=/dev/null
-        source "$PROJECT_ROOT/.env"
+    # Detect deployment mode
+    DEPLOY_MODE=$(detect_mode)
+    log_info "Deployment mode: $DEPLOY_MODE"
+
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # Docker mode: read credentials from root .env
+        if [ -f "$PROJECT_ROOT/.env" ]; then
+            set -a
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/.env"
+            set +a
+        fi
+        DB_USER="${POSTGRES_USER:-mpms_user}"
+        DB_NAME="${POSTGRES_DB:-mpms_prod}"
+        DB_PASS="${POSTGRES_PASSWORD:-}"
+        DB_HOST="postgres"
+        DB_PORT="5432"
+    else
+        # Local mode: read from backend/.env or root .env
+        if [ -f "$PROJECT_ROOT/.env" ]; then
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/.env"
+        fi
+        if [ -f "$PROJECT_ROOT/backend/.env" ]; then
+            # shellcheck source=/dev/null
+            source "$PROJECT_ROOT/backend/.env"
+        fi
+
+        if [ -n "${DATABASE_URL:-}" ]; then
+            DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
+            DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
+            DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+            DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
+            DB_PASS=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
+        else
+            DB_HOST="localhost"
+            DB_PORT="5432"
+            DB_NAME="mpms_dev"
+            DB_USER="mpms_user"
+            DB_PASS="${POSTGRES_PASSWORD:-dev_password_change_in_production}"
+        fi
     fi
 
-    if [ -f "$PROJECT_ROOT/backend/.env" ]; then
-        # shellcheck source=/dev/null
-        source "$PROJECT_ROOT/backend/.env"
-    fi
-
-    # Validate DATABASE_URL
-    if [ -z "${DATABASE_URL:-}" ]; then
-        log_error "DATABASE_URL not set. Please configure in backend/.env"
-        exit 2
-    fi
-
-    # Extract database connection details
-    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:]*\):.*|\1|p')
-    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's|.*:\([0-9]*\)/.*|\1|p')
-    DB_NAME=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-    DB_USER=$(echo "$DATABASE_URL" | sed -n 's|.*://\([^:]*\):.*|\1|p')
-    DB_PASS=$(echo "$DATABASE_URL" | sed -n 's|.*://[^:]*:\([^@]*\)@.*|\1|p')
-
-    log_success "Configuration loaded successfully"
+    log_success "Configuration loaded (mode=$DEPLOY_MODE, db=$DB_NAME)"
 }
 
 ################################################################################
@@ -239,20 +299,25 @@ list_available_backups() {
             continue
         fi
 
-        local backup_count=$(ls -1d "$backup_path"/backup_* 2>/dev/null | wc -l)
+        local backup_count
+        backup_count=$(ls -1d "$backup_path"/backup_* 2>/dev/null | wc -l)
 
         if [ "$backup_count" -eq 0 ]; then
             continue
         fi
 
         echo "${type^^} BACKUPS:"
-        echo "──────────────────────────────────────"
+        echo "--------------------------------------"
 
         ls -1dt "$backup_path"/backup_* | while read -r backup_dir; do
-            local backup_name=$(basename "$backup_dir")
-            local backup_size=$(du -sh "$backup_dir" 2>/dev/null | cut -f1)
-            local backup_date=$(stat -c %y "$backup_dir" | cut -d' ' -f1,2 | cut -d'.' -f1)
-            local file_count=$(ls -1 "$backup_dir" 2>/dev/null | wc -l)
+            local backup_name
+            backup_name=$(basename "$backup_dir")
+            local backup_size
+            backup_size=$(du -sh "$backup_dir" 2>/dev/null | cut -f1)
+            local backup_date
+            backup_date=$(stat -c %y "$backup_dir" | cut -d' ' -f1,2 | cut -d'.' -f1)
+            local file_count
+            file_count=$(ls -1 "$backup_dir" 2>/dev/null | wc -l)
 
             echo "  $backup_name"
             echo "    Date:  $backup_date"
@@ -261,9 +326,9 @@ list_available_backups() {
 
             # Check if MANIFEST exists
             if [ -f "$backup_dir/MANIFEST.txt" ]; then
-                echo "    Status: ✓ Complete"
+                echo "    Status: Complete"
             else
-                echo "    Status: ⚠ Incomplete (missing manifest)"
+                echo "    Status: Incomplete (missing manifest)"
             fi
 
             echo ""
@@ -302,7 +367,8 @@ verify_backup_integrity() {
     for checksum_file in "$backup_dir"/*.sha256; do
         if [ -f "$checksum_file" ]; then
             checksum_count=$((checksum_count + 1))
-            local original_file=$(basename "$checksum_file" .sha256)
+            local original_file
+            original_file=$(basename "$checksum_file" .sha256)
 
             log_info "Verifying checksum for: $original_file"
 
@@ -363,7 +429,8 @@ decrypt_backup() {
         fi
 
         gpg_count=$((gpg_count + 1))
-        local filename=$(basename "$gpg_file" .gpg)
+        local filename
+        filename=$(basename "$gpg_file" .gpg)
 
         log_info "Decrypting: $filename"
 
@@ -413,17 +480,33 @@ create_restore_point() {
     # Backup current database
     if ! $FILES_ONLY; then
         log_info "Backing up current database..."
-        export PGPASSWORD="$DB_PASS"
-        if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-            --format=custom \
-            --compress=9 \
-            --file="$restore_point/database_pre_restore.sql" 2>&1 | tee -a "$LOG_FILE"; then
-            log_success "Database restore point created"
+
+        if [ "$DEPLOY_MODE" = "docker" ]; then
+            # Docker mode
+            if docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+                pg_dump -U "$DB_USER" -d "$DB_NAME" \
+                --format=custom \
+                --compress=9 2>&1 > "$restore_point/database_pre_restore.sql" | tee -a "$LOG_FILE"; then
+                log_success "Database restore point created"
+            else
+                log_error "Failed to create database restore point"
+                exit 5
+            fi
         else
-            log_error "Failed to create database restore point"
-            exit 5
+            # Local mode
+            export PGPASSWORD="$DB_PASS"
+            if pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+                --format=custom \
+                --compress=9 \
+                --file="$restore_point/database_pre_restore.sql" 2>&1 | tee -a "$LOG_FILE"; then
+                log_success "Database restore point created"
+            else
+                log_error "Failed to create database restore point"
+                unset PGPASSWORD
+                exit 5
+            fi
+            unset PGPASSWORD
         fi
-        unset PGPASSWORD
     fi
 
     log_success "Restore point created: $restore_point"
@@ -442,7 +525,8 @@ restore_database() {
     log_info "Restoring database..."
 
     # Find database backup file
-    local db_backup=$(find "$TEMP_DIR" -name "database_*.sql" -type f | head -n 1)
+    local db_backup
+    db_backup=$(find "$TEMP_DIR" -name "database_*.sql" -type f | head -n 1)
 
     if [ -z "$db_backup" ]; then
         log_error "Database backup file not found in: $TEMP_DIR"
@@ -463,33 +547,64 @@ restore_database() {
         fi
     fi
 
-    # Drop and recreate database
-    log_info "Dropping and recreating database: $DB_NAME"
-    export PGPASSWORD="$DB_PASS"
+    if [ "$DEPLOY_MODE" = "docker" ]; then
+        # Docker mode: terminate connections and restore via docker compose exec
+        log_info "Terminating existing connections..."
+        docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+            psql -U "$DB_USER" -d postgres -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();" \
+            2>&1 | tee -a "$LOG_FILE" || true
 
-    # Terminate existing connections
-    sudo -u postgres psql -c "
-        SELECT pg_terminate_backend(pid)
-        FROM pg_stat_activity
-        WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();
-    " 2>&1 | tee -a "$LOG_FILE"
+        log_info "Dropping and recreating database: $DB_NAME"
+        docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+            psql -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" \
+            2>&1 | tee -a "$LOG_FILE"
+        docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+            psql -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" \
+            2>&1 | tee -a "$LOG_FILE"
 
-    # Drop and recreate
-    sudo -u postgres psql -c "DROP DATABASE IF EXISTS $DB_NAME;" 2>&1 | tee -a "$LOG_FILE"
-    sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" 2>&1 | tee -a "$LOG_FILE"
-
-    # Restore from backup
-    log_info "Restoring database from backup..."
-    if pg_restore -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
-        --verbose \
-        "$db_backup" 2>&1 | tee -a "$LOG_FILE"; then
-        log_success "Database restored successfully"
+        # Copy backup to container and restore
+        log_info "Restoring database from backup..."
+        docker cp "$db_backup" docpat-postgres:/tmp/restore_db.sql
+        if docker compose -f "$PROJECT_ROOT/docker-compose.yml" exec -T postgres \
+            pg_restore -U "$DB_USER" -d "$DB_NAME" --verbose /tmp/restore_db.sql \
+            2>&1 | tee -a "$LOG_FILE"; then
+            log_success "Database restored successfully"
+        else
+            log_error "Database restoration failed"
+            log_error "You can recover from the restore point in: $RESTORE_POINT_DIR"
+            exit 5
+        fi
     else
-        log_error "Database restoration failed"
-        log_error "You can recover from the restore point in: $RESTORE_POINT_DIR"
-        exit 5
+        # Local mode: use psql/pg_restore directly
+        export PGPASSWORD="$DB_PASS"
+
+        # Terminate existing connections
+        log_info "Terminating existing connections..."
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c \
+            "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();" \
+            2>&1 | tee -a "$LOG_FILE" || true
+
+        # Drop and recreate
+        log_info "Dropping and recreating database: $DB_NAME"
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" \
+            2>&1 | tee -a "$LOG_FILE"
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" \
+            2>&1 | tee -a "$LOG_FILE"
+
+        # Restore from backup
+        log_info "Restoring database from backup..."
+        if pg_restore -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            --verbose \
+            "$db_backup" 2>&1 | tee -a "$LOG_FILE"; then
+            log_success "Database restored successfully"
+        else
+            log_error "Database restoration failed"
+            log_error "You can recover from the restore point in: $RESTORE_POINT_DIR"
+            exit 5
+        fi
+        unset PGPASSWORD
     fi
-    unset PGPASSWORD
 }
 
 ################################################################################
@@ -505,7 +620,8 @@ restore_files() {
     log_info "Restoring files..."
 
     # Find file backup
-    local files_backup=$(find "$TEMP_DIR" -name "files_*.tar.gz" -type f | head -n 1)
+    local files_backup
+    files_backup=$(find "$TEMP_DIR" -name "files_*.tar.gz" -type f | head -n 1)
 
     if [ -z "$files_backup" ]; then
         log_error "File backup not found in: $TEMP_DIR"
